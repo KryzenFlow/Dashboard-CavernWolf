@@ -1,0 +1,11 @@
+{
+  "name": "cavernwolf-hermes-studio-frontend",
+  "version": "0.1.0",
+  "private": true,
+  "description": "Static Hermes Studio dashboard — GitHub Pages or local static serve",
+  "scripts": {
+    "dev": "npx --yes serve . -p 3000",
+    "build": "node -e \"const fs=require('fs');fs.mkdirSync('dist',{recursive:true});['index.html','styles.css','script.js'].forEach(f=>fs.copyFileSync(f,'dist/'+f));console.log('Built frontend/dist/')\"",
+    "preview": "npx --yes serve dist -p 3000"
+  }
+}

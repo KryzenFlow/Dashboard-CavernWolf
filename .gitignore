@@ -1,0 +1,19 @@
+node_modules/
+__pycache__/
+*.py[cod]
+.venv/
+venv/
+.env
+.env.local
+frontend/dist/
+*.log
+.DS_Store
+Thumbs.db
+
+# Clinic PHI / credentials
+**/clinic-schemas/production/
+**/cloud-creds.env
+*.roachdump
+*.sql.backup
+audit-log-exports/
+clinic/cockroach-sandbox/test-data/

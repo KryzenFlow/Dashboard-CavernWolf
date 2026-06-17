@@ -1,0 +1,21 @@
+version: "3.8"
+
+services:
+  clawhub-cockroach-sandbox:
+    image: cockroachdb/cockroach:latest
+    container_name: clawhub-cockroach-test
+    command: start-single-node --insecure
+    environment:
+      COCKROACH_DATABASE: mock_test_clinic
+    volumes:
+      - ./cockroach-sandbox/test-data:/cockroach/cockroach-data
+    ports:
+      - "26257:26257"
+      - "8080:8080"
+    networks:
+      - clawhub-local-net
+    restart: "no"
+
+networks:
+  clawhub-local-net:
+    driver: bridge
