@@ -1,29 +1,199 @@
-version: "3.8"
-
 services:
+  hermes-studio:
+    image: node:20-alpine
+    container_name: hermes-studio
+    working_dir: /workspace
+    ports:
+      - "3000:3000"
+    environment:
+      - NODE_ENV=development
+      - API_URL=http://backend:8000
+    volumes:
+      - ./frontend:/workspace
+      - ./shared:/shared
+    command: sh -c "npm run dev"
+    networks:
+      - ai_net
+    depends_on:
+      - backend
+
+  ops-studio:
+    image: node:20-alpine
+    container_name: ops-studio
+    working_dir: /workspace
+    ports:
+      - "3001:3001"
+    environment:
+      - OPS_API_BASE=http://localhost:8000
+    volumes:
+      - ./ops_dashboard:/workspace
+    command: sh -c "npx --yes serve -l 3001"
+    networks:
+      - ai_net
+    depends_on:
+      - backend
+
   backend:
     build:
       context: ./backend
       dockerfile: Dockerfile
+    container_name: ai-backend
+    command: uvicorn main:app --host 0.0.0.0 --port 8000 --reload
     ports:
       - "8000:8000"
+    env_file:
+      - .env
     environment:
-      - HERMES_MOCK=1
+      - PYTHONUNBUFFERED=1
+      - LLM_PROVIDER=mock
+      - LLAMA_URL=http://llama-service:8080
+      - MEMORY_DB_URL=sqlite:////data/memory.db
+      - CLAW_URL=http://agent-claw:9000
+      - REDIS_URL=redis://redis:6379/0
+      - CHROMA_URL=http://chroma:8000
+      - GIT_REPO_ROOT=/repo
+      - SOUL_MD_PATH=/repo/SOUL.md
+      - AGENT_STACK_ENABLED=1
+      - HERMES_MOCK=0
       - HERMES_HOME=/data/hermes
-      - CORS_ORIGINS=http://localhost:3000,http://127.0.0.1:3000
+      - CORS_ORIGINS=http://localhost:3000,http://127.0.0.1:3000,http://localhost:3001
+      - RESEARCH_DB_URL=sqlite:////data/research.db
+      - HERMES_CLI_BRIDGE=claw
+      - DEPLOY_PROFILE=static-export
+      - AGENT_STACK_USE_AI=0
+      - STUDIO_MODE=public
+      - ACTIVE_BLEED=local-services
+      - BLEED_MANIFEST_PATH=/shared/workflows/bleed-manifest.yaml
+      - DEPLOY_PROFILES_PATH=/shared/workflows/deploy-profiles.yaml
     volumes:
+      - ./backend:/app
+      - ./data:/data
+      - ./shared:/shared
+      - ./models:/models:ro
+      - .:/repo
       - hermes-data:/data/hermes
-
-  frontend:
-    image: node:20-alpine
-    working_dir: /app
-    volumes:
-      - ./frontend:/app
-    ports:
-      - "3000:3000"
-    command: sh -c "npm run dev"
+    networks:
+      - ai_net
     depends_on:
-      - backend
+      - agent-claw
+      - llama-service
+      - redis
+      - chroma
+
+  agent-claw:
+    build:
+      context: ./agent_claw
+      dockerfile: Dockerfile
+    container_name: agent-claw
+    ports:
+      - "9000:9000"
+    env_file:
+      - .env
+    environment:
+      - PYTHONUNBUFFERED=1
+      - BACKEND_URL=http://backend:8000
+      - DEV_TOOLS_WORKSPACE=/shared/workflows
+      - TEMPLATES_DIR=/templates
+      - GIT_REPO_ROOT=/repo
+      - GIT_AUTHOR_NAME=Agent Claw
+      - GIT_AUTHOR_EMAIL=claw@hermes.local
+      - DEPLOY_PROFILES_PATH=/shared/workflows/deploy-profiles.yaml
+    volumes:
+      - ./agent_claw:/app
+      - ./shared:/shared
+      - ./templates:/templates:ro
+      - ./frontend:/workspace/frontend
+      - .:/repo
+      - .:/repo
+      - /var/run/docker.sock:/var/run/docker.sock
+    networks:
+      - ai_net
+
+  llama-service:
+    build:
+      context: ./llama_stub
+      dockerfile: Dockerfile
+    container_name: llama-service
+    ports:
+      - "8080:8080"
+    networks:
+      - ai_net
+
+  llama-cpp:
+    image: ghcr.io/ggerganov/llama.cpp:server
+    container_name: llama-cpp
+    profiles:
+      - llama-local
+    ports:
+      - "8081:8080"
+    volumes:
+      - ./models:/models:ro
+    command:
+      - --model
+      - /models/llama-7b.Q4_K_M.gguf
+      - --host
+      - "0.0.0.0"
+      - --port
+      - "8080"
+    networks:
+      - ai_net
+
+  ollama:
+    image: ollama/ollama:latest
+    container_name: ollama
+    profiles:
+      - ollama
+    volumes:
+      - ollama-data:/root/.ollama
+    networks:
+      - ai_net
+
+  redis:
+    image: redis:7-alpine
+    volumes:
+      - stm-data:/data
+    networks:
+      - ai_net
+
+  chroma:
+    image: chromadb/chroma:latest
+    environment:
+      - IS_PERSISTENT=TRUE
+    volumes:
+      - ltm-data:/chroma/chroma
+    networks:
+      - ai_net
+
+  dev-tools:
+    build:
+      context: .
+      dockerfile: dev-tools/Dockerfile
+    container_name: dev-tools
+    working_dir: /workspace
+    tty: true
+    stdin_open: true
+    env_file:
+      - .env
+    environment:
+      - CLAW_URL=http://agent-claw:9000
+      - BACKEND_URL=http://backend:8000
+      - DEV_TOOLS_WORKSPACE=/workspace
+    volumes:
+      - ./shared/workflows:/workspace
+      - ./templates:/workspace/templates:ro
+      - ./shared:/shared
+      - ./hermes_cli:/opt/hermes_cli
+      - /var/run/docker.sock:/var/run/docker.sock
+    networks:
+      - ai_net
+    command: sleep infinity
+
+networks:
+  ai_net:
+    driver: bridge
 
 volumes:
   hermes-data:
+  stm-data:
+  ltm-data:
+  ollama-data:

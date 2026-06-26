@@ -1,0 +1,110 @@
+# Switch target vertical without code changes:
+#   ACTIVE_BLEED=doctors   (in .env on your private Ops machine)
+# Public Studio only shows bleeds with public: true.
+
+default_bleed: doctors
+
+quick_actions:
+  - id: new-site
+    label: "New site"
+    command: new
+    args: ["site", "--template", "{{template}}", "--name", "{{project}}"]
+  - id: deploy-static
+    label: "Static export"
+    command: deploy
+    args: ["static", "--name", "{{project}}"]
+  - id: deploy-github
+    label: "GitHub Pages"
+    command: deploy
+    args: ["github", "--name", "{{project}}"]
+  - id: deploy-docker
+    label: "Docker package"
+    command: deploy
+    args: ["docker", "--name", "{{project}}"]
+  - id: ai-suggest
+    label: "AI suggest template"
+    command: ai
+    args: ["suggest-template", "--industry", "{{industry}}"]
+  - id: ai-content
+    label: "AI generate content"
+    command: ai
+    args: ["generate-content", "--topic", "{{content_topic}}", "--name", "{{project}}"]
+
+bleeds:
+  local-services:
+    label: "Local services"
+    public: true
+    industry: "local home services"
+    template: landing-page
+    deploy_profile: static-export
+    content_topic: "trusted local contractor"
+    description: "General local contractors and home services."
+    seo_focus: "local service SEO, trust signals"
+    email_tone: "friendly, professional"
+
+  doctors:
+    label: "Doctors & clinics"
+    public: false
+    industry: "healthcare clinics"
+    template: landing-page
+    deploy_profile: static-export
+    content_topic: "patient-centered care"
+    description: >
+      Independent doctors and small clinics losing patients to larger hospital networks.
+    pain_points:
+      - "Low local search visibility"
+      - "Poor website conversion"
+      - "No automated follow-up"
+    seo_focus: "local clinic SEO, patient booking optimization"
+    email_tone: "professional, empathetic"
+    pitch: "HIPAA-safe marketing — no PHI on your stack"
+
+  saas:
+    label: "SaaS B2B"
+    public: false
+    industry: "B2B software"
+    template: landing-page
+    deploy_profile: github-pages
+    content_topic: "workflow automation ROI"
+    description: >
+      Mid-market SaaS companies losing leads due to poor onboarding and churn.
+    pain_points:
+      - "Weak trial-to-paid conversion"
+      - "Low feature adoption"
+      - "Poor customer success follow-up"
+    seo_focus: "B2B SaaS growth, onboarding optimization"
+    email_tone: "data-driven, persuasive"
+    pitch: "Bleed-focused landing pages + reversible deploy"
+
+  auto_repair:
+    label: "Auto repair"
+    public: false
+    industry: "automotive repair"
+    template: landing-page
+    deploy_profile: static-export
+    content_topic: "honest repair estimates"
+    description: >
+      Independent auto repair shops losing customers to dealership service centers.
+    pain_points:
+      - "Low online visibility"
+      - "No appointment booking"
+      - "Poor customer retention"
+    seo_focus: "local auto repair SEO, appointment booking"
+    email_tone: "friendly, trustworthy"
+    notes: "Future hook for sound/AR diagnostics — backend stays internal"
+
+  real-estate:
+    label: "Real estate"
+    public: false
+    industry: "residential real estate"
+    template: landing-page
+    deploy_profile: static-export
+    content_topic: "neighborhood market expertise"
+    description: "Independent agents competing with national portals."
+    pain_points:
+      - "Weak local landing pages"
+      - "No lead nurture automation"
+      - "Poor mobile experience"
+    seo_focus: "hyperlocal real estate SEO, neighborhood pages"
+    email_tone: "warm, consultative"
+    pitch: "ZIP-level bleed pages without portal fees"

@@ -1,0 +1,8 @@
+{
+  "name": "hermes-react-app",
+  "version": "0.1.0",
+  "private": true,
+  "scripts": {
+    "build": "node -e \"const fs=require('fs');fs.mkdirSync('dist',{recursive:true});fs.writeFileSync('dist/index.html','<html><body><h1>React app placeholder build</h1></body></html>')\""
+  }
+}

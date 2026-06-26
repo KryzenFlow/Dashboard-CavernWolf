@@ -1,0 +1,43 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Hermes Agent Ops — Internal</title>
+  <link rel="stylesheet" href="styles.css">
+</head>
+<body>
+  <div class="ops-app">
+    <header>
+      <h1>Agent Ops</h1>
+      <span class="badge">Internal — STUDIO_MODE=internal</span>
+      <span id="ops-status" class="status">Connecting…</span>
+    </header>
+
+    <section class="card">
+      <h2>Target bleed</h2>
+      <select id="ops-bleed"></select>
+      <p id="ops-description" class="muted"></p>
+      <ul id="ops-pains"></ul>
+    </section>
+
+    <section class="card">
+      <h2>LocalRankAI — SEO plan</h2>
+      <label>ZIP <input id="ops-zip" type="text" placeholder="90210" value="90210" /></label>
+      <label>Map data (JSON array)
+        <textarea id="ops-map" rows="3">[12, 8, 15, 22, 9]</textarea>
+      </label>
+      <button id="btn-seo" type="button">Get SEO plan + emails</button>
+      <pre id="ops-seo-output">Ready.</pre>
+    </section>
+
+    <section class="card">
+      <h2>Research job queue</h2>
+      <p class="muted">Agents on your other machine poll <code>POST /ops/jobs/claim</code></p>
+      <button id="btn-refresh-jobs" type="button">Refresh jobs</button>
+      <ul id="ops-jobs"></ul>
+    </section>
+  </div>
+  <script src="script.js"></script>
+</body>
+</html>

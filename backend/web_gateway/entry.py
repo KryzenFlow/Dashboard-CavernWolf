@@ -15,8 +15,7 @@ def main() -> None:
     host = os.environ.get("HOST", "0.0.0.0")
     reload = os.environ.get("RELOAD", "0") == "1"
     uvicorn.run(
-        "web_gateway.app:create_app",
-        factory=True,
+        "main:app",
         host=host,
         port=port,
         reload=reload,

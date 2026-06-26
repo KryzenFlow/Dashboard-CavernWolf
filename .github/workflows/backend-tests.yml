@@ -1,0 +1,35 @@
+name: Backend Tests
+
+on:
+  push:
+    branches: [main]
+  pull_request:
+    branches: [main]
+
+jobs:
+  test:
+    runs-on: ubuntu-latest
+    defaults:
+      run:
+        working-directory: backend
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-python@v5
+        with:
+          python-version: "3.11"
+
+      - name: Install dependencies
+        run: pip install -r requirements.txt pytest
+
+      - name: Compile check
+        run: |
+          python -m compileall .
+          python -m compileall ../agent_claw
+
+      - name: Run tests
+        env:
+          MEMORY_DB_URL: sqlite:///:memory:
+          AGENT_STACK_ENABLED: "0"
+          LLM_PROVIDER: mock
+        run: pytest tests/ -q

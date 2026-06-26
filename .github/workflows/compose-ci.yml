@@ -1,0 +1,25 @@
+name: Compose CI
+
+on:
+  push:
+    branches: [main]
+  pull_request:
+    branches: [main]
+
+jobs:
+  validate:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Create .env from example
+        run: cp .env.example .env
+
+      - name: Validate compose config
+        run: |
+          docker compose config
+          docker compose --profile llama-local config
+          docker compose --profile ollama config
+
+      - name: Build services
+        run: docker compose build backend agent-claw llama-service

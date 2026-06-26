@@ -20,6 +20,7 @@ _log = logging.getLogger(__name__)
 HERMES_HOME = Path(os.environ.get("HERMES_HOME", Path.home() / ".hermes"))
 SKILLS_DIR = HERMES_HOME / "skills"
 MOCK_MODE = os.environ.get("HERMES_MOCK", "1") == "1"
+AGENT_STACK_ENABLED = os.environ.get("AGENT_STACK_ENABLED", "0") == "1"
 
 active_connections: set[WebSocket] = set()
 sessions: dict[str, dict[str, Any]] = {}
@@ -122,11 +123,23 @@ async def handle_rpc(msg: dict[str, Any], websocket: WebSocket) -> dict[str, Any
             )
         )
 
-        reply = (
-            f"[Mock Hermes] Received: {text[:200]}"
-            if MOCK_MODE
-            else "Message queued for Hermes agent."
-        )
+        if text.strip().lower().startswith("/build"):
+            reply = await _handle_build_action()
+        elif os.environ.get("STUDIO_MODE", "public").lower() == "internal" and AGENT_STACK_ENABLED and os.environ.get("AGENT_STACK_USE_AI", "0") == "1":
+            reply = await asyncio.to_thread(_agent_reason, text, sid)
+        elif os.environ.get("STUDIO_MODE", "public").lower() == "internal" and AGENT_STACK_ENABLED:
+            from agents.reasoning.engine import query_llama
+            reply = await asyncio.to_thread(query_llama, text)
+        elif MOCK_MODE:
+            reply = (
+                f"[Hermes Studio] Use Projects → Quick Actions for scaffold/deploy. "
+                f"You said: {text[:120]}"
+            )
+        else:
+            reply = (
+                "Public Hermes Studio — open the Projects tab for Quick Actions "
+                "(new site, deploy static/github/docker, AI template suggestions)."
+            )
         for chunk in _chunk_text(reply, 24):
             await asyncio.sleep(0.05)
             await websocket.send_text(
@@ -162,3 +175,36 @@ async def handle_rpc(msg: dict[str, Any], websocket: WebSocket) -> dict[str, Any
 
 def _chunk_text(text: str, size: int) -> list[str]:
     return [text[i : i + size] for i in range(0, len(text), size)]
+
+
+def _agent_reason(text: str, session_id: str) -> str:
+    from agents.orchestration.pipeline import run_pipeline
+
+    try:
+        result = run_pipeline(text, session_id)
+        return result.get("decision", "")
+    except Exception as exc:
+        _log.exception("Agent reasoning failed")
+        return f"[Agent error] {exc}"
+
+
+async def _handle_build_action() -> str:
+    import requests
+
+    claw_url = os.environ.get("CLAW_URL", "http://agent-claw:9000")
+    try:
+        resp = await asyncio.to_thread(
+            requests.post,
+            f"{claw_url}/execute",
+            json={
+                "action": "build_website",
+                "params": {"template": "static-site", "output_dir": "/shared/workflows/site"},
+            },
+            timeout=120,
+        )
+        data = resp.json()
+        if data.get("error"):
+            return f"Build failed: {data['error']}"
+        return f"Website built at {data.get('path', '/shared/workflows/site')}"
+    except Exception as exc:
+        return f"Build failed: {exc}"

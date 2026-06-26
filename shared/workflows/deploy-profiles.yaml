@@ -1,0 +1,98 @@
+# Reversible deploy profiles — switch with DEPLOY_PROFILE in .env (no code changes).
+# Studio / hermes-cli / Agent Claw read this file. Token-based steps skip gracefully if env vars are unset.
+
+default_profile: static-export
+
+profiles:
+  static-export:
+    label: "Static export (Namecheap / any host)"
+    description: Build site folder + zip for FTP upload. No API tokens required.
+    requires_env: []
+    steps:
+      - action: build_website
+        params:
+          output_dir: "/shared/workflows/{project}"
+      - action: export_static_zip
+        params:
+          site_dir: "/shared/workflows/{project}"
+
+  github-pages:
+    label: "GitHub Pages"
+    description: Push site to gh-pages branch. Optional GITHUB_TOKEN in .env.
+    requires_env: []
+    steps:
+      - action: build_website
+        params:
+          output_dir: "/shared/workflows/{project}"
+      - action: deploy_github_pages
+        params:
+          site_dir: "/shared/workflows/{project}"
+
+  railway:
+    label: "Railway"
+    description: Deploy with Railway CLI. Set RAILWAY_TOKEN in .env.
+    requires_env:
+      - RAILWAY_TOKEN
+    steps:
+      - action: build_website
+        params:
+          output_dir: "/shared/workflows/{project}"
+      - action: deploy_railway
+        params:
+          project_dir: "/shared/workflows/{project}"
+
+  azure-static:
+    label: "Azure Static Web / Blob"
+    description: Upload to Azure Storage. Set AZURE_STORAGE_CONNECTION_STRING in .env.
+    requires_env:
+      - AZURE_STORAGE_CONNECTION_STRING
+    steps:
+      - action: build_website
+        params:
+          output_dir: "/shared/workflows/{project}"
+      - action: deploy_azure_static
+        params:
+          site_dir: "/shared/workflows/{project}"
+          container: "$web"
+
+  docker:
+    label: "Docker image"
+    description: Package as local Docker image for Railway/Azure Container Apps/etc.
+    requires_env: []
+    steps:
+      - action: build_website
+        params:
+          output_dir: "/shared/workflows/{project}"
+      - action: package_docker_app
+        params:
+          app_dir: "/shared/workflows/{project}"
+          image_name: "customer/{project}:latest"
+
+  cockroach-sandbox:
+    label: "CockroachDB sandbox (local)"
+    description: Start clinic Cockroach sandbox — no cloud token.
+    requires_env: []
+    steps:
+      - action: start_cockroach_sandbox
+        params: {}
+
+# Allowed hermes-cli subcommands for POST /studio/cli/run (no shell injection)
+# Public Studio enforces studio_security.PUBLIC_ALLOWED_COMMANDS in code.
+cli_allowlist:
+  - "new site"
+  - "new app"
+  - "deploy github"
+  - "deploy docker"
+  - "deploy static"
+  - "ai suggest-template"
+  - "ai generate-content"
+
+public_deploy_profiles:
+  - static-export
+  - github-pages
+  - docker
+
+internal_deploy_profiles:
+  - railway
+  - azure-static
+  - cockroach-sandbox

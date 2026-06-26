@@ -38,6 +38,17 @@ body {
 .studio-header h1 { margin: 0; font-size: 1.25rem; font-weight: 600; }
 
 .header-status { display: flex; gap: 1rem; align-items: center; font-size: 0.875rem; }
+
+.mode-badge {
+  font-size: 0.7rem;
+  text-transform: uppercase;
+  letter-spacing: 0.05em;
+  padding: 0.2rem 0.5rem;
+  border-radius: 999px;
+  border: 1px solid var(--border);
+}
+.mode-badge.public { color: var(--success); border-color: var(--success); }
+.mode-badge.internal { color: var(--warning); border-color: var(--warning); }
 .status { color: var(--muted); }
 .status.connected { color: var(--success); }
 .status.active { color: var(--accent); }
@@ -185,4 +196,23 @@ body {
 @media (max-width: 768px) {
   .studio-content { flex-direction: column; }
   .studio-left { border-right: none; border-bottom: 1px solid var(--border); }
+}
+
+.panel-hint { color: var(--muted); font-size: 0.875rem; margin-top: 0; }
+.field-label { display: block; margin: 0.75rem 0; font-size: 0.875rem; }
+.field-label input, .field-label select {
+  display: block; width: 100%; margin-top: 0.35rem; padding: 0.5rem;
+  background: var(--surface-2); border: 1px solid var(--border); border-radius: var(--radius);
+  color: var(--text);
+}
+.project-actions { display: flex; flex-wrap: wrap; gap: 0.5rem; margin: 1rem 0; }
+.quick-actions { margin-top: 1rem; }
+.quick-actions h3 { margin: 0 0 0.5rem; font-size: 0.95rem; color: var(--muted); }
+.quick-actions .btn-action { margin: 0 0.35rem 0.35rem 0; }
+.bleed-list { margin: 0.5rem 0 1rem; padding-left: 1.25rem; color: var(--muted); font-size: 0.9rem; }
+.bleed-list li { margin-bottom: 0.25rem; }
+.project-output {
+  background: var(--surface-2); border: 1px solid var(--border); border-radius: var(--radius);
+  padding: 0.75rem; font-family: var(--font-mono); font-size: 0.8rem; max-height: 240px; overflow: auto;
+  white-space: pre-wrap;
 }

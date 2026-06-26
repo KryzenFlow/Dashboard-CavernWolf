@@ -1,17 +1,19 @@
 FROM python:3.11-slim
 
+RUN apt-get update && apt-get install -y --no-install-recommends git \
+    && rm -rf /var/lib/apt/lists/*
+
 WORKDIR /app
 
 COPY requirements.txt .
 RUN pip install --no-cache-dir -r requirements.txt
 
-COPY web_gateway ./web_gateway
-COPY routes ./routes
+COPY . .
 
 ENV PYTHONPATH=/app
 ENV PORT=8000
-ENV HERMES_MOCK=1
+ENV HERMES_MOCK=0
 
 EXPOSE 8000
 
-CMD ["python", "-m", "web_gateway.entry"]
+CMD ["uvicorn", "main:app", "--host", "0.0.0.0", "--port", "8000"]

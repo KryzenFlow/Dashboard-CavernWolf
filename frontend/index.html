@@ -11,6 +11,7 @@
     <header class="studio-header">
       <h1>⚙️ Hermes Studio</h1>
       <div class="header-status">
+        <span id="studio-mode-badge" class="mode-badge public">Public</span>
         <span id="connection-status" class="status">Connecting…</span>
         <span id="git-warning" class="git-warning hidden"></span>
       </div>
@@ -18,6 +19,7 @@
 
     <nav class="studio-tabs" role="tablist">
       <button class="tab active" data-tab="chat" role="tab" aria-selected="true">💬 Chat</button>
+      <button class="tab" data-tab="projects" role="tab">🚀 Projects</button>
       <button class="tab" data-tab="skills" role="tab">⚡ Skills IDE</button>
       <button class="tab" data-tab="memory" role="tab">🧠 Memory</button>
       <button class="tab" data-tab="git" role="tab">📚 Git</button>
@@ -31,6 +33,45 @@
             <textarea id="chat-input" rows="2" placeholder="Message Hermes…" aria-label="Chat message"></textarea>
             <button type="submit" class="btn-primary">Send</button>
           </form>
+        </section>
+
+        <section id="panel-projects" class="panel hidden">
+          <h2>Quick Actions</h2>
+          <p class="panel-hint">Switch target vertical in YAML — no code changes (<code>ACTIVE_BLEED</code> or dropdown)</p>
+          <label class="field-label">Target bleed
+            <select id="bleed-select" aria-label="Target vertical">
+              <option value="">Loading…</option>
+            </select>
+          </label>
+          <p id="bleed-pitch" class="panel-hint hidden"></p>
+          <ul id="bleed-pain-points" class="bleed-list hidden"></ul>
+          <label class="field-label">Template
+            <select id="project-template" aria-label="Project template">
+              <option value="static-site">Portfolio Site</option>
+              <option value="landing-page">Business Landing</option>
+              <option value="react-app">React Dashboard</option>
+            </select>
+          </label>
+          <label class="field-label">Project name
+            <input id="project-name" type="text" placeholder="mysite" value="mysite" />
+          </label>
+          <label class="field-label">Deploy profile
+            <select id="deploy-profile" aria-label="Deploy profile">
+              <option value="static-export">Static export (Namecheap / FTP)</option>
+              <option value="github-pages">GitHub Pages</option>
+              <option value="docker">Docker image</option>
+            </select>
+          </label>
+          <div class="project-actions">
+            <button id="btn-new-website" class="btn-primary" type="button">New Website</button>
+            <button id="btn-deploy-profile" class="btn-action" type="button">Deploy</button>
+          </div>
+          <div class="quick-actions">
+            <h3>One-click CLI</h3>
+            <div id="quick-actions-buttons"></div>
+          </div>
+          <p class="panel-hint">No API tokens required for <strong>Static export</strong>. Internal profiles (Railway, Azure, Agent Ops) stay behind <code>STUDIO_MODE=internal</code>.</p>
+          <pre id="project-output" class="project-output">Ready.</pre>
         </section>
 
         <section id="panel-memory" class="panel hidden">

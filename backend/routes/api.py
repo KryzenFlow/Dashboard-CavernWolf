@@ -8,10 +8,14 @@ from datetime import datetime, timezone
 from pathlib import Path
 from typing import Any
 
-from fastapi import APIRouter
+from fastapi import APIRouter, HTTPException
 from pydantic import BaseModel
 
+from web_gateway.studio_security import assert_internal_access, is_public_studio
+
 router = APIRouter()
+
+GIT_REPO_ROOT = Path(os.environ.get("GIT_REPO_ROOT", Path.cwd()))
 
 HERMES_HOME = Path(os.environ.get("HERMES_HOME", Path.home() / ".hermes"))
 SKILLS_DIR = HERMES_HOME / "skills"
@@ -59,8 +63,16 @@ def _mock_files() -> list[dict[str, Any]]:
     ]
 
 
+def _require_internal_api() -> None:
+    err = assert_internal_access()
+    if err:
+        raise HTTPException(status_code=403, detail=err)
+
+
 @router.get("/files")
 async def list_files(type: str = "all") -> dict[str, Any]:
+    if is_public_studio():
+        return {"files": []}
     _ensure_dirs()
     files: list[dict[str, Any]] = []
 
@@ -97,6 +109,7 @@ async def list_files(type: str = "all") -> dict[str, Any]:
 
 @router.post("/skill/save")
 async def save_skill(payload: SkillPayload) -> dict[str, Any]:
+    _require_internal_api()
     _ensure_dirs()
     rel = payload.path.removeprefix("skills/")
     target = SKILLS_DIR / rel
@@ -107,6 +120,7 @@ async def save_skill(payload: SkillPayload) -> dict[str, Any]:
 
 @router.post("/skill/test")
 async def test_skill(payload: SkillTestPayload) -> dict[str, Any]:
+    _require_internal_api()
     if MOCK_MODE:
         passed = "def " in payload.code and "return" in payload.code
         return {"passed": 1 if passed else 0, "failed": 0 if passed else 1}
@@ -120,10 +134,12 @@ async def test_skill(payload: SkillTestPayload) -> dict[str, Any]:
 
 @router.get("/git/status")
 async def git_status() -> dict[str, Any]:
+    if is_public_studio():
+        return {"status": "Git tools available in internal Studio only.", "uncommitted": 0, "unpushed": 0}
     try:
         out = subprocess.check_output(
             ["git", "status", "--porcelain"],
-            cwd=Path.cwd(),
+            cwd=GIT_REPO_ROOT,
             stderr=subprocess.DEVNULL,
             text=True,
         )
@@ -135,9 +151,10 @@ async def git_status() -> dict[str, Any]:
 
 @router.post("/git/commit")
 async def git_commit(payload: GitCommitPayload) -> dict[str, Any]:
+    _require_internal_api()
     try:
-        subprocess.check_call(["git", "add", "-A"], cwd=Path.cwd())
-        subprocess.check_call(["git", "commit", "-m", payload.message], cwd=Path.cwd())
+        subprocess.check_call(["git", "add", "-A"], cwd=GIT_REPO_ROOT)
+        subprocess.check_call(["git", "commit", "-m", payload.message], cwd=GIT_REPO_ROOT)
         return {"success": True}
     except (subprocess.CalledProcessError, FileNotFoundError) as exc:
         return {"success": False, "error": str(exc)}
@@ -145,8 +162,9 @@ async def git_commit(payload: GitCommitPayload) -> dict[str, Any]:
 
 @router.post("/git/push")
 async def git_push() -> dict[str, Any]:
+    _require_internal_api()
     try:
-        subprocess.check_call(["git", "push"], cwd=Path.cwd())
+        subprocess.check_call(["git", "push"], cwd=GIT_REPO_ROOT)
         return {"success": True}
     except (subprocess.CalledProcessError, FileNotFoundError) as exc:
         return {"success": False, "error": str(exc)}

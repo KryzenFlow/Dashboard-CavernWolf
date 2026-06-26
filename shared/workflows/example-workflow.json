@@ -1,0 +1,16 @@
+{
+  "name": "build-and-deploy-site",
+  "steps": [
+    {
+      "action": "scaffold",
+      "params": { "template": "static-site", "project": "demo" }
+    },
+    {
+      "action": "package_docker_app",
+      "params": {
+        "app_dir": "/shared/workflows/demo",
+        "image_name": "customer/demo:latest"
+      }
+    }
+  ]
+}

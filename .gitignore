@@ -10,6 +10,17 @@ frontend/dist/
 .DS_Store
 Thumbs.db
 
+models/*.bin
+models/*.gguf
+!models/.gitkeep
+data/*
+!data/.gitkeep
+shared/workflows/*
+!shared/workflows/.gitkeep
+!shared/workflows/*.yaml
+!shared/workflows/*.yml
+!shared/workflows/*.json
+
 # Clinic PHI / credentials
 **/clinic-schemas/production/
 **/cloud-creds.env
