@@ -80,11 +80,81 @@ async function loadJobs() {
 
 $("btn-refresh-jobs").addEventListener("click", loadJobs);
 
+async function loadDrafts() {
+  const data = await api("/ops/content/drafts");
+  const ul = $("ops-drafts");
+  ul.innerHTML = "";
+  (data.drafts || []).forEach((d) => {
+    const li = document.createElement("li");
+    li.innerHTML = `<strong>${d.title}</strong> [${d.status}] ${d.project}/blog/${d.slug}.html `;
+    if (d.status !== "published") {
+      const approve = document.createElement("button");
+      approve.textContent = "Approve";
+      approve.type = "button";
+      approve.onclick = async () => {
+        await api(`/ops/content/drafts/${d.id}`, {
+          method: "PATCH",
+          body: JSON.stringify({ status: "approved" }),
+        });
+        loadDrafts();
+      };
+      const pub = document.createElement("button");
+      pub.textContent = "Publish + ZIP";
+      pub.type = "button";
+      pub.onclick = async () => {
+        await api(`/ops/content/drafts/${d.id}/publish`, {
+          method: "POST",
+          body: JSON.stringify({ export: true, profile: "static-export" }),
+        });
+        loadDrafts();
+      };
+      li.appendChild(approve);
+      li.appendChild(pub);
+    }
+    ul.appendChild(li);
+  });
+}
+
+$("btn-generate-blog").addEventListener("click", async () => {
+  const topic = $("blog-topic").value.trim();
+  if (!topic) return;
+  try {
+    await api("/ops/content/generate", {
+      method: "POST",
+      body: JSON.stringify({ topic, project: $("blog-project").value.trim() || "site" }),
+    });
+    loadDrafts();
+    loadJobs();
+  } catch (err) {
+    alert(err.message);
+  }
+});
+
+$("btn-queue-blog").addEventListener("click", async () => {
+  const topic = $("blog-topic").value.trim();
+  if (!topic) return;
+  try {
+    await api("/ops/content/generate", {
+      method: "POST",
+      body: JSON.stringify({
+        topic,
+        project: $("blog-project").value.trim() || "site",
+        enqueue_only: true,
+      }),
+    });
+    loadJobs();
+  } catch (err) {
+    alert(err.message);
+  }
+});
+
+$("btn-refresh-drafts").addEventListener("click", loadDrafts);
+
 loadBleeds()
   .then(() => {
     $("ops-status").textContent = "Connected";
-    return loadJobs();
-  })
+    return Promise.all([loadJobs(), loadDrafts()]);
+  }))
   .catch((err) => {
     $("ops-status").textContent = "Error — set STUDIO_MODE=internal on backend";
     console.error(err);

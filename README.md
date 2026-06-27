@@ -105,7 +105,15 @@ Copy [`.env.example`](.env.example) to `.env`. Key variables:
 | **Hermes Studio** (`STUDIO_MODE=public`, port 3000) | Customers, GitHub | Whitelisted CLI only |
 | **Agent Ops** (`STUDIO_MODE=internal`, port 3001) | You only | `/ops/*`, `/api/seo`, research job queue, all bleeds |
 
-**Other computer:** run backend with `STUDIO_MODE=internal` and poll `POST /ops/jobs/claim` so agents stay busy. Research DB: `RESEARCH_DB_URL` (shared `data/` volume or remote API).
+**Other computer:** run backend with `STUDIO_MODE=internal` and poll `POST /ops/jobs/claim-and-run` (or `scripts/agent_worker.ps1`). Databases live in `data/` — link to OneDrive with `scripts/setup_onedrive_data.ps1`.
+
+| DB file | Purpose |
+|---------|---------|
+| `memory.db` | Agent conversation memory |
+| `research.db` | SEO / research job queue |
+| `content.db` | Blog drafts → publish to `shared/workflows/{project}/blog/` |
+
+Content API (internal): `GET/POST /ops/content/drafts`, `POST /ops/content/generate`, `POST /ops/content/drafts/{id}/publish`
 
 Set `STUDIO_MODE=internal` in `.env` on your private deployment to unlock internal-only bleeds and the full agent API.
 

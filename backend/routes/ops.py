@@ -8,6 +8,10 @@ from typing import Any
 from fastapi import APIRouter, HTTPException
 from pydantic import BaseModel, Field
 
+from agents.content.db import init_content_db
+from agents.content.generate import generate_blog_draft
+from agents.content.publish import publish_and_export, publish_draft_to_disk
+from agents.content.worker import process_claimed_job
 from agents.research.db import (
     claim_next_job,
     complete_job,
@@ -45,8 +49,38 @@ class BleedSwitchRequest(BaseModel):
     bleed_id: str
 
 
+class DraftCreateRequest(BaseModel):
+    bleed_id: str | None = None
+    project: str = "site"
+    title: str
+    body_html: str
+    slug: str | None = None
+    meta_description: str | None = None
+    status: str = "draft"
+
+
+class DraftUpdateRequest(BaseModel):
+    title: str | None = None
+    body_html: str | None = None
+    meta_description: str | None = None
+    status: str | None = None
+
+
+class GenerateBlogRequest(BaseModel):
+    topic: str
+    bleed_id: str | None = None
+    project: str = "site"
+    enqueue_only: bool = False
+
+
+class PublishDraftRequest(BaseModel):
+    export: bool = False
+    profile: str = "static-export"
+
+
 def register_ops_routes(app) -> None:
     init_research_db()
+    init_content_db()
     app.include_router(router)
     # Bing / LocalRankAI alias
     app.add_api_route("/api/seo", ops_seo_get, methods=["GET"], tags=["ops"])
@@ -126,3 +160,82 @@ def ops_complete_job(job_id: int, req: JobCompleteRequest) -> dict[str, Any]:
     _require_internal()
     complete_job(job_id, req.findings, req.error)
     return {"job_id": job_id, "status": "failed" if req.error else "done"}
+
+
+@router.post("/jobs/claim-and-run")
+def ops_claim_and_run() -> dict[str, Any]:
+    """Claim next job and process blog_draft jobs (run on your agent PC)."""
+    _require_internal()
+    job = claim_next_job()
+    if not job:
+        return {"job": None}
+    outcome = process_claimed_job(job)
+    return {"job": job, "outcome": outcome}
+
+
+@router.get("/content/drafts")
+def ops_list_drafts(
+    status: str | None = None,
+    bleed_id: str | None = None,
+    project: str | None = None,
+    limit: int = 50,
+) -> dict[str, Any]:
+    _require_internal()
+    from agents.content.db import list_drafts
+
+    return {"drafts": list_drafts(status=status, bleed_id=bleed_id, project=project, limit=limit)}
+
+
+@router.post("/content/drafts")
+def ops_create_draft(req: DraftCreateRequest) -> dict[str, Any]:
+    _require_internal()
+    from agents.content.db import create_draft
+
+    bid = req.bleed_id or active_bleed_id()
+    draft = create_draft(
+        bleed_id=bid,
+        title=req.title,
+        body_html=req.body_html,
+        project=req.project,
+        slug=req.slug,
+        meta_description=req.meta_description,
+        status=req.status,
+    )
+    return {"draft": draft}
+
+
+@router.patch("/content/drafts/{draft_id}")
+def ops_update_draft(draft_id: int, req: DraftUpdateRequest) -> dict[str, Any]:
+    _require_internal()
+    from agents.content.db import update_draft
+
+    draft = update_draft(draft_id, **req.model_dump(exclude_unset=True))
+    if not draft:
+        raise HTTPException(status_code=404, detail="Draft not found")
+    return {"draft": draft}
+
+
+@router.post("/content/generate")
+def ops_generate_blog(req: GenerateBlogRequest) -> dict[str, Any]:
+    _require_internal()
+    bid = req.bleed_id or active_bleed_id()
+    if req.enqueue_only:
+        job_id = enqueue_job(bid, None, {"topic": req.topic, "project": req.project}, job_type="blog_draft")
+        return {"job_id": job_id, "status": "pending", "hint": "Run agent_worker.ps1 or POST /ops/jobs/claim-and-run"}
+    result = generate_blog_draft(req.topic, bid, req.project)
+    return result
+
+
+@router.post("/content/drafts/{draft_id}/publish")
+def ops_publish_draft(draft_id: int, req: PublishDraftRequest) -> dict[str, Any]:
+    _require_internal()
+    from agents.content.db import get_draft, update_draft
+
+    draft = get_draft(draft_id)
+    if not draft:
+        raise HTTPException(status_code=404, detail="Draft not found")
+    if draft["status"] == "draft":
+        update_draft(draft_id, status="approved")
+    if req.export:
+        return publish_and_export(draft_id, req.profile)
+    return publish_draft_to_disk(draft_id)

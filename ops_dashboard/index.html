@@ -32,7 +32,17 @@
     </section>
 
     <section class="card">
-      <h2>Research job queue</h2>
+      <h2>Blog &amp; page drafts</h2>
+      <p class="muted">Stored in <code>content.db</code> (sync via OneDrive <code>HermesData</code>)</p>
+      <label>Topic <input id="blog-topic" type="text" placeholder="5 tips for local SEO" /></label>
+      <label>Project folder <input id="blog-project" type="text" value="site" /></label>
+      <button id="btn-generate-blog" type="button">Generate draft (AI)</button>
+      <button id="btn-queue-blog" type="button">Queue for agent worker</button>
+      <button id="btn-refresh-drafts" type="button">Refresh drafts</button>
+      <ul id="ops-drafts"></ul>
+    </section>
+
+    <section class="card">
       <p class="muted">Agents on your other machine poll <code>POST /ops/jobs/claim</code></p>
       <button id="btn-refresh-jobs" type="button">Refresh jobs</button>
       <ul id="ops-jobs"></ul>

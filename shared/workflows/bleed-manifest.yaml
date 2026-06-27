@@ -59,6 +59,25 @@ bleeds:
     email_tone: "professional, empathetic"
     pitch: "HIPAA-safe marketing — no PHI on your stack"
 
+  vellorae:
+    label: "Vellorae agency (clinic pilots)"
+    public: false
+    industry: "chiropractors, med spas, dental"
+    template: landing-page
+    deploy_profile: static-export
+    content_topic: "book appointment online"
+    description: >
+      Vellorae.org — AI-driven growth for local clinics. High-performance sites that turn search into recurring appointments.
+    pain_points:
+      - "Weak Google Business Profile presence"
+      - "Landing pages without clear Book Now CTA"
+      - "No post-booking nurture automation"
+    seo_focus: "local clinic SEO, JSON-LD LocalBusiness, appointment funnels"
+    email_tone: "professional, trust-building"
+    pitch: "Clinic Pilot Program — vellorae.org umbrella + per-clinic MVPs"
+    prompt_template: vellorae_clinic
+    notes: "Agency brand — keep workflows internal; customer sites use static-export only"
+
   saas:
     label: "SaaS B2B"
     public: false

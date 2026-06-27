@@ -1,0 +1,208 @@
+ hermes-cli the one command to rule them all for your Hermes Studio + ClaudexApp/Doex stack
+
+
+
+Alright 😄 — let’s make hermes-cli the one command to rule them all for your Hermes Studio + ClaudexApp/Doex stack.
+This will:
+
+Run inside your dev-tools container (so Hermes Studio can call it directly)
+Wrap all your existing tools (Vite, Docker, GitHub CLI, etc.)
+Talk to your backend and Agent Claw for AI-powered workflows
+Be extensible so you can add new commands easily
+
+
+1️⃣ CLI Skeleton (dev-tools/hermes_cli.py)
+Python#!/usr/bin/env python3
+"""
+Hermes CLI - Unified developer/customer command-line tool
+Runs inside dev-tools container and integrates with:
+- Hermes Studio backend
+- Agent Claw execution layer
+- Local CLI tools (Vite, Docker, gh, etc.)
+"""
+
+import click
+import subprocess
+import requests
+import os
+import sys
+
+BACKEND_URL = os.getenv("BACKEND_URL", "http://backend:8000")
+CLAW_URL = os.getenv("CLAW_URL", "http://agent-claw:9000")
+
+def run_cmd(cmd):
+    """Run a shell command and stream output."""
+    process = subprocess.Popen(cmd, shell=True)
+    process.communicate()
+    return process.returncode
+
+@click.group()
+def cli():
+    """Hermes CLI - Build, deploy, and manage AI-powered projects."""
+    pass
+
+# -------------------------
+# NEW PROJECT COMMANDS
+# -------------------------
+@cli.group()
+def new():
+    """Create new projects."""
+    pass
+
+@new.command("site")
+@click.option("--template", default="default", help="Template name")
+@click.option("--name", required=True, help="Project name")
+def new_site(template, name):
+    """Scaffold a new website from a template."""
+    click.echo(f"Creating new site '{name}' from template '{template}'...")
+    payload = {
+        "action": "build_website",
+        "params": {
+            "template": template,
+            "output_dir": f"/shared/{name}"
+        }
+    }
+    r = requests.post(f"{CLAW_URL}/execute", json=payload)
+    click.echo(r.json())
+
+@new.command("app")
+@click.option("--framework", default="react", help="Framework (react, next, vue, flutter)")
+@click.option("--name", required=True, help="App name")
+def new_app(framework, name):
+    """Scaffold a new app project."""
+    click.echo(f"Creating new {framework} app '{name}'...")
+    if framework in ["react", "next", "vue"]:
+        run_cmd(f"npx create-{framework}-app /shared/{name}")
+    elif framework == "flutter":
+        run_cmd(f"flutter create /shared/{name}")
+    else:
+        click.echo("Unsupported framework.")
+
+# -------------------------
+# DEPLOY COMMANDS
+# -------------------------
+@cli.group()
+def deploy():
+    """Deploy projects."""
+    pass
+
+@deploy.command("github")
+@click.option("--repo", required=True, help="GitHub repo URL")
+@click.option("--path", default="/shared/site", help="Path to site folder")
+@click.option("--branch", default="gh-pages", help="Branch to deploy to")
+def deploy_github(repo, path, branch):
+    """Deploy site to GitHub Pages."""
+    payload = {
+        "action": "deploy_github_pages",
+        "params": {
+            "repo_url": repo,
+            "site_dir": path,
+            "branch": branch
+        }
+    }
+    r = requests.post(f"{CLAW_URL}/execute", json=payload)
+    click.echo(r.json())
+
+@deploy.command("docker")
+@click.option("--path", default="/shared/app", help="Path to app folder")
+@click.option("--image", required=True, help="Docker image name")
+def deploy_docker(path, image):
+    """Package app into Docker image."""
+    payload = {
+        "action": "package_docker_app",
+        "params": {
+            "app_dir": path,
+            "image_name": image
+        }
+    }
+    r = requests.post(f"{CLAW_URL}/execute", json=payload)
+    click.echo(r.json())
+
+# -------------------------
+# WORKFLOW COMMANDS
+# -------------------------
+@cli.group()
+def workflow():
+    """Run automation workflows."""
+    pass
+
+@workflow.command("run")
+@click.option("--file", required=True, help="Path to workflow JSON file")
+def workflow_run(file):
+    """Trigger a CI/CD or automation workflow."""
+    import json
+    with open(file) as f:
+        payload_data = json.load(f)
+    payload = {
+        "action": "trigger_ci_cd",
+        "params": payload_data
+    }
+    r = requests.post(f"{CLAW_URL}/execute", json=payload)
+    click.echo(r.json())
+
+# -------------------------
+# AI COMMANDS
+# -------------------------
+@cli.group()
+def ai():
+    """AI-powered commands."""
+    pass
+
+@ai.command("suggest-template")
+@click.option("--industry", required=True, help="Industry name")
+def suggest_template(industry):
+    """Ask AI to suggest a template for an industry."""
+    r = requests.post(f"{BACKEND_URL}/reason", json={"query": f"Suggest a website template for {industry}"})
+    click.echo(r.json())
+
+@ai.command("generate-content")
+@click.option("--topic", required=True, help="Content topic")
+def generate_content(topic):
+    """Generate marketing content using AI."""
+    r = requests.post(f"{BACKEND_URL}/reason", json={"query": f"Write marketing copy about {topic}"})
+    click.echo(r.json())
+
+if __name__ == "__main__":
+    cli()
+
+
+2️⃣ Install in Dev Tools Container
+In your dev-tools Dockerfile:
+DockerfileFROM node:20
+
+# Install Python for hermes-cli
+RUN apt-get update && apt-get install -y python3 python3-pip git && rm -rf /var/lib/apt/lists/*
+
+# Install CLI dependencies
+COPY hermes_cli.py /usr/local/bin/hermes-cli
+RUN chmod +x /usr/local/bin/hermes-cli && pip3 install click requests
+
+WORKDIR /workspace
+VOLUME ["/workspace", "/shared"]
+CMD ["bash"]
+
+
+3️⃣ Example Usage in Hermes Studio Terminal
+Bash# Create a new site
+hermes-cli new site --template portfolio --name mysite
+
+# Deploy to GitHub Pages
+hermes-cli deploy github --repo https://<token>@github.com/user/mysite.git
+
+# Package into Docker
+hermes-cli deploy docker --path /shared/mysite --image user/mysite:v1
+
+# Ask AI for a template suggestion
+hermes-cli ai suggest-template --industry "real estate"
+
+
+4️⃣ Why This Is Powerful
+
+One CLI for all workflows → customers & devs don’t need to learn multiple tools
+AI integration → templates & content are suggested/generated automatically
+Agent Claw integration → heavy lifting (build, deploy, package) happens in execution layer
+Hermes Studio integration → UI buttons can just call hermes-cli commands
+
+
+If you want, I can wire Hermes Studio’s backend so that when a user clicks “New Site” or “Deploy” in the UI, it calls hermes-cli inside the dev-tools container automatically — making the whole thing click-to-deploy for customers.
+Do you want me to make that Hermes Studio ↔ hermes-cli bridge next? That would make it fully seamless.

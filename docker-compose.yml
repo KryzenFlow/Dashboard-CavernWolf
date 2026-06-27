@@ -58,6 +58,7 @@ services:
       - HERMES_HOME=/data/hermes
       - CORS_ORIGINS=http://localhost:3000,http://127.0.0.1:3000,http://localhost:3001
       - RESEARCH_DB_URL=sqlite:////data/research.db
+      - CONTENT_DB_URL=sqlite:////data/content.db
       - HERMES_CLI_BRIDGE=claw
       - DEPLOY_PROFILE=static-export
       - AGENT_STACK_USE_AI=0

@@ -20,7 +20,7 @@ GIT_REPO_ROOT = Path(os.environ.get("GIT_REPO_ROOT", Path.cwd()))
 HERMES_HOME = Path(os.environ.get("HERMES_HOME", Path.home() / ".hermes"))
 SKILLS_DIR = HERMES_HOME / "skills"
 MEMORY_DIR = HERMES_HOME / "memory"
-MOCK_MODE = os.environ.get("HERMES_MOCK", "1") == "1"
+from web_gateway.env import MOCK_MODE
 
 
 class SkillPayload(BaseModel):

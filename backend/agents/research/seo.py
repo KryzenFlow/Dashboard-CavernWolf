@@ -16,7 +16,11 @@ def _format_pain_points(bleed: dict) -> str:
 
 def build_seo_prompt(zip_code: str, map_data: str, bleed_id: str | None = None) -> str:
     bleed = get_bleed(bleed_id)
-    template = (_PROMPTS_DIR / "seo_plan.txt").read_text(encoding="utf-8")
+    prompt_name = bleed.get("prompt_template", "seo_plan")
+    template_path = _PROMPTS_DIR / f"{prompt_name}.txt"
+    if not template_path.is_file():
+        template_path = _PROMPTS_DIR / "seo_plan.txt"
+    template = template_path.read_text(encoding="utf-8")
     return template.format(
         vertical=bleed.get("label", bleed.get("id", "local business")),
         description=bleed.get("description", bleed.get("pitch", "")),
