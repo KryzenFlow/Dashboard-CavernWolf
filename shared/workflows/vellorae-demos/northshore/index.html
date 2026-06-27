@@ -1,0 +1,487 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<meta name="description" content="Northshore Medical Group — Fast appointments, trusted providers, and AI-powered clinic growth tools. Schedule online and discover AI features for improved patient engagement.">
+<meta name="theme-color" content="#1565c0">
+<meta property="og:title" content="Northshore Medical Group — AI-Powered Clinic Demo">
+<meta property="og:description" content="Fast appointments, trusted providers, and AI-powered growth tools for clinics.">
+<meta property="og:type" content="website">
+<!-- Preconnect to Google Fonts for faster font loading -->
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<title>Northshore Medical Group</title>
+<link href="https://fonts.googleapis.com/css2?family=DM+Serif+Display:ital@0;1&family=DM+Sans:wght@300;400;500;600&display=swap" rel="stylesheet">
+<style>
+  :root {
+    --navy: #0b3d6e;
+    --blue: #1565c0;
+    --sky: #2196f3;
+    --teal: #00897b;
+    --light: #f0f6ff;
+    --white: #ffffff;
+    --text: #1a2535;
+    --muted: #5a6a7e;
+    --border: #dce8f5;
+  }
+
+  * { box-sizing: border-box; margin: 0; padding: 0; }
+
+  /* Accessibility helpers */
+  .visually-hidden {
+    position: absolute !important;
+    height: 1px; width: 1px;
+    overflow: hidden; clip: rect(1px, 1px, 1px, 1px);
+    white-space: nowrap; border: 0; padding: 0; margin: -1px;
+  }
+  .skip-link {
+    position: absolute; left: 12px; top: 12px; z-index: 9999;
+    background: #fff; color: var(--navy); padding: 8px 12px; border-radius: 6px;
+    transform: translateY(-200%); transition: transform 0.18s ease;
+  }
+  .skip-link:focus { transform: translateY(0); box-shadow: 0 6px 18px rgba(0,0,0,0.12); }
+
+  body {
+    font-family: 'DM Sans', sans-serif;
+    background: var(--light);
+    color: var(--text);
+    line-height: 1.6;
+  }
+
+  /* NAV */
+  nav {
+    background: var(--white);
+    border-bottom: 1px solid var(--border);
+    padding: 16px 40px;
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    position: sticky;
+    top: 0;
+    z-index: 100;
+    box-shadow: 0 2px 12px rgba(11,61,110,0.07);
+  }
+  .logo {
+    font-family: 'DM Serif Display', serif;
+    font-size: 1.3rem;
+    color: var(--navy);
+    letter-spacing: -0.3px;
+  }
+  .logo span { color: var(--sky); }
+  nav a {
+    color: var(--muted);
+    text-decoration: none;
+    font-size: 0.9rem;
+    font-weight: 500;
+    margin-left: 28px;
+    transition: color 0.2s;
+  }
+  nav a:hover { color: var(--blue); }
+  .nav-cta {
+    background: var(--blue);
+    color: white !important;
+    padding: 9px 20px;
+    border-radius: 8px;
+    font-weight: 600 !important;
+  }
+  .nav-cta:hover { background: var(--navy) !important; color: white !important; }
+
+  /* HERO */
+  .hero {
+    background: linear-gradient(135deg, var(--navy) 0%, #1565c0 60%, #1976d2 100%);
+    color: white;
+    padding: 90px 40px 80px;
+    text-align: center;
+    position: relative;
+    overflow: hidden;
+  }
+  .hero::before {
+    content: '';
+    position: absolute;
+    top: -60px; right: -60px;
+    width: 400px; height: 400px;
+    background: rgba(255,255,255,0.04);
+    border-radius: 50%;
+  }
+  .hero::after {
+    content: '';
+    position: absolute;
+    bottom: -80px; left: -40px;
+    width: 300px; height: 300px;
+    background: rgba(255,255,255,0.03);
+    border-radius: 50%;
+  }
+  .hero-badge {
+    display: inline-block;
+    background: rgba(255,255,255,0.15);
+    border: 1px solid rgba(255,255,255,0.25);
+    color: #b3d9ff;
+    font-size: 0.78rem;
+    font-weight: 600;
+    letter-spacing: 1.2px;
+    text-transform: uppercase;
+    padding: 6px 16px;
+    border-radius: 30px;
+    margin-bottom: 24px;
+  }
+  .hero h1 {
+    font-family: 'DM Serif Display', serif;
+    font-size: clamp(2rem, 5vw, 3.2rem);
+    line-height: 1.15;
+    max-width: 720px;
+    margin: 0 auto 20px;
+    letter-spacing: -0.5px;
+  }
+  .hero p {
+    font-size: 1.1rem;
+    opacity: 0.85;
+    max-width: 560px;
+    margin: 0 auto 36px;
+    font-weight: 300;
+  }
+  .hero-btns { display: flex; gap: 14px; justify-content: center; flex-wrap: wrap; }
+  .btn-primary {
+    background: white;
+    color: var(--navy);
+    padding: 14px 28px;
+    border-radius: 10px;
+    font-weight: 700;
+    font-size: 1rem;
+    text-decoration: none;
+    transition: transform 0.2s, box-shadow 0.2s;
+    box-shadow: 0 4px 20px rgba(0,0,0,0.2);
+  }
+  .btn-primary:hover { transform: translateY(-2px); box-shadow: 0 8px 30px rgba(0,0,0,0.25); }
+  .btn-secondary {
+    background: transparent;
+    color: white;
+    padding: 14px 28px;
+    border-radius: 10px;
+    font-weight: 600;
+    font-size: 1rem;
+    text-decoration: none;
+    border: 2px solid rgba(255,255,255,0.5);
+    transition: border-color 0.2s, background 0.2s;
+  }
+  .btn-secondary:hover { border-color: white; background: rgba(255,255,255,0.08); }
+
+  /* STATS BAR */
+  .stats-bar {
+    background: var(--white);
+    border-bottom: 1px solid var(--border);
+    padding: 28px 40px;
+    display: flex;
+    justify-content: center;
+    gap: 60px;
+    flex-wrap: wrap;
+  }
+  .stat { text-align: center; }
+  .stat-num {
+    font-family: 'DM Serif Display', serif;
+    font-size: 1.8rem;
+    color: var(--navy);
+  }
+  .stat-label { font-size: 0.82rem; color: var(--muted); font-weight: 500; }
+
+  /* MAIN CONTENT */
+  .container { max-width: 1000px; margin: 0 auto; padding: 50px 24px; }
+
+  .section-label {
+    font-size: 0.75rem;
+    font-weight: 700;
+    letter-spacing: 1.5px;
+    text-transform: uppercase;
+    color: var(--sky);
+    margin-bottom: 10px;
+  }
+  .section-title {
+    font-family: 'DM Serif Display', serif;
+    font-size: 1.9rem;
+    color: var(--navy);
+    margin-bottom: 8px;
+    letter-spacing: -0.3px;
+  }
+  .section-sub {
+    color: var(--muted);
+    font-size: 1rem;
+    margin-bottom: 36px;
+    max-width: 560px;
+  }
+
+  /* SERVICES GRID */
+  .services-grid {
+    display: grid;
+    grid-template-columns: repeat(auto-fit, minmax(210px, 1fr));
+    gap: 18px;
+    margin-bottom: 50px;
+  }
+  .service-card {
+    background: var(--white);
+    border: 1px solid var(--border);
+    border-radius: 14px;
+    padding: 28px 22px;
+    transition: box-shadow 0.2s, transform 0.2s;
+  }
+  .service-card:hover { box-shadow: 0 8px 30px rgba(11,61,110,0.12); transform: translateY(-3px); }
+  .service-icon {
+    width: 44px; height: 44px;
+    background: var(--light);
+    border-radius: 10px;
+    display: flex; align-items: center; justify-content: center;
+    font-size: 1.4rem;
+    margin-bottom: 14px;
+  }
+  .service-card h3 { font-size: 1rem; font-weight: 600; color: var(--navy); margin-bottom: 6px; }
+  .service-card p { font-size: 0.85rem; color: var(--muted); }
+
+  /* Nav list responsive fallback */
+  @media(max-width:720px){ .nav-list { flex-direction: column; gap: 8px; } nav { padding: 12px 20px; } }
+
+  /* FEATURES / AI SECTION */
+  .ai-section {
+    background: linear-gradient(135deg, var(--navy), #1a4f8a);
+    border-radius: 20px;
+    padding: 50px 40px;
+    color: white;
+    margin-bottom: 50px;
+    display: grid;
+    grid-template-columns: 1fr 1fr;
+    gap: 40px;
+    align-items: center;
+  }
+  @media(max-width:640px){ .ai-section { grid-template-columns: 1fr; padding: 36px 24px; } }
+  .ai-section h2 {
+    font-family: 'DM Serif Display', serif;
+    font-size: 1.8rem;
+    margin-bottom: 16px;
+    letter-spacing: -0.3px;
+  }
+  .ai-section p { opacity: 0.85; font-size: 0.95rem; margin-bottom: 24px; }
+  .feature-list { list-style: none; }
+  .feature-list li {
+    display: flex; align-items: center; gap: 12px;
+    font-size: 0.9rem; padding: 10px 0;
+    border-bottom: 1px solid rgba(255,255,255,0.1);
+  }
+  .feature-list li:last-child { border-bottom: none; }
+  .check {
+    width: 24px; height: 24px;
+    background: var(--teal);
+    border-radius: 50%;
+    display: flex; align-items: center; justify-content: center;
+    font-size: 0.75rem; flex-shrink: 0;
+  }
+
+  /* BOOKING CARD */
+  .booking-card {
+    background: var(--white);
+    border: 1px solid var(--border);
+    border-radius: 18px;
+    padding: 40px;
+    text-align: center;
+    margin-bottom: 50px;
+    box-shadow: 0 4px 24px rgba(11,61,110,0.08);
+  }
+  .booking-card h2 {
+    font-family: 'DM Serif Display', serif;
+    font-size: 1.7rem; color: var(--navy); margin-bottom: 10px;
+  }
+  .booking-card p { color: var(--muted); margin-bottom: 28px; }
+  .booking-steps {
+    display: flex; justify-content: center; gap: 12px;
+    flex-wrap: wrap; margin-bottom: 30px;
+  }
+  .step {
+    background: var(--light);
+    border: 1px solid var(--border);
+    border-radius: 10px;
+    padding: 14px 20px;
+    font-size: 0.85rem;
+    font-weight: 600;
+    color: var(--navy);
+    min-width: 140px;
+  }
+  .step span { display: block; font-size: 1.3rem; margin-bottom: 4px; }
+
+  /* BLOG */
+  .blog-card {
+    background: var(--white);
+    border: 1px solid var(--border);
+    border-radius: 14px;
+    padding: 30px;
+    margin-bottom: 50px;
+  }
+  .blog-tag {
+    display: inline-block;
+    background: #e3f2fd;
+    color: var(--blue);
+    font-size: 0.75rem;
+    font-weight: 700;
+    letter-spacing: 0.8px;
+    text-transform: uppercase;
+    padding: 4px 12px;
+    border-radius: 20px;
+    margin-bottom: 14px;
+  }
+  .blog-card h3 {
+    font-family: 'DM Serif Display', serif;
+    font-size: 1.4rem; color: var(--navy); margin-bottom: 10px;
+  }
+  .blog-card p { color: var(--muted); font-size: 0.92rem; }
+
+  /* FOOTER */
+  footer {
+    background: var(--navy);
+    color: rgba(255,255,255,0.7);
+    text-align: center;
+    padding: 30px 24px;
+    font-size: 0.85rem;
+  }
+  footer strong { color: white; }
+
+  /* DEMO BADGE */
+  .demo-ribbon {
+    background: #ff6f00;
+    color: white;
+    text-align: center;
+    padding: 10px;
+    font-size: 0.85rem;
+    font-weight: 600;
+    letter-spacing: 0.5px;
+  }
+</style>
+</head>
+
+<body>
+
+<a class="skip-link" href="#main-content">Skip to content</a>
+
+<div class="demo-ribbon">🚀 <span aria-hidden="true">DEMO SITE</span> — Built with AI-Powered Clinic Growth System</div>
+
+<header>
+  <nav role="navigation" aria-label="Main Navigation">
+    <div class="logo">Northshore <span>Medical</span></div>
+    <ul class="nav-list">
+      <li><a href="#services">Services</a></li>
+      <li><a href="#ai">AI Features</a></li>
+      <li><a href="#booking">Appointments</a></li>
+      <li><a href="#booking" class="nav-cta">Book Now</a></li>
+    </ul>
+  </nav>
+
+  <div class="hero">
+    <div class="hero-badge"><span aria-hidden="true">⚕</span> Trusted Local Healthcare</div>
+    <h1>Fast Appointments. Trusted Providers. Better Patient Experience.</h1>
+    <p>Helping local families access healthcare with frictionless scheduling and AI-powered engagement.</p>
+    <div class="hero-btns">
+      <a href="#booking" class="btn-primary"><span aria-hidden="true">📅</span> Schedule Online</a>
+      <a href="#ai" class="btn-secondary">See AI Features →</a>
+    </div>
+  </div>
+</header>
+
+<div class="stats-bar">
+  <div class="stat"><div class="stat-num">98%</div><div class="stat-label">Patient Satisfaction</div></div>
+  <div class="stat"><div class="stat-num">&lt;24h</div><div class="stat-label">Avg Appointment Wait</div></div>
+  <div class="stat"><div class="stat-num">4.9★</div><div class="stat-label">Google Rating</div></div>
+  <div class="stat"><div class="stat-num">2,400+</div><div class="stat-label">Patients Served</div></div>
+</div>
+
+<main id="main-content" class="container">
+
+  <!-- SERVICES -->
+  <div id="services">
+    <div class="section-label">What We Offer</div>
+    <div class="section-title">Our Services</div>
+    <div class="section-sub">Comprehensive care for your whole family, all in one place.</div>
+  </div>
+  <div class="services-grid">
+    <div class="service-card">
+      <div class="service-icon" aria-hidden="true">🚑</div>
+      <h3>Urgent Care</h3>
+      <p>Same-day appointments for non-emergency conditions.</p>
+    </div>
+    <div class="service-card">
+      <div class="service-icon" aria-hidden="true">👩‍⚕️</div>
+      <h3>Women's Health</h3>
+      <p>Comprehensive care from annual exams to specialized treatment.</p>
+    </div>
+    <div class="service-card">
+      <div class="service-icon" aria-hidden="true">🛡️</div>
+      <h3>Preventive Care</h3>
+      <p>Screenings, immunizations, and wellness checkups.</p>
+    </div>
+    <div class="service-card">
+      <div class="service-icon" aria-hidden="true">🔬</div>
+      <h3>Lab Testing</h3>
+      <p>On-site labs with fast results and easy online access.</p>
+    </div>
+  </div>
+
+  <!-- AI FEATURES -->
+  <div class="ai-section" id="ai">
+    <div>
+      <div style="font-size:0.75rem;font-weight:700;letter-spacing:1.5px;text-transform:uppercase;color:#7ec8e3;margin-bottom:10px;">AI-Powered Growth</div>
+      <h2>Google Business Optimization & Automation</h2>
+      <p>We use AI tools to keep your clinic visible, reviewed, and fully booked — on autopilot.</p>
+      <a href="#booking" class="btn-primary" style="font-size:0.9rem;padding:12px 22px;">Get This For Your Clinic</a>
+    </div>
+    <ul class="feature-list">
+      <li><span class="check" aria-hidden="true">✓</span> Weekly AI-generated Google Business updates</li>
+      <li><span class="check" aria-hidden="true">✓</span> Automated review request system</li>
+      <li><span class="check" aria-hidden="true">✓</span> Local SEO keyword targeting</li>
+      <li><span class="check" aria-hidden="true">✓</span> AI follow-up texts & appointment reminders</li>
+      <li><span class="check" aria-hidden="true">✓</span> CRM lead capture integration</li>
+      <li><span class="check" aria-hidden="true">✓</span> Monthly analytics reports</li>
+    </ul>
+  </div>
+
+  <!-- BOOKING -->
+  <div class="booking-card" id="booking">
+    <h2>Book an Appointment</h2>
+    <p>Three simple steps to get the care you need — no phone calls required.</p>
+    <div class="booking-steps">
+      <div class="step"><span>1️⃣</span>Choose Service</div>
+      <div class="step"><span>2️⃣</span>Pick a Time</div>
+      <div class="step"><span>3️⃣</span>Confirm & Done</div>
+    </div>
+    <a href="#booking-form" class="btn-primary" style="color:var(--navy);font-size:1rem;">📅 Book Now — It's Free</a>
+  </div>
+
+  <!-- Simple demo booking form -->
+  <div id="booking-form" class="blog-card" aria-label="Booking form demo">
+    <h3 class="section-title">Book a Visit</h3>
+    <p class="section-sub">Fill out this quick demo form and we'll (pretend to) reserve a time.</p>
+    <form aria-labelledby="booking-form" style="display:grid;gap:10px;max-width:520px;margin:0 auto;">
+      <label class="visually-hidden" for="name">Full name</label>
+      <input id="name" name="name" type="text" placeholder="Full name" required style="padding:10px;border-radius:8px;border:1px solid var(--border)">
+      <label class="visually-hidden" for="phone">Phone</label>
+      <input id="phone" name="phone" type="tel" placeholder="Phone or SMS number" required style="padding:10px;border-radius:8px;border:1px solid var(--border)">
+      <label class="visually-hidden" for="service">Service</label>
+      <select id="service" name="service" style="padding:10px;border-radius:8px;border:1px solid var(--border)">
+        <option>Urgent Care</option>
+        <option>Women's Health</option>
+        <option>Preventive Care</option>
+        <option>Lab Testing</option>
+      </select>
+      <button type="submit" class="btn-primary" style="background:var(--blue);color:white;padding:12px;border-radius:10px;border:none;">Request Demo Booking</button>
+      <div style="font-size:0.85rem;color:var(--muted);">This is a demo form and does not actually schedule appointments.</div>
+    </form>
+  </div>
+
+  <!-- BLOG -->
+  <div class="blog-card">
+    <div class="blog-tag">Featured Article</div>
+    <h3>How Telehealth Is Changing Local Healthcare</h3>
+    <p>AI-assisted content publishing helps this clinic rank higher on Google, attract more local patients, and answer common health questions before patients even call. Updated monthly with fresh, SEO-optimized articles.</p>
+  </div>
+
+ </main>
+
+<footer>
+  <strong>Northshore Medical Group</strong> &nbsp;•&nbsp; AI-Powered Clinic Growth Demo &nbsp;•&nbsp; Built by <strong>Your Agency Name</strong>
+</footer>
+
+</body>
+</html>

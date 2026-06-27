@@ -1,0 +1,110 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <meta name="description" content="Vellorae - AI-powered websites and growth tools for local clinics. More bookings, better visibility, automated follow-up.">
+  <meta property="og:title" content="Vellorae - AI-Driven Growth for Local Clinics">
+  <meta property="og:description" content="High-performance websites that turn search into recurring appointments.">
+  <title>Vellorae - AI-Powered Clinic Growth</title>
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700;800&display=swap" rel="stylesheet">
+  <style>
+    :root{--navy:#0b3d6e;--blue:#1c7ed6;--blue-light:#e7f3ff;--teal:#0ca678;--teal-light:#e6fcf5;--white:#fff;--gray-50:#f8fafc;--gray-100:#f1f5f9;--gray-200:#e2e8f0;--gray-600:#475569;--gray-800:#1e293b;--radius:16px;--shadow:0 1px 4px rgba(0,0,0,.06),0 4px 16px rgba(0,0,0,.07);--shadow-hover:0 4px 12px rgba(0,0,0,.09),0 12px 32px rgba(0,0,0,.11)}
+    *,*::before,*::after{box-sizing:border-box;margin:0;padding:0}
+    html{scroll-behavior:smooth}
+    body{font-family:'Inter',system-ui,sans-serif;background:var(--gray-50);color:var(--gray-800);line-height:1.65;-webkit-font-smoothing:antialiased}
+    a{text-decoration:none;color:inherit}
+    .container{max-width:1200px;margin:0 auto;padding:0 24px}
+    header{background:linear-gradient(135deg,var(--navy) 0%,#1a5a9e 100%);color:var(--white);padding:80px 24px 60px;text-align:center}
+    header h1{font-size:clamp(2rem,5vw,3.5rem);font-weight:800;margin-bottom:16px;letter-spacing:-0.02em}
+    header p{font-size:clamp(1rem,2.5vw,1.25rem);opacity:0.95;max-width:700px;margin:0 auto 32px}
+    .cta-button{display:inline-block;background:var(--teal);color:var(--white);padding:16px 32px;border-radius:12px;font-weight:600;font-size:1.1rem;transition:all 0.2s;box-shadow:0 4px 12px rgba(12,166,120,0.3)}
+    .cta-button:hover{background:#0b8a63;transform:translateY(-2px);box-shadow:0 6px 20px rgba(12,166,120,0.4)}
+    .value-props{padding:80px 24px;background:var(--white)}
+    .value-props h2{text-align:center;font-size:2rem;margin-bottom:48px;color:var(--navy)}
+    .props-grid{display:grid;grid-template-columns:repeat(auto-fit,minmax(280px,1fr));gap:32px;max-width:1000px;margin:0 auto}
+    .prop-card{text-align:center;padding:32px 24px}
+    .prop-icon{font-size:3rem;margin-bottom:16px}
+    .prop-card h3{font-size:1.25rem;margin-bottom:12px;color:var(--navy)}
+    .prop-card p{color:var(--gray-600)}
+    .demo-showcase{padding:80px 24px;background:var(--gray-50)}
+    .demo-showcase h2{text-align:center;font-size:2rem;margin-bottom:16px;color:var(--navy)}
+    .demo-showcase>p{text-align:center;color:var(--gray-600);margin-bottom:48px;max-width:600px;margin-left:auto;margin-right:auto}
+    .demo-grid{display:grid;grid-template-columns:repeat(auto-fit,minmax(320px,1fr));gap:32px;max-width:1100px;margin:0 auto}
+    .demo-card{background:var(--white);border-radius:var(--radius);overflow:hidden;box-shadow:var(--shadow);transition:all 0.3s;display:block}
+    .demo-card:hover{box-shadow:var(--shadow-hover);transform:translateY(-4px)}
+    .demo-preview{background:linear-gradient(135deg,var(--blue-light) 0%,var(--teal-light) 100%);padding:48px 24px;text-align:center;font-size:3rem}
+    .demo-info{padding:24px}
+    .demo-info h3{font-size:1.35rem;margin-bottom:8px;color:var(--navy)}
+    .demo-info p{color:var(--gray-600);margin-bottom:16px}
+    .demo-link{display:inline-block;color:var(--blue);font-weight:600;transition:color 0.2s}
+    .demo-link:hover{color:var(--navy)}
+    .pricing{padding:80px 24px;background:var(--white)}
+    .pricing h2{text-align:center;font-size:2rem;margin-bottom:48px;color:var(--navy)}
+    .pricing-grid{display:grid;grid-template-columns:repeat(auto-fit,minmax(280px,1fr));gap:32px;max-width:900px;margin:0 auto}
+    .pricing-card{background:var(--gray-50);border:2px solid var(--gray-200);border-radius:var(--radius);padding:32px;text-align:center;transition:all 0.3s}
+    .pricing-card:hover{border-color:var(--blue);box-shadow:var(--shadow)}
+    .pricing-card.featured{border-color:var(--teal);background:var(--teal-light)}
+    .pricing-card h3{font-size:1.5rem;margin-bottom:8px;color:var(--navy)}
+    .price{font-size:2.5rem;font-weight:800;color:var(--blue);margin-bottom:8px}
+    .price-note{color:var(--gray-600);font-size:0.9rem;margin-bottom:24px}
+    .pricing-card ul{list-style:none;text-align:left;margin-bottom:24px}
+    .pricing-card li{padding:8px 0;color:var(--gray-600)}
+    .pricing-card li::before{content:"\2713 ";color:var(--teal);font-weight:bold;margin-right:8px}
+    footer{background:var(--navy);color:var(--white);padding:48px 24px;text-align:center}
+    footer p{opacity:0.9;margin-bottom:16px}
+    footer a{color:var(--teal-light);text-decoration:underline}
+    @media(max-width:768px){header{padding:60px 20px 40px}.value-props,.demo-showcase,.pricing{padding:60px 20px}}
+  </style>
+</head>
+<body>
+<header>
+  <div class="container">
+    <h1>AI-Powered Growth for Local Clinics</h1>
+    <p>High-performance websites that turn Google searches into recurring appointments. Built for chiropractors, med spas, dental, and wellness providers.</p>
+    <a href="#demos" class="cta-button">See Live Demos</a>
+  </div>
+</header>
+<section class="value-props">
+  <div class="container">
+    <h2>Why Clinics Choose Vellorae</h2>
+    <div class="props-grid">
+      <div class="prop-card"><div class="prop-icon">&#128269;</div><h3>Local SEO Dominance</h3><p>Show up higher on Google for local searches. Optimized Google Business profiles and location-specific content.</p></div>
+      <div class="prop-card"><div class="prop-icon">&#128197;</div><h3>Automated Booking</h3><p>Online scheduling, AI-powered reminders, and automated follow-up that keeps your calendar full.</p></div>
+      <div class="prop-card"><div class="prop-icon">&#128172;</div><h3>Smart Patient Engagement</h3><p>AI chatbots answer questions 24/7. Review request automation builds your reputation automatically.</p></div>
+    </div>
+  </div>
+</section>
+<section class="demo-showcase" id="demos">
+  <div class="container">
+    <h2>Live Clinic Demos</h2>
+    <p>Click through these real examples of what your clinic website could look like with AI features already built in.</p>
+    <div class="demo-grid">
+      <a href="/northshore/" class="demo-card"><div class="demo-preview">&#127973;</div><div class="demo-info"><h3>Northshore Medical Group</h3><p>Multi-provider medical group with online booking, provider profiles, and automated patient reminders.</p><span class="demo-link">View Demo &rarr;</span></div></a>
+      <a href="/elite-wellness/" class="demo-card"><div class="demo-preview">&#128142;</div><div class="demo-info"><h3>Elite Wellness Clinic</h3><p>Premium wellness and preventive care with consultation booking, service packages, and ROI tracking.</p><span class="demo-link">View Demo &rarr;</span></div></a>
+      <a href="/brightcare/" class="demo-card"><div class="demo-preview">&#128104;&#8205;&#128105;&#8205;&#128103;&#8205;&#128102;</div><div class="demo-info"><h3>BrightCare Family Clinic</h3><p>Family-focused practice with easy appointment funnels, telehealth options, and local SEO optimization.</p><span class="demo-link">View Demo &rarr;</span></div></a>
+    </div>
+  </div>
+</section>
+<section class="pricing" id="pricing">
+  <div class="container">
+    <h2>Simple, Transparent Pricing</h2>
+    <div class="pricing-grid">
+      <div class="pricing-card"><h3>Starter</h3><div class="price">&dollar;199</div><div class="price-note">one-time setup</div><ul><li>Custom clinic website</li><li>Online booking integration</li><li>Google Business setup</li><li>Mobile responsive design</li></ul><a href="#contact" class="cta-button">Get Started</a></div>
+      <div class="pricing-card featured"><h3>Growth</h3><div class="price">&dollar;99<span style="font-size:1rem;font-weight:400">/mo</span></div><div class="price-note">everything in Starter +</div><ul><li>AI-powered SEO content</li><li>Automated review requests</li><li>Patient reminder system</li><li>Monthly performance reports</li><li>Priority support</li></ul><a href="#contact" class="cta-button">Start Growing</a></div>
+      <div class="pricing-card"><h3>Premium</h3><div class="price">&dollar;199<span style="font-size:1rem;font-weight:400">/mo</span></div><div class="price-note">everything in Growth +</div><ul><li>AI chatbot (24/7 patient Q&A)</li><li>Advanced lead tracking</li><li>SMS appointment reminders</li><li>Custom integrations</li><li>Dedicated account manager</li></ul><a href="#contact" class="cta-button">Go Premium</a></div>
+    </div>
+  </div>
+</section>
+<footer id="contact">
+  <div class="container">
+    <p><strong>Ready to grow your clinic?</strong></p>
+    <p>Book a free 15-minute consultation to see how Vellorae can help you get more appointments.</p>
+    <p style="margin-top:24px"><a href="mailto:drew@vellorae.org" class="cta-button">Book Consultation</a></p>
+    <p style="margin-top:32px;font-size:0.9rem;opacity:0.8">Vellorae &mdash; AI-driven growth for local clinics<br>Adrian, MI &bull; <a href="mailto:drew@vellorae.org">drew@vellorae.org</a></p>
+  </div>
+</footer>
+</body>
+</html>

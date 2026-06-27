@@ -28,3 +28,5 @@ shared/workflows/*
 *.sql.backup
 audit-log-exports/
 clinic/cockroach-sandbox/test-data/
+!shared/workflows/vellorae-demos/
+!shared/workflows/vellorae-demos/**
