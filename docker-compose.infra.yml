@@ -1,0 +1,43 @@
+version: '3.8'
+networks:
+  hermes_net:
+    driver: bridge
+    name: hermes-network
+services:
+  redis:
+    image: redis:7-alpine
+    container_name: hermes-redis
+    ports: ["6379:6379"]
+    volumes: [redis_data:/data]
+    networks: [hermes_net]
+    restart: unless-stopped
+  qdrant:
+    image: qdrant/qdrant:latest
+    container_name: hermes-qdrant
+    ports: ["6333:6333","6334:6334"]
+    volumes: [qdrant_data:/qdrant/storage]
+    networks: [hermes_net]
+    restart: unless-stopped
+  cockroach:
+    image: cockroachdb/cockroach:latest-v23.1
+    container_name: hermes-cockroach
+    ports: ["26257:26257","8081:8080"]
+    volumes: [cockroach_data:/cockroach/cockroach-data]
+    networks: [hermes_net]
+    restart: unless-stopped
+    command: start-single-node --insecure
+  agent-claw:
+    image: node:20-alpine
+    container_name: hermes-agent-claw
+    working_dir: /app
+    volumes: ["./agent_claw:/app"]
+    ports: ["9000:9000"]
+    networks: [hermes_net]
+    command: sh -c "npm install && npm start"
+    restart: unless-stopped
+    environment: [NODE_ENV=development,REDIS_URL=redis://redis:6379,QDRANT_URL=http://qdrant:6333]
+    depends_on: [redis,qdrant]
+volumes:
+  redis_data:
+  qdrant_data:
+  cockroach_data:
