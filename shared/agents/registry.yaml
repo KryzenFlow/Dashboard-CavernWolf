@@ -1,0 +1,65 @@
+# Eight Agent Hub roles — switch behavior via ACTIVE_BLEED + job queue (no code edits).
+# Docker service agent-pool runs all agents with auto_run: true.
+
+agents:
+  reasoning-tools:
+    label: Reasoning Agent With tools
+    type: reasoning
+    model: llama-index
+    auto_run: true
+    job_types: [seo_plan, analyze, reason]
+
+  reasoning-01:
+    label: Reasoning Agent 0.1
+    type: reasoning
+    model: llama-index
+    auto_run: true
+    job_types: [reason]
+
+  hermes-orca:
+    label: Hermes-Orca-0.1
+    type: orchestrator
+    model: llama-index
+    auto_run: true
+    job_types: [orchestrate, blog_draft]
+
+  claw-core:
+    label: Claw Core Tool
+    type: execution
+    model: tools
+    auto_run: true
+    job_types: [build_site, deploy, file_write]
+
+  memory-store:
+    label: MemoryStore Client
+    type: memory
+    model: sqlite+chroma
+    auto_run: true
+    job_types: [memory_ingest]
+
+  content-writer:
+    label: Content Writer
+    type: content
+    model: llama-index
+    auto_run: true
+    job_types: [blog_draft]
+
+  seo-scanner:
+    label: SEO Scanner
+    type: research
+    model: llama-index
+    auto_run: true
+    job_types: [seo_scan, seo_plan]
+
+  redis-bridge:
+    label: Redis Adapter
+    type: memory
+    model: redis
+    auto_run: true
+    job_types: [stm_sync]
+
+# Shared folders all file-writing agents use (mounted in docker-compose)
+workspace:
+  workflows: /shared/workflows
+  repo: /repo
+  templates: /templates

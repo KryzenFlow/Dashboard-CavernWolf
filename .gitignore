@@ -20,6 +20,9 @@ shared/workflows/*
 !shared/workflows/*.yaml
 !shared/workflows/*.yml
 !shared/workflows/*.json
+shared/agents/*
+!shared/agents/.gitkeep
+!shared/agents/*.yaml
 
 # Clinic PHI / credentials
 **/clinic-schemas/production/

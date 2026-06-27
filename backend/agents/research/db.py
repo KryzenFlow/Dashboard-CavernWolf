@@ -111,13 +111,24 @@ def list_jobs(status: str | None = None, limit: int = 50) -> list[dict[str, Any]
     return out
 
 
-def claim_next_job() -> dict[str, Any] | None:
-    """Agents poll this to stay busy on pending research."""
+def claim_next_job(agent_id: str | None = None, job_types: list[str] | None = None) -> dict[str, Any] | None:
+    """Agents poll this to stay busy. Optional filter by agent registry job_types."""
     conn = _connect()
     conn.row_factory = sqlite3.Row
-    row = conn.execute(
-        "SELECT * FROM research_jobs WHERE status = 'pending' ORDER BY id ASC LIMIT 1"
-    ).fetchone()
+    if job_types:
+        placeholders = ",".join("?" * len(job_types))
+        row = conn.execute(
+            f"""
+            SELECT * FROM research_jobs
+            WHERE status = 'pending' AND job_type IN ({placeholders})
+            ORDER BY id ASC LIMIT 1
+            """,
+            job_types,
+        ).fetchone()
+    else:
+        row = conn.execute(
+            "SELECT * FROM research_jobs WHERE status = 'pending' ORDER BY id ASC LIMIT 1"
+        ).fetchone()
     if not row:
         if _db_path() != ":memory:":
             conn.close()
@@ -128,6 +139,8 @@ def claim_next_job() -> dict[str, Any] | None:
     )
     conn.commit()
     job = dict(row)
+    if agent_id:
+        job["claimed_by"] = agent_id
     if _db_path() != ":memory:":
         conn.close()
     return job

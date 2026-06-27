@@ -189,6 +189,47 @@ services:
       - ai_net
     command: sleep infinity
 
+  # Eight Agent Hub workers — keep processing files/jobs (restart if Docker reboots)
+  agent-pool:
+    build:
+      context: ./backend
+      dockerfile: Dockerfile
+    container_name: agent-pool
+    command: python -m agents.worker.runner
+    restart: unless-stopped
+    env_file:
+      - .env
+    environment:
+      - PYTHONUNBUFFERED=1
+      - AGENT_POLL_SECONDS=15
+      - AGENT_REGISTRY_PATH=/shared/agents/registry.yaml
+      - RESEARCH_DB_URL=sqlite:////data/research.db
+      - CONTENT_DB_URL=sqlite:////data/content.db
+      - MEMORY_DB_URL=sqlite:////data/memory.db
+      - CLAW_URL=http://agent-claw:9000
+      - LLAMA_URL=http://llama-service:8080
+      - REDIS_URL=redis://redis:6379/0
+      - CHROMA_URL=http://chroma:8000
+      - DEV_TOOLS_WORKSPACE=/shared/workflows
+      - STUDIO_MODE=internal
+      - AGENT_STACK_USE_AI=1
+    volumes:
+      - ./backend:/app
+      - ./data:/data
+      - ./shared:/shared
+      - ./templates:/templates:ro
+      - .:/repo
+    depends_on:
+      - backend
+      - agent-claw
+      - llama-service
+      - redis
+      - chroma
+    networks:
+      - ai_net
+    profiles:
+      - agents
+
 networks:
   ai_net:
     driver: bridge

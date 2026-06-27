@@ -11,7 +11,8 @@ from pydantic import BaseModel, Field
 from agents.content.db import init_content_db
 from agents.content.generate import generate_blog_draft
 from agents.content.publish import publish_and_export, publish_draft_to_disk
-from agents.content.worker import process_claimed_job
+from agents.registry import list_agents
+from agents.worker.processor import process_job as process_claimed_job_v2
 from agents.research.db import (
     claim_next_job,
     complete_job,
@@ -92,6 +93,13 @@ def _require_internal() -> None:
         raise HTTPException(status_code=403, detail=err)
 
 
+@router.get("/agents")
+def ops_agent_registry() -> dict[str, Any]:
+    """Agent Hub card view — 8 agents from shared/agents/registry.yaml."""
+    _require_internal()
+    return {"agents": list_agents(), "count": len(list_agents())}
+
+
 @router.get("/bleeds")
 def ops_bleeds() -> dict[str, Any]:
     _require_internal()
@@ -164,13 +172,18 @@ def ops_complete_job(job_id: int, req: JobCompleteRequest) -> dict[str, Any]:
 
 @router.post("/jobs/claim-and-run")
 def ops_claim_and_run() -> dict[str, Any]:
-    """Claim next job and process blog_draft jobs (run on your agent PC)."""
+    """Claim next job and run it (any agent capability)."""
     _require_internal()
+    from agents.registry import get_agent
+
     job = claim_next_job()
     if not job:
         return {"job": None}
-    outcome = process_claimed_job(job)
-    return {"job": job, "outcome": outcome}
+    jtype = job.get("job_type", "")
+    candidates = [a for a in list_agents() if jtype in a.get("job_types", [])]
+    agent_id = candidates[0]["id"] if candidates else "hermes-orca"
+    outcome = process_claimed_job_v2(job, agent_id)
+    return {"job": job, "agent": agent_id, "outcome": outcome}
 
 
 @router.get("/content/drafts")

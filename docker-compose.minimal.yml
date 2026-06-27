@@ -1,0 +1,69 @@
+# Minimal Hermes stack — 2 containers only (proof / Base44-style structure-first).
+# No agent pool, no redis/chroma, mock LLM (zero API tokens).
+#
+#   docker compose -f docker-compose.minimal.yml up --build
+#
+# Backend :8000  |  Claw :9000  |  Files: ./shared/workflows + repo mount
+
+services:
+  backend:
+    build:
+      context: ./backend
+      dockerfile: Dockerfile
+    container_name: ai-backend
+    command: uvicorn main:app --host 0.0.0.0 --port 8000 --reload
+    ports:
+      - "8000:8000"
+    env_file:
+      - .env
+    environment:
+      - PYTHONUNBUFFERED=1
+      - LLM_PROVIDER=mock
+      - AGENT_STACK_USE_AI=0
+      - AGENT_STACK_ENABLED=1
+      - HERMES_MOCK=0
+      - HERMES_CLI_BRIDGE=claw
+      - STUDIO_MODE=internal
+      - CLAW_URL=http://agent-claw:9000
+      - MEMORY_DB_URL=sqlite:////data/memory.db
+      - RESEARCH_DB_URL=sqlite:////data/research.db
+      - CONTENT_DB_URL=sqlite:////data/content.db
+      - GIT_REPO_ROOT=/repo
+      - DEPLOY_PROFILE=static-export
+      - DEPLOY_PROFILES_PATH=/shared/workflows/deploy-profiles.yaml
+      - BLEED_MANIFEST_PATH=/shared/workflows/bleed-manifest.yaml
+      - AGENT_REGISTRY_PATH=/shared/agents/registry.yaml
+    volumes:
+      - ./backend:/app
+      - ./data:/data
+      - ./shared:/shared
+      - .:/repo
+    networks:
+      - ai_net
+    depends_on:
+      - agent-claw
+
+  agent-claw:
+    build:
+      context: ./agent_claw
+      dockerfile: Dockerfile
+    container_name: agent-claw
+    ports:
+      - "9000:9000"
+    environment:
+      - PYTHONUNBUFFERED=1
+      - DEV_TOOLS_WORKSPACE=/shared/workflows
+      - TEMPLATES_DIR=/templates
+      - GIT_REPO_ROOT=/repo
+      - DEPLOY_PROFILES_PATH=/shared/workflows/deploy-profiles.yaml
+    volumes:
+      - ./agent_claw:/app
+      - ./shared:/shared
+      - ./templates:/templates:ro
+      - .:/repo
+    networks:
+      - ai_net
+
+networks:
+  ai_net:
+    driver: bridge

@@ -34,6 +34,23 @@ cp .env.example .env
 docker compose up --build
 ```
 
+### Minimal (2 containers — structure + Claw, no token burn)
+
+Use this to validate the stack like Base44 / CLI whitelist mode: **follow YAML structure only**, mock LLM, no 8-agent pool.
+
+```powershell
+.\scripts\start_minimal.ps1
+# or: docker compose -f docker-compose.minimal.yml up --build
+```
+
+| Container | Role |
+|-----------|------|
+| `backend` | API, bleeds YAML, job queue, `AGENT_STACK_USE_AI=0` |
+| `agent-claw` | Writes files under `shared/workflows/`, builds sites |
+
+Add Studio UI later with full compose. Scale up with `docker compose --profile agents up` when ready.
+
+
 - Studio: http://localhost:3000
 - Backend: http://localhost:8000/health
 - Agent Claw: http://localhost:9000/health
