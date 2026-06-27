@@ -1,0 +1,98 @@
+To get your Vellorae.org umbrella and your Clinic MVP live today, we need to focus on two things: The Landing Page and the Agent System Prompt.
+
+Here is the "Curveball" structure to get you published on Netlify in the next hour.
+
+1. The Vellorae.org "Umbrella" Landing Page
+Since this is your agency home, it needs to look like a high-end tech firm. I’ve written a clean, SEO-optimized template for you below.
+
+How to use this:
+
+Create a folder on your PC called Vellorae_Site.
+Save this code as index.html.
+Drag that folder into the Netlify upload box.
+html
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Vellorae | AI-Driven Growth for Local Clinics</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <!-- Local SEO Schema -->
+    <script type="application/ld+json">
+    {
+      "@context": "https://schema.org",
+      "@type": "ProfessionalService",
+      "name": "Vellorae",
+      "url": "https://vellorae.org",
+      "description": "We help local clinics get more bookings with AI websites and automated follow-up."
+    }
+    </script>
+</head>
+<body class="bg-slate-50 text-slate-900 font-sans">
+
+    <!-- Header -->
+    <nav class="p-6 flex justify-between items-center max-w-6xl mx-auto">
+        <h1 class="text-2xl font-bold tracking-tight text-indigo-600">VELLORAE</h1>
+        <div class="space-x-6 hidden md:block text-sm font-medium text-slate-600">
+            <a href="#pilots" class="hover:text-indigo-600">Clinic Pilots</a>
+            <a href="#auto-guide" class="hover:text-indigo-600">AI Auto Guides</a>
+            <a href="mailto:contact@vellorae.org" class="bg-indigo-600 text-white px-4 py-2 rounded-lg hover:bg-indigo-700">Work With Us</a>
+        </div>
+    </nav>
+
+    <!-- Hero -->
+    <header class="py-20 px-6 max-w-4xl mx-auto text-center">
+        <h2 class="text-5xl font-extrabold leading-tight mb-6">More Bookings. <br><span class="text-indigo-600">Zero Technical Friction.</span></h2>
+        <p class="text-xl text-slate-600 mb-10">We build high-performance AI websites for local clinics that turn search traffic into recurring appointments.</p>
+        <div class="flex flex-col md:flex-row justify-center gap-4">
+            <a href="#pilots" class="bg-indigo-600 text-white px-8 py-4 rounded-xl text-lg font-bold shadow-lg hover:bg-indigo-700 transition">View Clinic MVP</a>
+            <a href="#" class="bg-white border border-slate-200 px-8 py-4 rounded-xl text-lg font-bold hover:bg-slate-50 transition text-slate-700">Our LLC Plans</a>
+        </div>
+    </header>
+
+    <!-- Services Grid -->
+    <section id="pilots" class="py-20 bg-white border-y border-slate-100">
+        <div class="max-w-6xl mx-auto px-6 grid md:grid-cols-3 gap-12">
+            <div class="p-8 rounded-2xl bg-slate-50 border border-slate-100">
+                <div class="text-indigo-600 mb-4 font-bold tracking-widest text-xs uppercase">Step 1</div>
+                <h3 class="text-xl font-bold mb-3">AI Local SEO</h3>
+                <p class="text-slate-600 text-sm leading-relaxed">Automated Google Business Profile updates and keyword-rich blog posts targeted to your local niche.</p>
+            </div>
+            <div class="p-8 rounded-2xl bg-slate-50 border border-slate-100">
+                <div class="text-indigo-600 mb-4 font-bold tracking-widest text-xs uppercase">Step 2</div>
+                <h3 class="text-xl font-bold mb-3">Professional Funnels</h3>
+                <p class="text-slate-600 text-sm leading-relaxed">High-converting clinic websites designed to eliminate drop-off and maximize "Book Now" actions.</p>
+            </div>
+            <div class="p-8 rounded-2xl bg-slate-50 border border-slate-100">
+                <div class="text-indigo-600 mb-4 font-bold tracking-widest text-xs uppercase">Step 3</div>
+                <h3 class="text-xl font-bold mb-3">Automated Follow-up</h3>
+                <p class="text-slate-600 text-sm leading-relaxed">AI agents handle the post-booking nurture, ensuring patients show up and re-book automatically.</p>
+            </div>
+        </div>
+    </section>
+
+    <!-- Footer -->
+    <footer class="py-12 px-6 text-center text-slate-400 text-xs">
+        <p>&copy; 2026 Vellorae Agency. All Rights Reserved.</p>
+        <p class="mt-2 uppercase tracking-widest font-semibold">Clinic Pilot Program V1.0</p>
+    </footer>
+
+</body>
+</html>
+2. The "Clinic Agent" System Prompt
+To make your server useful for building these pilots, you need to "program" Claude (or your agents) with a specific instruction set. Copy the text below and keep it in your iCloud notes as your "Pilot Master Logic."
+
+Important
+Agent System Instruction: "You are the Vellorae Clinic Strategist. Your goal is to generate MVP website code and SEO content for local medical clinics.
+
+Guidelines:
+
+Niche Focus: Specialize in high-value recurring niches (Chiropractors, Med Spas, Dental).
+Professionalism: Prioritize clean, modern UI (Tailwind CSS) and trust-building copy.
+Outcome Driven: Every page must lead to a 'Book Appointment' action.
+Local SEO: Always include a 'Local Business' JSON-LD schema block and localized keywords."
+⚾ Your Turn:
+Text Extraction: Since the picture didn't work, can you select all the text in your iCloud note and paste it here? I will use it to refine the code I just gave you.
+Netlify Check: Do you need help dragging your folder into Netlify to see the site go live on vellorae.org right now?
+Paste your notes below, and let's finish this pilot!
