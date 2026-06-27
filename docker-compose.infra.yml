@@ -27,17 +27,18 @@ services:
     restart: unless-stopped
     command: start-single-node --insecure
   agent-claw:
-    image: node:20-alpine
+    image: python:3.11-slim
     container_name: hermes-agent-claw
     working_dir: /app
     volumes: ["./agent_claw:/app"]
     ports: ["9000:9000"]
     networks: [hermes_net]
-    command: sh -c "npm install && npm start"
+    command: sh -c "pip install -r requirements.txt && python claw_server.py"
     restart: unless-stopped
-    environment: [NODE_ENV=development,REDIS_URL=redis://redis:6379,QDRANT_URL=http://qdrant:6333]
+    environment: [REDIS_URL=redis://redis:6379,QDRANT_URL=http://qdrant:6333]
     depends_on: [redis,qdrant]
 volumes:
   redis_data:
   qdrant_data:
   cockroach_data:
+
