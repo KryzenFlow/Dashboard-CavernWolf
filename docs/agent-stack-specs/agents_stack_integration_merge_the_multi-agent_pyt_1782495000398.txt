@@ -1,0 +1,205 @@
+Alright — let’s lock this in so you can deploy LocalRankAI + Vellorae’s Agent System Prompt to Railway in one push.
+We’ll do three things in this patch:
+
+Add the /api/seo backend route (config-driven, reads bleeds.yaml)
+Patch the LocalRankAI frontend so “Get SEO Plan” calls it
+Add a fifth bleed stub for one of your current targets
+
+
+1️⃣ config/bleeds.yaml with Fifth Bleed
+We’ll add Dentists as the fifth bleed since they’re a high-value, local-service vertical (you can swap this for another target later).
+config/bleeds.yaml
+Yamlactive_bleed: doctors
+
+bleeds:
+  doctors:
+    description: >
+      Independent doctors and small clinics losing patients to larger hospital networks.
+    pain_points:
+      - Low local search visibility
+      - Poor website conversion
+      - No automated follow-up
+    seo_focus: "local clinic SEO, patient booking optimization"
+    email_tone: "professional, empathetic"
+  
+  saas:
+    description: >
+      Mid-market SaaS companies ($100M-$500M ARR) losing leads due to poor onboarding and churn.
+    pain_points:
+      - Weak trial-to-paid conversion
+      - Low feature adoption
+      - Poor customer success follow-up
+    seo_focus: "B2B SaaS growth, onboarding optimization"
+    email_tone: "data-driven, persuasive"
+
+  auto_repair:
+    description: >
+      Independent auto repair shops losing customers to dealership service centers.
+    pain_points:
+      - Low online visibility
+      - No appointment booking
+      - Poor customer retention
+    seo_focus: "local auto repair SEO, appointment booking"
+    email_tone: "friendly, trustworthy"
+
+  real_estate:
+    description: >
+      Independent real estate agents losing listings to large brokerages.
+    pain_points:
+      - Low online visibility
+      - Poor lead follow-up
+      - Weak social media presence
+    seo_focus: "real estate SEO, lead capture optimization"
+    email_tone: "confident, persuasive"
+
+  dentists:
+    description: >
+      Independent dental practices losing patients to corporate dental chains.
+    pain_points:
+      - Low Google Maps ranking
+      - Poor website conversion
+      - No patient recall automation
+    seo_focus: "dental SEO, patient recall campaigns"
+    email_tone: "friendly, reassuring"
+
+
+2️⃣ /api/seo Backend Route
+This is the config-driven agent prompt that Cursor was talking about — no hardcoding per vertical.
+routes/seo.js
+Javascriptconst express = require("express");
+const fs = require("fs");
+const yaml = require("js-yaml");
+const fetch = require("node-fetch");
+
+const router = express.Router();
+
+function loadConfig() {
+  const config = yaml.load(fs.readFileSync("config/bleeds.yaml", "utf8"));
+  const active = config.active_bleed;
+  return { vertical: active, ...config.bleeds[active] };
+}
+
+router.get("/", async (req, res) => {
+  const { zip, map } = req.query;
+  if (!zip || !map) return res.status(400).json({ error: "ZIP and map required" });
+
+  const cfg = loadConfig();
+
+  const prompt = `
+You are LocalRankAI, an AI assistant for ${cfg.vertical}.
+
+Context:
+- Description: ${cfg.description}
+- Pain Points: ${cfg.pain_points.join(", ")}
+- SEO Focus: ${cfg.seo_focus}
+- Email Tone: ${cfg.email_tone}
+- ZIP Code: ${zip}
+- Customer Map Data: ${map}
+
+Tasks:
+1. Generate a short SEO improvement plan tailored to this vertical and ZIP code.
+2. Write three outreach email templates in the given tone.
+3. Suggest 3 quick wins for improving local visibility.
+`;
+
+  try {
+    const aiRes = await fetch(process.env.AI_API_URL, {
+      method: "POST",
+      headers: {
+        "Content-Type": "application/json",
+        "Authorization": `Bearer ${process.env.AI_API_KEY}`
+      },
+      body: JSON.stringify({ prompt, max_tokens: 800 })
+    });
+
+    const aiData = await aiRes.json();
+    res.json({ vertical: cfg.vertical, output: aiData });
+  } catch (err) {
+    console.error(err);
+    res.status(500).json({ error: "AI request failed" });
+  }
+});
+
+module.exports = router;
+
+
+Backend Registration
+In your app.js or main Express entrypoint:
+Diff const express = require("express");
+ const bodyParser = require("body-parser");
+ const mapRoutes = require("./routes/map");
++const seoRoutes = require("./routes/seo");
+
+ const app = express();
+ app.use(bodyParser.json());
+
+ app.use("/api/map", mapRoutes);
++app.use("/api/seo", seoRoutes);
+
+
+3️⃣ LocalRankAI Frontend Patch
+We’ll add a “Get SEO Plan” button under your 12-box map.
+LocalRankMap.jsx
+Jsximport React, { useState } from "react";
+
+export default function LocalRankMap() {
+  const [zip, setZip] = useState("");
+  const [data, setData] = useState(Array(12).fill(0));
+  const [seoPlan, setSeoPlan] = useState("");
+
+  const fetchData = async () => {
+    const res = await fetch(`/api/map?zip=${zip}`);
+    const json = await res.json();
+    setData(json.boxes);
+  };
+
+  const fetchSEOPlan = async () => {
+    const mapString = JSON.stringify(data);
+    const res = await fetch(`/api/seo?zip=${zip}&map=${encodeURIComponent(mapString)}`);
+    const json = await res.json();
+    setSeoPlan(JSON.stringify(json.output, null, 2));
+  };
+
+  return (
+    <div style={{ padding: "20px" }}>
+      <h2>Local Rank AI Map</h2>
+      <input
+        type="text"
+        placeholder="Enter ZIP code"
+        value={zip}
+        onChange={(e) => setZip(e.target.value)}
+      />
+      <button onClick={fetchData}>Search</button>
+      <div style={{ display: "grid", gridTemplateColumns: "repeat(4, 50px)", gap: "5px", marginTop: "20px" }}>
+        {data.map((val, i) => (
+          <div
+            key={i}
+            style={{
+              width: "50px",
+              height: "50px",
+              backgroundColor: val > 0 ? "green" : "red",
+              border: "1px solid #ccc"
+            }}
+          />
+        ))}
+      </div>
+      <button style={{ marginTop: "20px" }} onClick={fetchSEOPlan}>
+        Get SEO Plan
+      </button>
+      {seoPlan && (
+        <pre style={{ background: "#111", color: "#0f0", padding: "10px", marginTop: "20px" }}>
+          {seoPlan}
+        </pre>
+      )}
+    </div>
+  );
+}
+
+
+4️⃣ Deployment to Railway
+Once these files are in place:
+Bash# Commit changes
+git add config/bleeds.yaml routes/seo.js LocalRankMap.jsx app.js
+git commit -m "Add config-driven SEO agent + dentists bleed + frontend integration"
+
+# Push to

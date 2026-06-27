@@ -1,0 +1,199 @@
+Alright — let’s complete the loop and give you a React frontend package that plugs directly into the backend we just built.
+This will give you:
+
+Visual Workflow Builder (drag-and-drop agent chaining)
+Split View: Chat + Logs
+Full xterm.js Terminal
+
+All components will be modular so you can drop them into your Dashboard-CavernWolf UI.
+
+1. Project Structure
+dashboard/src/components/
+ ├── WorkflowBuilder.jsx
+ ├── ChatWithLogs.jsx
+ ├── TerminalView.jsx
+ ├── api.js
+ └── styles.css
+
+
+2. API Helper
+api.js
+Javascriptexport const API_BASE = "http://localhost:8000";
+
+export async function listAgents() {
+  const res = await fetch(`${API_BASE}/agents`);
+  return res.json();
+}
+
+export async function runWorkflow(agents, input) {
+  const res = await fetch(`${API_BASE}/workflow/run`, {
+    method: "POST",
+    headers: { "Content-Type": "application/json" },
+    body: JSON.stringify({ agents, input })
+  });
+  return res.json();
+}
+
+
+3. Visual Workflow Builder
+Uses React Flow for drag-and-drop chaining.
+WorkflowBuilder.jsx
+Jsximport React, { useState, useEffect } from "react";
+import ReactFlow, { addEdge, MiniMap, Controls, Background } from "reactflow";
+import "reactflow/dist/style.css";
+import { listAgents, runWorkflow } from "./api";
+
+export default function WorkflowBuilder() {
+  const [nodes, setNodes] = useState([]);
+  const [edges, setEdges] = useState([]);
+  const [agents, setAgents] = useState([]);
+
+  useEffect(() => {
+    listAgents().then(data => {
+      setAgents(Object.keys(data));
+      setNodes(Object.keys(data).map((name, idx) => ({
+        id: name,
+        position: { x: 100, y: idx * 100 },
+        data: { label: name }
+      })));
+    });
+  }, []);
+
+  const onConnect = (params) => setEdges((eds) => addEdge(params, eds));
+
+  const executeWorkflow = async () => {
+    const orderedAgents = edges.map(e => e.source).concat(edges.slice(-1).map(e => e.target));
+    const result = await runWorkflow(orderedAgents, { prompt: "Hello from workflow" });
+    alert(JSON.stringify(result, null, 2));
+  };
+
+  return (
+    <div style={{ height: 500 }}>
+      <ReactFlow nodes={nodes} edges={edges} onConnect={onConnect}>
+        <MiniMap />
+        <Controls />
+        <Background />
+      </ReactFlow>
+      <button onClick={executeWorkflow} style={{ marginTop: 10 }}>Run Workflow</button>
+    </div>
+  );
+}
+
+
+4. Split View: Chat + Logs
+Uses WebSockets for real-time streaming.
+ChatWithLogs.jsx
+Jsximport React, { useState, useEffect, useRef } from "react";
+
+export default function ChatWithLogs({ agentName }) {
+  const [messages, setMessages] = useState([]);
+  const [input, setInput] = useState("");
+  const [logs, setLogs] = useState([]);
+  const chatSocket = useRef(null);
+  const logSocket = useRef(null);
+
+  useEffect(() => {
+    chatSocket.current = new WebSocket(`ws://localhost:8000/ws/chat/${agentName}`);
+    chatSocket.current.onmessage = (event) => {
+      const data = JSON.parse(event.data);
+      if (data.chunk) {
+        setMessages(prev => [...prev.slice(0, -1), prev.slice(-1)[0] + data.chunk]);
+      }
+    };
+
+    logSocket.current = new WebSocket(`ws://localhost:8000/ws/logs/agents`);
+    logSocket.current.onmessage = (event) => {
+      setLogs(prev => [...prev, event.data]);
+    };
+
+    return () => {
+      chatSocket.current.close();
+      logSocket.current.close();
+    };
+  }, [agentName]);
+
+  const sendMessage = () => {
+    setMessages(prev => [...prev, ""]);
+    chatSocket.current.send(JSON.stringify({ prompt: input }));
+    setInput("");
+  };
+
+  return (
+    <div style={{ display: "flex", height: "500px" }}>
+      <div style={{ flex: 1, borderRight: "1px solid #ccc", padding: 10 }}>
+        <h3>Chat</h3>
+        <div style={{ height: "80%", overflowY: "auto", background: "#f9f9f9", padding: 5 }}>
+          {messages.map((m, i) => <div key={i}>{m}</div>)}
+        </div>
+        <input value={input} onChange={(e) => setInput(e.target.value)} style={{ width: "80%" }} />
+        <button onClick={sendMessage}>Send</button>
+      </div>
+      <div style={{ flex: 1, padding: 10 }}>
+        <h3>Logs</h3>
+        <div style={{ height: "90%", overflowY: "auto", background: "#000", color: "#0f0", padding: 5 }}>
+          {logs.map((l, i) => <div key={i}>{l}</div>)}
+        </div>
+      </div>
+    </div>
+  );
+}
+
+
+5. Full xterm.js Terminal
+TerminalView.jsx
+Jsximport React, { useEffect, useRef } from "react";
+import { Terminal } from "xterm";
+import "xterm/css/xterm.css";
+
+export default function TerminalView({ sessionId }) {
+  const termRef = useRef(null);
+  const socketRef = useRef(null);
+
+  useEffect(() => {
+    const term = new Terminal({ rows: 20, cols: 80 });
+    term.open(termRef.current);
+
+    socketRef.current = new WebSocket(`ws://localhost:8000/ws/terminal/${sessionId}`);
+    socketRef.current.onmessage = (event) => term.write(event.data);
+    term.onData(data => socketRef.current.send(data));
+
+    return () => {
+      socketRef.current.close();
+      term.dispose();
+    };
+  }, [sessionId]);
+
+  return <div ref={termRef} style={{ height: "400px", background: "#000" }} />;
+}
+
+
+6. Example Integration Page
+Jsximport React from "react";
+import WorkflowBuilder from "./WorkflowBuilder";
+import ChatWithLogs from "./ChatWithLogs";
+import TerminalView from "./TerminalView";
+
+export default function AgentsDashboard() {
+  return (
+    <div>
+      <h1>Agent Control Center</h1>
+      <WorkflowBuilder />
+      <ChatWithLogs agentName="ReasoningAgent" />
+      <TerminalView sessionId="dev-session" />
+    </div>
+  );
+}
+
+
+7. How It Connects to Backend
+
+WorkflowBuilder → /agents + /workflow/run
+ChatWithLogs → ws/chat/{agent} + ws/logs/{service}
+TerminalView → ws/terminal/{session_id}
+
+
+8. Deployment Notes
+
+In production, proxy WebSocket traffic via Nginx or Traefik.
+Use JWT auth for all WebSocket endpoints.
+

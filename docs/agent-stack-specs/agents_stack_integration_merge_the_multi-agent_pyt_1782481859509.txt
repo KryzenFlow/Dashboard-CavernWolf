@@ -1,0 +1,211 @@
+Gotcha — if Cursor is getting confused, it’s probably because it’s not getting a clear, single-file runnable context.
+Right now we’ve been giving it multi-file architecture, but Cursor works best when you bootstrap with a single script or Docker build entrypoint that sets up everything.
+Since you mentioned #!/bin/bash, I’ll give you a one-shot bootstrap script that:
+
+Creates the folder structure
+Writes the backend + agent_claw code
+Writes Dockerfiles and docker-compose.yml
+Installs dependencies
+Runs the stack
+
+This way, you can paste one file into Cursor and it will understand exactly what to do.
+
+setup_stack.sh — One-Command Multi-Agent AI Stack Bootstrap
+Bash#!/bin/bash
+set -e
+
+# === 1. Create folder structure ===
+mkdir -p backend agent_claw hermes templates models shared data
+
+# === 2. Backend code ===
+cat > backend/main.py <<'PY'
+from fastapi import FastAPI, HTTPException
+from pydantic import BaseModel
+import requests, sqlite3, os
+
+app = FastAPI(title="Multi-Agent Backend")
+DB_PATH = os.getenv("MEMORY_DB_URL", "data/memory.db")
+os.makedirs(os.path.dirname(DB_PATH), exist_ok=True)
+
+def init_db():
+    conn = sqlite3.connect(DB_PATH)
+    conn.execute("CREATE TABLE IF NOT EXISTS memory (id INTEGER PRIMARY KEY, content TEXT)")
+    conn.commit()
+    conn.close()
+init_db()
+
+class ReasonRequest(BaseModel):
+    query: str
+
+class ActionRequest(BaseModel):
+    action: str
+    params: dict = {}
+
+@app.get("/")
+def root():
+    return {"status": "Backend running"}
+
+@app.post("/reason")
+def reason(req: ReasonRequest):
+    llama_url = os.getenv("LLAMA_URL", "http://llama-service:8080")
+    try:
+        resp = requests.post(f"{llama_url}/completion", json={"prompt": req.query, "n_predict": 128})
+        if resp.status_code != 200:
+            raise HTTPException(status_code=500, detail="LLaMA service error")
+        answer = resp.json().get("content", "")
+        conn = sqlite3.connect(DB_PATH)
+        conn.execute("INSERT INTO memory (content) VALUES (?)", (f"Q: {req.query} | A: {answer}",))
+        conn.commit()
+        conn.close()
+        return {"answer": answer}
+    except Exception as e:
+        raise HTTPException(status_code=500, detail=str(e))
+
+@app.post("/action")
+def trigger_action(req: ActionRequest):
+    claw_url = os.getenv("CLAW_URL", "http://agent-claw:9000")
+    try:
+        resp = requests.post(f"{claw_url}/execute", json=req.dict())
+        return resp.json()
+    except Exception as e:
+        raise HTTPException(status_code=500, detail=str(e))
+
+@app.get("/memory")
+def get_memory():
+    conn = sqlite3.connect(DB_PATH)
+    rows = conn.execute("SELECT * FROM memory ORDER BY id DESC LIMIT 50").fetchall()
+    conn.close()
+    return [{"id": r[0], "content": r[1]} for r in rows]
+PY
+
+# === 3. Agent Claw code ===
+cat > agent_claw/claw_server.py <<'PY'
+from fastapi import FastAPI
+from pydantic import BaseModel
+import subprocess, os
+
+app = FastAPI(title="Agent Claw Execution Layer")
+
+class ActionRequest(BaseModel):
+    action: str
+    params: dict = {}
+
+@app.get("/")
+def root():
+    return {"status": "Agent Claw ready"}
+
+@app.post("/execute")
+def execute_action(req: ActionRequest):
+    try:
+        if req.action == "run_cli":
+            cmd = req.params.get("cmd")
+            if not cmd:
+                return {"error": "Missing 'cmd' parameter"}
+            result = subprocess.run(cmd, shell=True, capture_output=True, text=True)
+            return {"stdout": result.stdout, "stderr": result.stderr, "returncode": result.returncode}
+
+        elif req.action == "build_website":
+            template = req.params.get("template", "default")
+            output_dir = req.params.get("output_dir", "/shared/site")
+            os.makedirs(output_dir, exist_ok=True)
+            with open(os.path.join(output_dir, "index.html"), "w") as f:
+                f.write(f"<html><body><h1>Website from {template} template</h1></body></html>")
+            return {"status": "Website built", "path": output_dir}
+
+        else:
+            return {"error": f"Unknown action: {req.action}"}
+    except Exception as e:
+        return {"error": str(e)}
+PY
+
+# === 4. Requirements ===
+echo -e "fastapi\nuvicorn\nrequests\npydantic\nllama-index" > backend/requirements.txt
+cp backend/requirements.txt agent_claw/requirements.txt
+
+# === 5. Dockerfiles ===
+cat > backend/Dockerfile <<'DOCKER'
+FROM python:3.11-slim
+WORKDIR /app
+COPY requirements.txt .
+RUN pip install --no-cache-dir -r requirements.txt
+COPY . .
+EXPOSE 8000
+CMD ["uvicorn", "main:app", "--host", "0.0.0.0", "--port", "8000"]
+DOCKER
+
+cat > agent_claw/Dockerfile <<'DOCKER'
+FROM python:3.11-slim
+WORKDIR /app
+COPY requirements.txt .
+RUN pip install --no-cache-dir -r requirements.txt
+COPY . .
+EXPOSE 9000
+CMD ["uvicorn", "claw_server:app", "--host", "0.0.0.0", "--port", "9000"]
+DOCKER
+
+# === 6. docker-compose.yml ===
+cat > docker-compose.yml <<'YML'
+version: "3.9"
+services:
+  backend:
+    build: ./backend
+    ports:
+      - "8000:8000"
+    environment:
+      - MEMORY_DB_URL=data/memory.db
+      - CLAW_URL=http://agent-claw:9000
+    volumes:
+      - ./backend:/app
+      - ./data:/data
+      - ./shared:/shared
+    depends_on:
+      - agent-claw
+      - llama-service
+    networks:
+      - ai_net
+
+  agent-claw:
+    build: ./agent_claw
+    ports:
+      - "9000:9000"
+    volumes:
+      - ./agent_claw:/app
+      - ./shared:/shared
+    networks:
+      - ai_net
+
+  llama-service:
+    image: ghcr.io/ggerganov/llama.cpp:latest
+    command: ["--model", "/models/llama-7b.ggmlv3.q4_0.bin", "--port", "8080"]
+    ports:
+      - "8080:8080"
+    volumes:
+      - ./models:/models
+    networks:
+      - ai_net
+
+  dev-tools:
+    image: node:20
+    working_dir: /workspace
+    tty: true
+    stdin_open: true
+    volumes:
+      - ./templates:/workspace/templates
+      - ./shared:/shared
+    networks:
+      - ai_net
+    command: bash
+
+networks:
+  ai_net:
+    driver: bridge
+YML
+
+echo "✅ Stack setup complete. Run: docker compose up --build"
+
+
+How to Use
+
+Save this as setup_stack.sh
+
+

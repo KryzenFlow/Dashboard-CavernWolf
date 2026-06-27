@@ -1,0 +1,228 @@
+Alright — here’s a ready‑to‑drop React Agent Hub component set that implements:
+
+Visual Card-Based Agent Management
+Wizard for Creating Agents
+YAML/JSON Config Editor with live validation
+Hot‑reload integration with your FastAPI backend
+
+This will plug directly into your Dashboard‑CavernWolf frontend.
+
+1. API Helper
+src/api/agents.js
+Javascriptexport const API_BASE = "http://localhost:8000";
+
+export async function getAgents() {
+  const res = await fetch(`${API_BASE}/agents`);
+  return res.json();
+}
+
+export async function createAgent(config) {
+  const res = await fetch(`${API_BASE}/agents`, {
+    method: "POST",
+    headers: { "Content-Type": "application/json" },
+    body: JSON.stringify(config)
+  });
+  return res.json();
+}
+
+export async function updateAgent(name, config) {
+  const res = await fetch(`${API_BASE}/agents/${name}`, {
+    method: "PUT",
+    headers: { "Content-Type": "application/json" },
+    body: JSON.stringify(config)
+  });
+  return res.json();
+}
+
+export async function deleteAgent(name) {
+  const res = await fetch(`${API_BASE}/agents/${name}`, { method: "DELETE" });
+  return res.json();
+}
+
+
+2. Agent Card View
+src/components/AgentCard.jsx
+Jsximport React from "react";
+
+export default function AgentCard({ agent, onEdit, onDelete, onToggleAutoRun }) {
+  return (
+    <div className="agent-card">
+      <div className="header">
+        <span className={`status-dot ${agent.status === "running" ? "green" : "red"}`} />
+        <h3>{agent.name}</h3>
+      </div>
+      <p>Type: {agent.type}</p>
+      <p>Model: {agent.model}</p>
+      <div className="actions">
+        <button onClick={() => onEdit(agent)}>Edit</button>
+        <button onClick={() => onDelete(agent.name)}>Delete</button>
+        <label>
+          AutoRun
+          <input
+            type="checkbox"
+            checked={agent.auto_run || false}
+            onChange={(e) => onToggleAutoRun(agent, e.target.checked)}
+          />
+        </label>
+      </div>
+    </div>
+  );
+}
+
+
+3. Agent Wizard
+src/components/AgentWizard.jsx
+Jsximport React, { useState } from "react";
+
+export default function AgentWizard({ onSave, onCancel }) {
+  const [step, setStep] = useState(1);
+  const [config, setConfig] = useState({
+    name: "",
+    type: "reasoning",
+    model: "",
+    tools: [],
+    memory: {},
+    auto_run: false
+  });
+
+  const next = () => setStep(step + 1);
+  const prev = () => setStep(step - 1);
+
+  return (
+    <div className="wizard">
+      {step === 1 && (
+        <>
+          <h3>Step 1: Basic Info</h3>
+          <input
+            placeholder="Agent Name"
+            value={config.name}
+            onChange={(e) => setConfig({ ...config, name: e.target.value })}
+          />
+          <select
+            value={config.type}
+            onChange={(e) => setConfig({ ...config, type: e.target.value })}
+          >
+            <option value="reasoning">Reasoning</option>
+            <option value="memory">Memory</option>
+            <option value="tool">Tool Adapter</option>
+          </select>
+          <button onClick={next}>Next</button>
+        </>
+      )}
+      {step === 2 && (
+        <>
+          <h3>Step 2: Model</h3>
+          <input
+            placeholder="Model Name"
+            value={config.model}
+            onChange={(e) => setConfig({ ...config, model: e.target.value })}
+          />
+          <button onClick={prev}>Back</button>
+          <button onClick={next}>Next</button>
+        </>
+      )}
+      {step === 3 && (
+        <>
+          <h3>Step 3: Memory & Tools</h3>
+          <textarea
+            placeholder="Memory Config JSON"
+            value={JSON.stringify(config.memory, null, 2)}
+            onChange={(e) => {
+              try {
+                setConfig({ ...config, memory: JSON.parse(e.target.value) });
+              } catch {}
+            }}
+          />
+          <input
+            placeholder="Tools (comma separated)"
+            value={config.tools.join(",")}
+            onChange={(e) => setConfig({ ...config, tools: e.target.value.split(",") })}
+          />
+          <label>
+            AutoRun
+            <input
+              type="checkbox"
+              checked={config.auto_run}
+              onChange={(e) => setConfig({ ...config, auto_run: e.target.checked })}
+            />
+          </label>
+          <button onClick={prev}>Back</button>
+          <button onClick={() => onSave(config)}>Save</button>
+        </>
+      )}
+    </div>
+  );
+}
+
+
+4. YAML/JSON Config Editor
+src/components/AgentConfigEditor.jsx
+Jsximport React, { useState } from "react";
+import YAML from "yaml";
+
+export default function AgentConfigEditor({ agent, onSave, onCancel }) {
+  const [yamlText, setYamlText] = useState(YAML.stringify(agent));
+
+  const save = () => {
+    try {
+      const parsed = YAML.parse(yamlText);
+      onSave(parsed);
+    } catch (err) {
+      alert("Invalid YAML: " + err.message);
+    }
+  };
+
+  return (
+    <div className="config-editor">
+      <h3>Edit Agent Config: {agent.name}</h3>
+      <textarea
+        value={yamlText}
+        onChange={(e) => setYamlText(e.target.value)}
+        style={{ width: "100%", height: "300px" }}
+      />
+      <div>
+        <button onClick={save}>Save</button>
+        <button onClick={onCancel}>Cancel</button>
+      </div>
+    </div>
+  );
+}
+
+
+5. Agent Hub Container
+src/components/AgentHub.jsx
+Jsximport React, { useState, useEffect } from "react";
+import AgentCard from "./AgentCard";
+import AgentWizard from "./AgentWizard";
+import AgentConfigEditor from "./AgentConfigEditor";
+import { getAgents, createAgent, updateAgent, deleteAgent } from "../api/agents";
+
+export default function AgentHub() {
+  const [agents, setAgents] = useState({});
+  const [mode, setMode] = useState("list");
+  const [selectedAgent, setSelectedAgent] = useState(null);
+
+  const refresh = () => getAgents().then(setAgents);
+
+  useEffect(() => { refresh(); }, []);
+
+  const handleSaveNew = async (config) => {
+    await createAgent(config);
+    setMode("list");
+    refresh();
+  };
+
+  const handleSaveEdit = async (config) => {
+    await updateAgent(config.name, config);
+    setMode("list");
+    refresh();
+  };
+
+  const handleDelete = async (name) => {
+    if (window.confirm(`Delete agent ${name}?`)) {
+      await deleteAgent(name);
+      refresh();
+    }
+  };
+
+  const handleToggleAutoRun =

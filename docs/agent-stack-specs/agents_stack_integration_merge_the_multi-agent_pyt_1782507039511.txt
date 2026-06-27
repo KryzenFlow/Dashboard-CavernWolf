@@ -1,0 +1,212 @@
+Alright — here’s a complete, runnable FastAPI backend that will let your UI create, edit, delete, and hot-reload agents in your merged multi-agent stack.
+This is designed so your Visual Cards, YAML/JSON editor, and Wizard can all talk to the same API.
+
+services/agents/main.py
+Pythonfrom fastapi import FastAPI, HTTPException
+from pydantic import BaseModel, Field
+from typing import Dict, Any, Optional
+import json
+import os
+import importlib
+import threading
+
+# Path to store agent configs
+AGENT_REGISTRY_FILE = "agent_registry.json"
+
+# In-memory registry of active agent instances
+active_agents: Dict[str, Any] = {}
+
+app = FastAPI(title="Agent Registry API", version="1.0")
+
+# ---------------------------
+# Models
+# ---------------------------
+class AgentConfig(BaseModel):
+    name: str = Field(..., description="Unique agent name")
+    type: str = Field(..., description="Agent type (reasoning, memory, etc.)")
+    model: str = Field(..., description="Model name (llama, gpt, etc.)")
+    memory: Optional[Dict[str, Any]] = Field(default=None, description="Memory config")
+    tools: Optional[list] = Field(default_factory=list, description="List of tools")
+    params: Optional[Dict[str, Any]] = Field(default_factory=dict, description="Extra parameters")
+
+# ---------------------------
+# Utilities
+# ---------------------------
+def load_registry() -> Dict[str, Any]:
+    """Load agent registry from file."""
+    if not os.path.exists(AGENT_REGISTRY_FILE):
+        return {}
+    with open(AGENT_REGISTRY_FILE, "r") as f:
+        return json.load(f)
+
+def save_registry(registry: Dict[str, Any]):
+    """Save agent registry to file."""
+    with open(AGENT_REGISTRY_FILE, "w") as f:
+        json.dump(registry, f, indent=2)
+
+def instantiate_agent(config: AgentConfig):
+    """
+    Dynamically load and instantiate an agent class.
+    This assumes your agents are in services/agents/impl/{type}_agent.py
+    and have a class named {Type}Agent.
+    """
+    try:
+        module_name = f"impl.{config.type}_agent"
+        class_name = f"{config.type.capitalize()}Agent"
+        module = importlib.import_module(module_name)
+        agent_class = getattr(module, class_name)
+        return agent_class(config.name, config.dict())
+    except Exception as e:
+        raise RuntimeError(f"Failed to instantiate agent: {e}")
+
+def hot_reload_agent(name: str, config: AgentConfig):
+    """Replace an active agent instance without restarting the service."""
+    agent_instance = instantiate_agent(config)
+    active_agents[name] = agent_instance
+
+# ---------------------------
+# API Endpoints
+# ---------------------------
+@app.on_event("startup")
+def startup_event():
+    """Load agents from registry on startup."""
+    registry = load_registry()
+    for name, cfg in registry.items():
+        try:
+            hot_reload_agent(name, AgentConfig(**cfg))
+        except Exception as e:
+            print(f"[WARN] Could not load agent {name}: {e}")
+
+@app.get("/agents", response_model=Dict[str, Any])
+def list_agents():
+    """List all registered agents."""
+    return load_registry()
+
+@app.post("/agents")
+def create_agent(config: AgentConfig):
+    """Create and start a new agent."""
+    registry = load_registry()
+    if config.name in registry:
+        raise HTTPException(status_code=400, detail="Agent name already exists")
+    registry[config.name] = config.dict()
+    save_registry(registry)
+    hot_reload_agent(config.name, config)
+    return {"status": "created", "agent": config.name}
+
+@app.put("/agents/{name}")
+def update_agent(name: str, config: AgentConfig):
+    """Update an existing agent."""
+    registry = load_registry()
+    if name not in registry:
+        raise HTTPException(status_code=404, detail="Agent not found")
+    registry[name] = config.dict()
+    save_registry(registry)
+    hot_reload_agent(name, config)
+    return {"status": "updated", "agent": name}
+
+@app.delete("/agents/{name}")
+def delete_agent(name: str):
+    """Delete an agent."""
+    registry = load_registry()
+    if name not in registry:
+        raise HTTPException(status_code=404, detail="Agent not found")
+    del registry[name]
+    save_registry(registry)
+    active_agents.pop(name, None)
+    return {"status": "deleted", "agent": name}
+
+@app.post("/agents/{name}/run")
+def run_agent(name: str, payload: Dict[str, Any]):
+    """Run an agent with given input."""
+    agent = active_agents.get(name)
+    if not agent:
+        raise HTTPException(status_code=404, detail="Agent not active")
+    try:
+        result = agent.run(payload)
+        return {"result": result}
+    except Exception as e:
+        raise HTTPException(status_code=500, detail=str(e))
+
+
+Example Agent Implementation
+services/agents/impl/reasoning_agent.py
+Pythonclass ReasoningAgent:
+    def __init__(self, name, config):
+        self.name = name
+        self.config = config
+
+    def run(self, input_data):
+        # Example: Echo reasoning
+        return {
+            "agent": self.name,
+            "type": "reasoning",
+            "input": input_data,
+            "output": f"Processed by {self.name} using model {self.config['model']}"
+        }
+
+
+Dockerfile for Agents
+services/agents/Dockerfile
+DockerfileFROM python:3.11-slim
+
+WORKDIR /app
+COPY . /app
+
+RUN pip install --no-cache-dir fastapi uvicorn pydantic
+
+EXPOSE 8000
+CMD ["uvicorn", "main:app", "--host", "0.0.0.0", "--port", "8000", "--reload"]
+
+
+docker-compose.yml (Unified)
+Yamlversion: "3.9"
+services:
+  dashboard:
+    build: ./dashboard
+    ports:
+      - "3000:3000"
+    depends_on:
+      - agents
+
+  agents:
+    build: ./services/agents
+    ports:
+      - "8000:8000"
+    volumes:
+      - ./services/agents:/app
+    environment:
+      - PYTHONUNBUFFERED=1
+
+  vector-db:
+    image: qdrant/qdrant
+    ports:
+      - "6333:6333"
+
+  redis:
+    image: redis:7
+    ports:
+      - "6379:6379"
+
+
+How This Works
+
+Registry is stored in agent_registry.json (persistent between restarts).
+Hot reload: Updating an agent via API replaces it in memory without restarting the container.
+UI can:
+
+GET /agents → list configs for Visual Cards
+POST /agents → create via Wizard
+PUT /agents/{name} → update via YAML/JSON editor
+DELETE /agents/{name} → remove
+POST /agents/{name}/run → execute agent
+
+
+
+
+If you want, I can extend this so that:
+
+Agents can be chained (output of one → input of another)
+Memory is persisted in Qdrant/Redis
+LLaMA is loaded locally or via API
+
+That would make your **verticalized AI website

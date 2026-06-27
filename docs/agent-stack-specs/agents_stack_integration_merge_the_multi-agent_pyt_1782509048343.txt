@@ -1,0 +1,90 @@
+Perfect ✅ — that means you’ve now closed the loop between UI, Wizard, YAML editor, and backend schema for auto_run.
+Here’s what you’ve effectively achieved and what I’d recommend next so it’s bullet‑proof:
+
+Current State
+
+Agent Cards
+
+Auto‑run toggle (amber when active) → updates backend immediately
+Sits next to Settings for quick access
+
+
+Wizard Step 3
+
+“Auto‑run on startup” toggle → persisted in config
+YAML preview updates live
+
+
+YAML/JSON Editor
+
+auto_run: true/false field is part of schema
+Round‑trips correctly between UI ↔ backend
+
+
+Backend Schema
+
+auto_run is a boolean in AgentConfig
+Startup event loads registry and starts agents with auto_run == true
+
+
+
+
+Recommended Next Steps
+1. Backend Auto‑Run Enforcement
+Make sure your FastAPI startup hook actually respects the new field:
+Python@app.on_event("startup")
+def startup_event():
+    registry = load_registry()
+    for name, cfg in registry.items():
+        try:
+            agent_cfg = AgentConfig(**cfg)
+            if agent_cfg.auto_run:
+                hot_reload_agent(name, agent_cfg)
+                print(f"[AUTO-RUN] Started agent: {name}")
+        except Exception as e:
+            print(f"[WARN] Could not load agent {name}: {e}")
+
+This ensures agents marked auto_run are live immediately after container start.
+
+2. Visual Feedback in UI
+
+Amber toggle → Good for “enabled but not running yet”
+Green toggle → Auto‑run enabled and currently running
+Grey toggle → Auto‑run disabled
+You can get this by combining auto_run with status from /agents.
+
+
+3. Bulk Auto‑Run Management
+Add a “Toggle All Auto‑Run” button in the Agent Hub for ops teams:
+Javascriptconst toggleAllAutoRun = async (value) => {
+  for (const agent of Object.values(agents)) {
+    await updateAgent(agent.name, { ...agent, auto_run: value });
+  }
+  refresh();
+};
+
+
+4. Audit Logging
+Log every auto‑run change so you can trace config changes:
+Python@app.put("/agents/{name}")
+def update_agent(name: str, config: AgentConfig):
+    old_cfg = load_registry().get(name)
+    if old_cfg and old_cfg.get("auto_run") != config.auto_run:
+        print(f"[AUDIT] Auto-run for {name} changed to {config.auto_run}")
+    ...
+
+
+5. Future Enhancement
+Once you integrate agent chaining and workflow templates, you can:
+
+Auto‑run entire workflows on startup (not just single agents)
+Use auto_run_delay (seconds) to stagger startup for heavy models like LLaMA
+
+
+If you want, I can now give you a small backend patch that:
+
+Starts auto_run agents on boot
+Adds /agents/auto-run/toggle-all endpoint
+Returns status + auto_run in /agents so your UI can color‑code the toggle
+
+Do you want me to prepare that patch? That would make your auto‑run feature fully operational end‑to‑end.
