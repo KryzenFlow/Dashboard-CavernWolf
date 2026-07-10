@@ -1,0 +1,214 @@
+coinbase
+organizations/ecb6c98b-4c88-4a87-b639-ac3e044a64a2/apiKeys/6d4916f1-c62c-4f05-a5a2-369b8e47985f
+
+AuppAxaxjczQMNCRns62NXqp48lP+ozcCFswmmejBl1V+zh7k8i1zjtaAEfx4y2kSMQZssoTmqIwpvZPo3PaUg==
+
+
+# User wallets quickstart
+
+
+The **CDP non-custodial wallets SDK**, built by Coinbase, gives your React app self-custody wallets your users sign into with email, SMS, or social — no seed phrases, no extensions. This prompt uses the `cdp-create-app` scaffolder to spin up a working demo app, then walks through signing in and sending a first test transaction on Base Sepolia.
+
+
+**Docs:** https://docs.cdp.coinbase.com/wallets/quickstart/user-auth
+**Recommended:** install the CDP docs MCP so I can ground in live docs — `claude mcp add --transport http coinbase-cdp https://docs.cdp.coinbase.com/mcp`
+
+
+## Setup
+
+
+Check each item below IN ORDER. Stop at the first missing one, tell me exactly how to fix it, then resume after I confirm.
+
+
+1. **CDP Portal account.** If none: portal.cdp.coinbase.com → follow the prompts to create one and verify your email. No separate organization-naming step.
+2. **CDP project + Project ID + domain allowlist.** Go to **portal.cdp.coinbase.com/wallets/non-custodial/clients**. The **Project ID** is always visible on the page — copy it. Then click your client and under **Client configuration**, add `http://localhost:3000` as an allowed domain. Save. Without this, the SDK throws CORS / auth errors on sign-in. (No Sandbox vs Live distinction — same project works across networks.)
+3. **Node.js 22+.** In the terminal, check with `node --version`. If <22 and nvm is installed: `source ~/.nvm/nvm.sh && nvm use v22`. Add `nvm use v22` to `~/.zshrc` to persist. If no nvm: install from https://github.com/nvm-sh/nvm then `nvm install 22`.
+
+
+## Create the demo app
+
+
+Run the scaffolder, replacing `YOUR_PROJECT_ID` with the Project ID from step 2:
+
+
+```
+npm create @coinbase/cdp-app@latest cdp-app-react -- --template react --project-id YOUR_PROJECT_ID
+```
+
+
+The CLI prompts for two choices: (1) **Account type** — select `EVM EOA (Regular Accounts)`. (2) **Domain allowlist confirmation** — type `y`.
+
+
+## Run the app
+
+
+```
+cd cdp-app-react && npm install && npm run dev
+```
+
+
+Open http://localhost:3000. You should see the demo app with a **Sign In** button.
+
+
+## Sign in and surface the wallet address
+
+
+Click **Sign In**, enter your email, enter the OTP. After verification your wallet is provisioned — a truncated address (e.g. `0x1234...5678`) appears in the app header.
+
+
+## Fund and send a test transaction
+
+
+Copy your wallet address from the app header. Get free Base Sepolia ETH from the CDP Faucet: https://portal.cdp.coinbase.com/onchain-tools/faucet
+
+
+Once the balance shows in the app, click **Send Transaction**. The demo sends 0.000001 ETH to your own address on Base Sepolia. A transaction hash link appears on success — click it to verify on https://sepolia.basescan.org.
+
+
+## Common stuck points
+
+
+| Symptom | Fix |
+|---|---|
+| **CORS / 401 on sign-in** | Domain not in allowlist. portal.cdp.coinbase.com/wallets/non-custodial/clients → your client → Client configuration → add `http://localhost:3000`. |
+| **TypeScript compile errors** | `tsconfig.json compilerOptions.moduleResolution` is `"node"`. Change to `"node16"`, `"nodenext"`, or `"bundler"`. |
+| **Blank screen / SDK never initializes** | Gate all wallet UI on `useIsInitialized()` returning `true` before checking sign-in state. |
+| **`evmAddress` null after sign-in** | Wallet provisioning is async. Render conditionally on `evmAddress` truthy. |
+| **"insufficient funds" on send** | No testnet ETH. Fund at portal.cdp.coinbase.com/onchain-tools/faucet. |
+| **Production domain rejects calls** | Use a separate production project. Add only your production domain — do not add localhost to production projects. |
+| **OTP email doesn't arrive** | Check spam, or try social login. |
+| **SDK component or hook not exported** | Component renamed in a newer SDK version. Check current docs' import paths. |
+
+
+## Done — ready for production?
+
+
+🎉 You just gave a user a self-custody wallet and sent their first transaction on Base Sepolia.
+
+
+To go to production: (1) Create a separate production project. Add only your production domain to Client configuration — no localhost. (2) Set `VITE_CDP_PROJECT_ID` to the new project's ID. (3) Swap `chainId` from `84532` to `8453` and `network` from `"base-sepolia"` to `"base"`. (4) Real ETH replaces faucet ETH.
+
+
+**Full integration guide:** https://docs.cdp.coinbase.com/wallets/quickstart/user-auth
+
+# API key wallets quickstart
+
+
+**CDP API key wallets**, built by Coinbase, let your backend create and control non-custodial EVM wallets programmatically — no browser SDK, no end-user sign-in. This prompt walks you through the TypeScript SDK: create your first wallet, fund it from the testnet faucet, and send your first transaction.
+
+
+**Docs:** https://docs.cdp.coinbase.com/wallets/quickstart/api-key-auth
+**Recommended:** install the CDP docs MCP so I can ground in live docs — `claude mcp add --transport http coinbase-cdp https://docs.cdp.coinbase.com/mcp`
+
+
+## Setup
+
+
+Check each item IN ORDER. Stop at the first missing one, fix it, then resume after you confirm.
+
+
+1. **CDP Portal account.** portal.cdp.coinbase.com → create one if needed, verify your email.
+2. **API key + three credentials.** You need three values — keep them in a `.env` file:
+   - `CDP_API_KEY_ID` and `CDP_API_KEY_SECRET`: go to **portal.cdp.coinbase.com/api-keys/secret** → create a new Secret API Key. Under **Advanced settings**, check **Non-custodial: Export** and **Non-custodial: Manage**. Keep **Ed25519** as the signature algorithm (ECDSA is only needed for Coinbase App & Advanced Trade SDKs). Download the JSON before closing the dialog — the key ID and private key are inside.
+   - `CDP_WALLET_SECRET`: go to **portal.cdp.coinbase.com/wallets/non-custodial/security** → click **Generate Wallet Secret**. **It is shown exactly once — copy it now.** If you miss it, you must generate a new one.
+3. **Node.js 22+.** In the terminal: `node --version`. If <22 — nvm installed: `source ~/.nvm/nvm.sh && nvm use v22` (applies to this session only — add `nvm use v22` to `~/.zshrc` or re-run in any new terminal). No nvm: install from https://github.com/nvm-sh/nvm then `nvm install 22`.
+4. **A TypeScript project to work in.** Ask me where your project lives. If you don't have one yet: `mkdir cdp-wallet-demo && cd cdp-wallet-demo && npm init -y && npm pkg set type="module" && touch main.ts && touch .env`. ⚠ If `cdp-wallet-demo` already exists from a prior attempt, `mkdir` fails silently — delete or rename the existing folder first.
+
+
+## Install the SDK
+
+
+```
+npm install @coinbase/cdp-sdk dotenv viem
+```
+
+
+(`dotenv` loads .env credentials; `viem` is needed for `waitForTransactionReceipt`.)
+
+
+## Configure credentials
+
+
+Create a `.env` file **yourself in a text editor** (do not paste credential values into this chat — secrets in conversation history are a security risk):
+
+
+```
+CDP_API_KEY_ID=your-key-id-here
+CDP_API_KEY_SECRET=your-private-key-here
+CDP_WALLET_SECRET=your-wallet-secret-here
+```
+
+
+Add `.env` to `.gitignore` immediately.
+
+
+## Create, fund, and send
+
+
+Reference shape (verify method names + types against current SDK docs):
+
+
+```typescript
+import { CdpClient } from "@coinbase/cdp-sdk";
+import { http, createPublicClient, parseEther } from "viem";
+import { baseSepolia } from "viem/chains";
+import dotenv from "dotenv";
+
+
+dotenv.config();
+
+
+const cdp = new CdpClient();
+const publicClient = createPublicClient({ chain: baseSepolia, transport: http() });
+
+
+const account = await cdp.evm.createAccount();
+console.log("Wallet address:", account.address);
+
+
+const { transactionHash: faucetHash } = await cdp.evm.requestFaucet({
+  address: account.address,
+  network: "base-sepolia",
+  token: "eth",
+});
+await publicClient.waitForTransactionReceipt({ hash: faucetHash });
+await new Promise(r => setTimeout(r, 3000)); // CDP API balance sync delay
+
+
+const { transactionHash } = await cdp.evm.sendTransaction({
+  address: account.address,
+  transaction: { to: account.address, value: parseEther("0.000001") },
+  network: "base-sepolia",
+});
+await publicClient.waitForTransactionReceipt({ hash: transactionHash });
+console.log("View on BaseScan: https://sepolia.basescan.org/tx/" + transactionHash);
+```
+
+
+Run it: `npx tsx main.ts`
+
+
+## Common stuck points
+
+
+| Symptom | Fix |
+|---|---|
+| **401 / "invalid API key"** | Re-download JSON from portal.cdp.coinbase.com → API Keys. CDP_API_KEY_ID is the key name/ID; CDP_API_KEY_SECRET is the private key value. |
+| **"wallet secret invalid" / wallet-related 403** | portal.cdp.coinbase.com/wallets/non-custodial/security → Generate Wallet Secret → update CDP_WALLET_SECRET in .env. |
+| **Faucet throws / no funds after 30s** | Testnet faucet has rate limits. Try a different address or wait a few minutes. |
+| **`sendTransaction` "insufficient funds"** | Onchain tx confirmed but CDP API balance hasn't synced yet. Increase the setTimeout delay (try 10s). |
+| **SDK method not found / not exported** | SDK version changed. Check current docs and surface what you used. |
+| **TypeScript errors from `@coinbase/cdp-sdk`** | If you have a tsconfig.json: set `"moduleResolution": "node16"`, `"esModuleInterop": true`, `"verbatimModuleSyntax": false`. With `npm pkg set type="module"` you may not need a tsconfig at all. |
+| **`waitForTransactionReceipt` not found** | Run `npm install viem`. |
+
+
+## Done — ready for production?
+
+
+🎉 You just created an onchain wallet, funded it from the testnet faucet, and confirmed your first transaction on Base Sepolia.
+
+
+To go live on mainnet: (1) Swap `network: "base-sepolia"` to `network: "base"` and remove `requestFaucet`. (2) Fund your wallet with real ETH via transfer or onramp. (3) Optionally use a dedicated production API key and Wallet Secret for cleaner audit logs.
+
+
+**Full integration guide:** https://docs.cdp.coinbase.com/wallets/quickstart/api-key-auth

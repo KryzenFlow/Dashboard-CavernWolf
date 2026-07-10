@@ -1,0 +1,153 @@
+Alright — I think I understand your current stack layout and why you’re seeing some agents sharing a LLaMA model while others have their own dedicated LLaMA instance.
+Let me break this down, explain why it happened, and then I’ll give you a unified docker-compose.yml so you can run this whole thing cleanly — and even package it into a mobile-friendly app later.
+
+1. Why Some Agents Share LLaMA and Others Don’t
+
+
+
+Top row:
+
+Reasoning Agent + RESTful Coll → LLaMA 3.2 (shared)
+Reasoning Agent Zero1 → LLaMA 3.2 (shared with above)
+Vector Agent → no LLaMA, just embeddings
+File Glob/GREP Agent → no LLaMA, just file ops
+
+
+
+Middle rows:
+
+Hermes ORCH Dash Zero1 → orchestrator, no LLaMA
+Redis, Bash get_ops, file_write → infra tools
+Claw Code Tool + Claw Sonnet → orchestration + file ops
+
+
+
+Bottom row:
+
+Memory Store Qdrant → LLaMA 2 13B (dedicated)
+GR OK Adapter → tools + web scraper
+
+
+
+
+Why this happened
+
+Shared LLaMA — Your top reasoning agents are pointing to the same model container in Docker. This is efficient because they can reuse the same GPU/CPU memory.
+Dedicated LLaMA — Your Qdrant memory store agent has its own LLaMA container because it was likely added with a separate docker-compose service definition instead of pointing to the shared one.
+Offline Agents — The “4 offline” status means those containers aren’t running or their health checks failed.
+Arguing Agents — When you run multiple reasoning agents without orchestration rules, they can loop or conflict. Staggering them works because it prevents simultaneous conflicting calls.
+
+
+2. Unified docker-compose.yml
+Here’s a merged version that:
+
+Runs one shared LLaMA 3.2 for all reasoning agents
+Runs one LLaMA 2 13B for Qdrant memory store
+Keeps Redis, Qdrant, and orchestration tools in sync
+Makes it easier to deploy to desktop or mobile
+
+Yamlversion: "3.9"
+
+services:
+  # Shared LLaMA 3.2 for reasoning agents
+  llama32:
+    image: ghcr.io/ggerganov/llama.cpp:latest
+    command: ["--model", "/models/llama-3.2.gguf", "--host", "0.0.0.0", "--port", "8080"]
+    volumes:
+      - ./models:/models
+    ports:
+      - "8080:8080"
+    restart: unless-stopped
+
+  # Dedicated LLaMA 2 13B for Qdrant memory store
+  llama2_13b:
+    image: ghcr.io/ggerganov/llama.cpp:latest
+    command: ["--model", "/models/llama-2-13b.gguf", "--host", "0.0.0.0", "--port", "8081"]
+    volumes:
+      - ./models:/models
+    ports:
+      - "8081:8081"
+    restart: unless-stopped
+
+  # Qdrant vector DB
+  qdrant:
+    image: qdrant/qdrant
+    ports:
+      - "6333:6333"
+    volumes:
+      - ./qdrant_storage:/qdrant/storage
+    restart: unless-stopped
+
+  # Redis for orchestration state
+  redis:
+    image: redis:7
+    ports:
+      - "6379:6379"
+    restart: unless-stopped
+
+  # Reasoning Agent Hub
+  reasoning_agent:
+    build: ./services/reasoning_agent
+    environment:
+      - MODEL_URL=http://llama32:8080
+      - REDIS_URL=redis://redis:6379
+    depends_on:
+      - llama32
+      - redis
+    restart: unless-stopped
+
+  # Memory Store Agent
+  memory_agent:
+    build: ./services/memory_agent
+    environment:
+      - MODEL_URL=http://llama2_13b:8081
+      - QDRANT_URL=http://qdrant:6333
+    depends_on:
+      - llama2_13b
+      - qdrant
+    restart: unless-stopped
+
+  # Orchestrator (Hermes / Claw)
+  orchestrator:
+    build: ./services/orchestrator
+    environment:
+      - REDIS_URL=redis://redis:6379
+    depends_on:
+      - redis
+    restart: unless-stopped
+
+  # Dashboard UI (CavernWolf Studio)
+  dashboard:
+    build: ./services/dashboard
+    ports:
+      - "3000:3000"
+    depends_on:
+      - orchestrator
+      - reasoning_agent
+      - memory_agent
+    restart: unless-stopped
+
+
+3. Making It a Mobile App
+Once this is unified:
+
+You can wrap the dashboard in a mobile shell using:
+
+Capacitor.js (best for web-to-mobile)
+Tauri (lightweight desktop + mobile)
+
+
+This way, your Agent Hub UI runs on your phone exactly as it does in the browser.
+You can even toggle agents on/off from your phone.
+
+
+4. Next Steps
+
+Replace  current multiple docker-compose.yml files with the above unified one.
+Move all agent code into services/ folders.
+Point all reasoning agents to MODEL_URL=http://llama32:8080 unless they truly need their own model.
+Use Hermes/Claw orchestrator to prevent “agent arguments” by defining execution order.
+
+
+If you want, I can add orchestration rules so your agents never talk over each other and always run in a staggered sequence — that would solve your “arguing” problem permanently.
+Do you want me to prepare that orchestration config next so your mobile app version runs smoothly?

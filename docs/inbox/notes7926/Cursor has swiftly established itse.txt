@@ -1,0 +1,189 @@
+Cursor has swiftly established itself as the leading AI-first code editor designed for modern development workflows.
+
+This comprehensive reference guide outlines the key keyboard shortcuts, AI context steering commands, and includes a production-ready .cursorrules template to tailor Cursor to your specific technology stack.
+
+- Cmd+K (Ctrl+K): Edit or generate code directly within your active editor window  
+- Cmd+L (Ctrl+L): Launch the AI Sidebar Chat to inquire about your codebase  
+- Cmd+I (Ctrl+I): Open Composer for multi-file edits and project-wide development  
+- @Files / @Folders: Direct the AI to focus on particular files or directories for context  
+- .cursorrules: Place this file in your project root to enforce custom instructions, style guides, and coding standards across all AI interactions  
+
+Built as a VS Code fork with native AI integration, Cursor combines composer, inline edits, chat, and autocomplete into a single editor.  
+- Tab accepts AI completions inline; Cmd+K opens inline edit mode  
+- @ references attach context (files, folders, documents, symbols) to AI prompts  
+- AI rules (Cmd+L → settings → Rules) define project-specific behaviours and conventions  
+- Composer (Cmd+L) manages multi-file changes, feature creation, and refactoring  
+- Debugger integration produces step-by-step debugging plans from stack traces  
+
+Quick Reference Tables  
+Installation & Setup  
+| Task          | Command / Action                             |  
+|---------------|---------------------------------------------|  
+| Download      | cursor.com → Download (macOS, Windows, Linux) |  
+| Sign in       | Cmd+, → Accounts → Sign in with GitHub       |  
+| Update        | Auto-updates run in the background            |  
+| Check version | Cmd+, → Cursor Health                         |  
+| Reset usage   | Cmd+, → Account → Reset usage                 |  
+
+Core AI Commands  
+| Action          | Shortcut   | Description                          |  
+|-----------------|------------|------------------------------------|  
+| Open Chat       | Cmd+L      | Opens AI chat panel                 |  
+| Inline Edit     | Cmd+K      | Edit selected code with AI          |  
+| Accept Completion | Tab      | Accept AI suggestion                |  
+| Reject Completion | Esc       | Reject suggestion and type manually |  
+| Next Suggestion | Alt+]      | Cycle to next suggestion            |  
+| Previous Suggestion | Alt+[   | Cycle to previous suggestion        |  
+| Quick Ask       | Cmd+Enter  | Query about selected code           |  
+| Generate File   | Cmd+Shift+K| Create new file from prompt         |  
+| Cmd+P Palette   | Cmd+P      | Quick file open (standard VS Code) |  
+
+Composer (Cmd+L → New Tab)  
+Composer facilitates complex multi-file modifications:  
+- Type /compose in chat to enter Composer mode  
+- Describe features for AI to generate code across files  
+- Use /fix to diagnose and correct errors  
+- Use /explain to clarify feature or flow logic  
+- Use /test to generate tests for selected code  
+- Cmd+Enter applies Composer changes (creates and opens files)  
+- Cmd+\ toggles Composer between sidebar and full pane  
+
+Context References (@)  
+Attach files, folders, documents, or symbols to any AI prompt:  
+| Syntax             | Description                  |  
+|--------------------|------------------------------|  
+| @file:path/to/file  | Single file contents          |  
+| @folder:path/to/folder | Entire folder contents       |  
+| @docs:url          | Web documentation URL         |  
+| @git:message       | Recent commits                |  
+| @search:query      | Code search results           |  
+| @symbols:name      | Symbols matching name         |  
+| @clipboard         | Current clipboard contents    |  
+| @problems          | Current lint/problem panel    |  
+
+Example: Explain a file with its test and recent commits  
+@file:src/auth/login.ts @file:src/auth/login.test.ts @git:5  
+
+Inline Edit Workflow  
+- Select code or position cursor where changes are needed  
+- Press Cmd+K and enter your instruction  
+- Cursor displays a diff preview highlighting changes  
+- Press Tab to accept, Esc to reject  
+- Press Cmd+Z to undo AI changes  
+
+Tab Autocomplete Settings  
+Configure via Cmd+, → Cursor → Tab:  
+| Setting          | Options                           |  
+|------------------|---------------------------------|  
+| Enable Tab       | Toggle on/off                    |  
+| Tab Insert Mode  | “Replace suggestion” or “Insert at cursor” |  
+| Gibbs Model      | Model used for Tab completions   |  
+| Max Distance     | Context range Cursor considers   |  
+
+Rules for AI (Project Instructions)  
+Define project-level guidelines for Cursor behaviour:  
+- Access via Cmd+L → settings → Rules → Add Rule  
+- Alternatively, create a .cursor/rules/ directory with markdown files specifying conventions  
+
+Example rules for TypeScript:  
+- Always use explicit return types on exported functions  
+- Prefer `interface` over `type` for object shapes  
+- Use Zod for runtime validation of external data  
+- Avoid `any`; prefer `unknown` with type narrowing  
+
+Example project rules:  
+- Project uses Next.js App Router  
+- API routes located in `src/app/api/`  
+- Server Components by default; Client Components use "use client" directive  
+- Tailwind CSS for styling  
+- Environment variables stored in `.env.local`  
+
+Apply rules globally or per folder using .cursor/rules/ or via settings.  
+
+Composer Workflows  
+Write a new feature:  
+- Use /compose command  
+- Create src/services/notification.ts with send() and schedule() functions  
+- Add notification API route at src/app/api/notifications/route.ts  
+- Implement React hook useNotifications in src/hooks/useNotifications.ts  
+- Add unit tests in src/services/notification.test.ts  
+- Update src/app/globals.css with notification styles  
+
+Refactor a module:  
+- Use /compose command  
+- Refactor src/database/queries.ts to adopt Drizzle ORM patterns  
+- Add connection pooling  
+- Move raw SQL to migration files  
+- Maintain existing public API and tests  
+
+Debug a stack trace:  
+- Paste full error stack trace into Composer with /fix command  
+- Cursor identifies error location, suggests fixes, and explains root cause  
+
+Debugger Integration  
+- Run code until error occurs  
+- Copy stack trace from terminal  
+- Open Composer (Cmd+L → New Tab), paste trace, and type /fix  
+- Cursor provides error line, expected vs actual values, corrected code, and explanation  
+
+Debugger shortcuts:  
+- F5: Start debugger  
+- F9: Toggle breakpoint  
+- F10: Step over  
+- F11: Step into  
+- Shift+F11: Step out  
+
+Model Selection  
+Choose default and task-specific AI models via Cmd+, → Models:  
+| Model             | Best For                         |  
+|-------------------|---------------------------------|  
+| Cursor Spark (default) | Fast Tab completions, inline edits |  
+| Claude 4 Sonnet    | Complex reasoning, architecture  |  
+| Claude 4 Opus      | Large refactors, multi-file changes |  
+| GPT-4.1            | Quick explanations, simple fixes |  
+| Gemini 2.5 Pro     | Long-context analysis            |  
+
+Composer and Chat can use different models; Tab completions use a separate fast model.  
+
+Best Practices  
+Effective Prompt Writing:  
+Be precise about desired outcomes, not just changes.  
+Example:  
+❌ "Fix the login bug"  
+✅ "When a user submits the login form with an invalid email, display an inline error below the email field with a red border (#ef4444). Do not modify the API route or server logic."  
+
+Chain context with @ references:  
+❌ "@fix the auth bug"  
+✅ "@file:src/middleware/auth.ts @file:src/app/login/page.tsx @file:src/hooks/useAuth.ts The auth middleware rejects valid tokens on Vercel deployment but works locally. Fix it."  
+
+Use Rules for consistency:  
+- Add a .cursor/rules/ folder in project root  
+- One file per convention (e.g., typescript.md, styling.md, api.md)  
+- Rules apply to all AI interactions within the project  
+
+Summary  
+- Cmd+K: Inline AI edit; Tab: Accept completion  
+- Cmd+L: Chat; Cmd+L → New Tab: Composer  
+- @ symbols attach context: files, folders, docs, git history  
+- Rules enforce project conventions in AI interactions  
+- Composer manages multi-file features, refactors, and debugging  
+- Tab completions are local and fast; Composer uses cloud models  
+
+FAQ  
+- How does Cursor differ from GitHub Copilot?  
+Cursor is a VS Code fork with AI integrated across inline edits, chat, composer, Tab completion, and debugger integration. Copilot operates as an extension within a separate editor. Cursor’s Composer enables multi-file changes in one pass; Copilot provides individual completions.  
+
+- Can I use my own API key?  
+Yes, via Cmd+, → Models → Add custom model; supports OpenAI, Anthropic, or Google keys.  
+
+- Does Cursor work with JetBrains IDEs?  
+Cursor is exclusive to VS Code. For JetBrains, use native Junie AI or Codeium.  
+
+- How do I prevent unwanted code suggestions?  
+Use Tab with Esc to reject. For persistent suppression, add files to .cursorignore or adjust the Tab model in settings.  
+
+- Can Cursor access the internet?  
+Not natively. Use @docs:url to attach URLs or @search:query to search your codebase only.  
+
+- Is Cursor free?  
+Cursor offers a free tier with limited Composer usage monthly. Pro subscription is $20/month for unlimited access. Tab completions remain free.

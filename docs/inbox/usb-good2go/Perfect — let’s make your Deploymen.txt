@@ -1,0 +1,149 @@
+Perfect — let’s make your DeploymentAgent not only deploy the best version but also verify it’s healthy and send you a push notification to your phone with the performance/stability scores from the evaluator.
+This will make your CavernWolf Studio stack fully autonomous, self-reporting, and mobile-aware.
+
+1. Push Notification Strategy
+We’ll use Pushover (simple, reliable, works on iOS & Android) — but you could swap it for Firebase Cloud Messaging (FCM) or OneSignal if you want deeper integration later.
+Why Pushover?
+
+Instant push notifications
+Simple REST API
+Works without building a custom mobile app
+Can be triggered from Python in 2 lines
+
+
+2. Updated DeploymentAgent
+This version:
+
+Reads the best version from Redis.
+Deploys it via your deploy.sh script.
+Runs a health check on the deployed site.
+Reads the performance/stability scores from Redis (set by VersionEvaluator).
+Sends a push notification to your phone.
+
+Python# services/deploymentagent/main.py
+import os
+import redis
+import subprocess
+import requests
+import time
+import json
+
+REDIS_HOST = os.getenv("REDIS_HOST", "redis")
+REDIS_PORT = int(os.getenv("REDIS_PORT", 6379))
+RESULT_KEY = "best_version"
+SCORES_KEY = "version_scores"
+
+# Pushover credentials (get from https://pushover.net/)
+PUSHOVER_USER_KEY = os.getenv("PUSHOVER_USER_KEY")
+PUSHOVER_API_TOKEN = os.getenv("PUSHOVER_API_TOKEN")
+
+def send_push_notification(title, message):
+    if not PUSHOVER_USER_KEY or not PUSHOVER_API_TOKEN:
+        print("⚠️ Push notification skipped (missing credentials).")
+        return
+    try:
+        resp = requests.post("https://api.pushover.net/1/messages.json", data={
+            "token": PUSHOVER_API_TOKEN,
+            "user": PUSHOVER_USER_KEY,
+            "title": title,
+            "message": message
+        })
+        if resp.status_code == 200:
+            print("📲 Push notification sent.")
+        else:
+            print(f"⚠️ Push notification failed: {resp.text}")
+    except Exception as e:
+        print(f"❌ Push notification error: {e}")
+
+def health_check(url):
+    try:
+        resp = requests.get(url, timeout=5)
+        return resp.status_code == 200
+    except:
+        return False
+
+def main():
+    r = redis.Redis(host=REDIS_HOST, port=REDIS_PORT, decode_responses=True)
+    best_version = r.get(RESULT_KEY)
+    scores_data = r.get(SCORES_KEY)
+    scores = json.loads(scores_data) if scores_data else {}
+
+    if not best_version:
+        print("❌ No best version found. Run VersionEvaluator first.")
+        return
+
+    print(f"🚀 Deploying best version: {best_version}")
+    try:
+        subprocess.run(["bash", "deploy.sh", best_version], check=True)
+    except subprocess.CalledProcessError as e:
+        print(f"❌ Deployment failed: {e}")
+        send_push_notification("Deployment Failed", f"Version {best_version} failed to deploy.")
+        return
+
+    # Wait for service to start
+    time.sleep(5)
+
+    # Health check
+    deployed_url = os.getenv("DEPLOYED_URL", "http://localhost:8080")
+    healthy = health_check(deployed_url)
+
+    if healthy:
+        print(f"✅ Deployment successful: {deployed_url}")
+        perf = scores.get(best_version, {}).get("performance_score", "N/A")
+        stab = scores.get(best_version, {}).get("stability_score", "N/A")
+        send_push_notification(
+            "Deployment Successful",
+            f"Version {best_version} deployed.\nPerformance: {perf}\nStability: {stab}"
+        )
+    else:
+        print("❌ Deployment health check failed.")
+        send_push_notification("Deployment Failed", f"Version {best_version} failed health check.")
+
+if __name__ == "__main__":
+    main()
+
+
+3. Changes to VersionEvaluator
+We need to make sure the evaluator stores scores in Redis so the DeploymentAgent can read them.
+Add this at the end of your main() in versionevaluator/main.py:
+Pythonr.set(SCORES_KEY, json.dumps(results))
+
+
+4. How It Works in Your Orchestrator
+
+VersionEvaluator runs → scores all versions → stores best version + scores in Redis.
+DeploymentAgent runs → deploys best version → health check → push notification.
+You get a real-time alert on your phone with:
+
+✅ Success or ❌ Failure
+Version name
+Performance score
+Stability score
+
+
+
+
+5. Example Push Notification
+Title:
+Deployment Successful
+Message:
+Version version3 deployed.
+Performance: 0.92
+Stability: 0.95
+
+
+6. Why This is a Big Win
+
+Hands-off deployment — You don’t need to watch logs.
+Instant feedback — You know within seconds if it worked.
+Data-rich alerts — You see performance/stability without opening the dashboard.
+Mobile-first — Works even if you’re away from your computer.
+
+
+If you want, I can now extend this even further so that:
+
+If deployment fails, the orchestrator automatically rolls back to the last known good version.
+You get a push notification saying "Rolled back to version2 after failure."
+
+That would make your stack self-healing — no downtime even if a bad version slips through.
+Do you want me to add that automatic rollback system next?

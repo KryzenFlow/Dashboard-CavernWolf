@@ -1,0 +1,168 @@
+final merged AgentHub.jsx with:
+
+Color‑coded auto‑run toggle (green/amber/grey)
+Bulk Enable/Disable All Auto‑Run buttons
+Fully hooked into backend /agents + /agents/auto-run/toggle-all
+Works with the Wizard & YAML Editor we built earlier
+src/components/AgentHub.jsx
+Jsx
+
+Copy code
+import React, { useState, useEffect } from "react";
+import AgentCard from "./AgentCard";
+import AgentWizard from "./AgentWizard";
+import AgentConfigEditor from "./AgentConfigEditor";
+import { getAgents, createAgent, updateAgent, deleteAgent, API_BASE } from "../api/agents";
+
+export default function AgentHub() {
+  const [agents, setAgents] = useState({});
+  const [mode, setMode] = useState("list");
+  const [selectedAgent, setSelectedAgent] = useState(null);
+
+  const refresh = () => getAgents().then(setAgents);
+
+  useEffect(() => {
+    refresh();
+  }, []);
+
+  const handleSaveNew = async (config) => {
+    await createAgent(config);
+    setMode("list");
+    refresh();
+  };
+
+  const handleSaveEdit = async (config) => {
+    await updateAgent(config.name, config);
+    setMode("list");
+    refresh();
+  };
+
+  const handleDelete = async (name) => {
+    if (window.confirm(`Delete agent ${name}?`)) {
+      await deleteAgent(name);
+      refresh();
+    }
+  };
+
+  const handleToggleAutoRun = async (agent, value) => {
+    await updateAgent(agent.name, { ...agent, auto_run: value });
+    refresh();
+  };
+
+  const toggleAllAutoRun = async (value) => {
+    await fetch(`${API_BASE}/agents/auto-run/toggle-all?value=${value}`, { method: "POST" });
+    refresh();
+  };
+
+  const getToggleColor = (agent) => {
+    if (agent.auto_run && agent.status === "running") return "green";
+    if (agent.auto_run && agent.status !== "running") return "amber";
+    return "grey";
+  };
+
+  return (
+    <div className="agent-hub">
+      {mode === "list" && (
+        <>
+          <div className="hub-header">
+            <h2>Agent Hub</h2>
+            <div className="bulk-buttons">
+              <button onClick={() => toggleAllAutoRun(true)}>Enable Auto‑Run All</button>
+              <button onClick={() => toggleAllAutoRun(false)}>Disable Auto‑Run All</button>
+              <button onClick={() => setMode("wizard")}>+ New Agent</button>
+            </div>
+          </div>
+
+          <div className="agent-grid">
+            {Object.values(agents).map((agent) => (
+              <div key={agent.name} className="agent-card">
+                <div className="header">
+                  <span
+                    className={`status-dot ${getToggleColor(agent)}`}
+                    title={`Auto-run: ${agent.auto_run}, Status: ${agent.status}`}
+                    onClick={() => handleToggleAutoRun(agent, !agent.auto_run)}
+                    style={{ cursor: "pointer" }}
+                  />
+                  <h3>{agent.name}</h3>
+                </div>
+                <p>Type: {agent.type}</p>
+                <p>Model: {agent.model}</p>
+                <div className="actions">
+                  <button onClick={() => { setSelectedAgent(agent); setMode("editor"); }}>Settings</button>
+                  <button onClick={() => handleDelete(agent.name)}>Delete</button>
+                </div>
+              </div>
+            ))}
+          </div>
+        </>
+      )}
+
+      {mode === "wizard" && (
+        <AgentWizard
+          onSave={handleSaveNew}
+          onCancel={() => setMode("list")}
+        />
+      )}
+
+      {mode === "editor" && selectedAgent && (
+        <AgentConfigEditor
+          agent={selectedAgent}
+          onSave={handleSaveEdit}
+          onCancel={() => setMode("list")}
+        />
+      )}
+    </div>
+  );
+}
+CSS for Color‑Coded Toggle
+Add to your CSS (e.g., AgentHub.css):
+
+Css
+
+Copy code
+.status-dot {
+  display: inline-block;
+  width: 14px;
+  height: 14px;
+  border-radius: 50%;
+  margin-right: 8px;
+}
+
+.status-dot.green {
+  background-color: #4caf50;
+}
+
+.status-dot.amber {
+  background-color: #ffc107;
+}
+
+.status-dot.grey {
+  background-color: #9e9e9e;
+}
+
+.agent-card {
+  border: 1px solid #ddd;
+  padding: 12px;
+  border-radius: 6px;
+  background: #fff;
+}
+
+.agent-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(250px, 1fr));
+  gap: 12px;
+}
+
+.bulk-buttons button {
+  margin-right: 8px;
+}
+How It Works
+Color‑coded toggle:
+Green → auto_run: true + status: running
+Amber → auto_run: true + status: stopped
+Grey → auto_run: false
+Click the dot to toggle auto_run for that agent.
+Bulk buttons:
+Call /agents/auto-run/toggle-all to enable/disable all agents in one click.
+Wizard + Editor:
+Already wired to handle auto_run, auto_run_delay, startup_group, and cost‑control fields for llama-optimized.

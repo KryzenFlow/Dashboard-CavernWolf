@@ -1,0 +1,395 @@
+Below is a runnable scaffold: an **Axum + Rust backend** serving a dashboard that matches your described UI (Tasks, Teams, File Manager, Scheduled, Settings → Gateways/Agents/Skills) plus a **token-harness lifecycle switch** for your cloud agent stack. Drop your snippets/files into the marked modules.
+
+## Project layout
+
+```
+claw-app/
+├── Cargo.toml
+├── src/
+│   ├── main.rs
+│   ├── state.rs
+│   ├── gateway.rs
+│   ├── agent.rs
+│   ├── token_harness.rs
+│   └── routes.rs
+└── static/
+    └── index.html
+```
+
+## `Cargo.toml`
+
+```toml
+[package]
+name = "claw-app"
+version = "0.1.0"
+edition = "2021"
+
+[dependencies]
+axum = "0.7"
+tokio = { version = "1", features = ["full"] }
+tower = "0.5"
+tower-http = { version = "0.6", features = ["fs", "cors", "trace"] }
+serde = { version = "1", features = ["derive"] }
+serde_json = "1"
+uuid = { version = "1", features = ["v4"] }
+chrono = { version = "0.4", features = ["serde"] }
+tracing = "0.1"
+tracing-subscriber = "0.3"
+```
+
+## `src/main.rs`
+
+```rust
+mod state;
+mod gateway;
+mod agent;
+mod token_harness;
+mod routes;
+
+use axum::Router;
+use std::sync::Arc;
+use tower_http::services::ServeDir;
+use tower_http::cors::CorsLayer;
+use tracing_subscriber;
+
+#[tokio::main]
+async fn main() {
+    tracing_subscriber::fmt::init();
+
+    let shared = Arc::new(state::AppState::new());
+
+    let app = Router::new()
+        .nest("/api", routes::api_router(shared.clone()))
+        .fallback_service(ServeDir::new("static"))
+        .layer(CorsLayer::permissive());
+
+    let listener = tokio::net::TcpListener::bind("0.0.0.0:8787").await.unwrap();
+    tracing::info!("Claw dashboard on http://localhost:8787");
+    axum::serve(listener, app).await.unwrap();
+}
+```
+
+## `src/state.rs`
+
+```rust
+use parking_lot::RwLock; // or std::sync::Mutex
+use std::collections::HashMap;
+use uuid::Uuid;
+use serde::{Serialize, Deserialize};
+
+#[derive(Debug, Clone, Serialize, Deserialize)]
+pub struct Gateway {
+    pub id: Uuid,
+    pub name: String,
+    pub auth: AuthMethod,
+    pub paired: bool,
+}
+
+#[derive(Debug, Clone, Serialize, Deserialize)]
+#[serde(rename_all = "lowercase")]
+pub enum AuthMethod { Token, Password, PairingCode(String) }
+
+#[derive(Debug, Clone, Serialize, Deserialize)]
+pub struct Agent {
+    pub id: Uuid,
+    pub name: String,
+    pub gateway_id: Uuid,
+    pub status: AgentStatus,
+}
+
+#[derive(Debug, Clone, Copy, Serialize, Deserialize)]
+#[serde(rename_all = "lowercase")]
+pub enum AgentStatus { Idle, Running, Paused, Stopped }
+
+pub struct AppState {
+    pub gateways: RwLock<HashMap<Uuid, Gateway>>,
+    pub agents: RwLock<HashMap<Uuid, Agent>>,
+    pub harness: RwLock<crate::token_harness::HarnessState>,
+}
+
+impl AppState {
+    pub fn new() -> Self {
+        Self {
+            gateways: RwLock::new(HashMap::new()),
+            agents: RwLock::new(HashMap::new()),
+            harness: RwLock::new(crate::token_harness::HarnessState::default()),
+        }
+    }
+}
+```
+
+## `src/gateway.rs`
+
+```rust
+use crate::state::{AppState, Gateway, AuthMethod};
+use uuid::Uuid;
+use std::sync::Arc;
+
+pub fn add_gateway(state: &Arc<AppState>, name: &str, auth: AuthMethod) -> Gateway {
+    let gw = Gateway { id: Uuid::new_v4(), name: name.to_string(), auth, paired: false };
+    state.gateways.write().insert(gw.id, gw.clone());
+    gw
+}
+
+pub fn pair_via_code(state: &Arc<AppState>, id: Uuid, code: &str) -> bool {
+    let mut gws = state.gateways.write();
+    if let Some(g) = gws.get_mut(&id) {
+        if let AuthMethod::PairingCode(c) = &g.auth {
+            if c == code { g.paired = true; return true; }
+        }
+    }
+    false
+}
+```
+
+## `src/agent.rs`
+
+```rust
+use crate::state::{AppState, Agent, AgentStatus};
+use uuid::Uuid;
+use std::sync::Arc;
+
+pub fn register_agent(state: &Arc<AppState>, name: &str, gateway_id: Uuid) -> Option<Agent> {
+    if !state.gateways.read().contains_key(&gateway_id) { return None; }
+    let a = Agent { id: Uuid::new_v4(), name: name.into(), gateway_id, status: AgentStatus::Idle };
+    state.agents.write().insert(a.id, a.clone());
+    Some(a)
+}
+
+pub fn set_status(state: &Arc<AppState>, id: Uuid, s: AgentStatus) -> bool {
+    if let Some(a) = state.agents.write().get_mut(&id) { a.status = s; true } else { false }
+}
+```
+
+## `src/token_harness.rs`
+
+```rust
+use serde::{Serialize, Deserialize};
+
+/// Multi-stage lifecycle switch for the cloud agent stack token harness.
+#[derive(Debug, Clone, Copy, Serialize, Deserialize, PartialEq, Eq)]
+#[serde(rename_all = "lowercase")]
+pub enum LifecyclePhase {
+    Boot, Mint, Provision, Active, Rotate, Revoke, Cold, Fault,
+}
+
+#[derive(Debug, Clone, Serialize, Deserialize)]
+pub struct HarnessState {
+    pub phase: LifecyclePhase,
+    pub auto_advance: bool,
+    pub tokens_minted: u64,
+    pub tokens_active: u64,
+}
+
+impl Default for HarnessState {
+    fn default() -> Self { Self { phase: LifecyclePhase::Boot, auto_advance: false, tokens_minted: 0, tokens_active: 0 } }
+}
+
+impl HarnessState {
+    pub fn advance(&mut self) -> LifecyclePhase {
+        use LifecyclePhase::*;
+        self.phase = match self.phase {
+            Boot => Mint, Mint => Provision, Provision => Active,
+            Active => Rotate, Rotate => Revoke, Revoke => Cold,
+            Cold => Boot, Fault => Boot,
+        };
+        if self.phase == Mint { self.tokens_minted += 1; self.tokens_active += 1; }
+        if self.phase == Revoke && self.tokens_active > 0 { self.tokens_active -= 1; }
+        self.phase
+    }
+    pub fn set_phase(&mut self, p: LifecyclePhase) { self.phase = p; }
+}
+```
+
+## `src/routes.rs`
+
+```rust
+use axum::{Router, routing::{get, post, put}, extract::{State, Path}, Json};
+use std::sync::Arc;
+use serde_json::{json, Value};
+use crate::state::*;
+use crate::token_harness::LifecyclePhase;
+
+pub fn api_router(s: Arc<AppState>) -> Router {
+    Router::new()
+        .route("/gateways", get(list_gateways).post(add_gateway))
+        .route("/gateways/:id/pair", post(pair_gateway))
+        .route("/agents", get(list_agents).post(add_agent))
+        .route("/agents/:id/status", put(set_agent_status))
+        .route("/harness", get(get_harness).put(set_harness))
+        .route("/harness/advance", post(advance_harness))
+        .with_state(s)
+}
+
+async fn list_gateways(State(s): State<Arc<AppState>>) -> Json<Value> {
+    Json(json!(s.gateways.read().values().cloned().collect::<Vec<_>>()))
+}
+
+async fn add_gateway(State(s): State<Arc<AppState>>, Json(b): Json<Value>) -> Json<Value> {
+    let name = b["name"].as_str().unwrap_or("Production Server").to_string();
+    let auth = match b["auth"].as_str().unwrap_or("token") {
+        "password" => AuthMethod::Password,
+        "pairing" => AuthMethod::PairingCode(b["code"].as_str().unwrap_or("0000").to_string()),
+        _ => AuthMethod::Token,
+    };
+    Json(json!(crate::gateway::add_gateway(&s, &name, auth)))
+}
+
+async fn pair_gateway(State(s): State<Arc<AppState>>, Path(id): Path<uuid::Uuid>, Json(b): Json<Value>) -> Json<Value> {
+    let code = b["code"].as_str().unwrap_or("");
+    Json(json!({"paired": crate::gateway::pair_via_code(&s, id, code)}))
+}
+
+async fn list_agents(State(s): State<Arc<AppState>>) -> Json<Value> {
+    Json(json!(s.agents.read().values().cloned().collect::<Vec<_>>()))
+}
+
+async fn add_agent(State(s): State<Arc<AppState>>, Json(b): Json<Value>) -> Json<Value> {
+    let gw = uuid::Uuid::parse_str(b["gateway_id"].as_str().unwrap_or("")).unwrap_or_default();
+    Json(json!(crate::agent::register_agent(&s, b["name"].as_str().unwrap_or("agent"), gw)))
+}
+
+async fn set_agent_status(State(s): State<Arc<AppState>>, Path(id): Path<uuid::Uuid>, Json(b): Json<Value>) -> Json<Value> {
+    let st = match b["status"].as_str().unwrap_or("idle") {
+        "running" => AgentStatus::Running, "paused" => AgentStatus::Paused,
+        "stopped" => AgentStatus::Stopped, _ => AgentStatus::Idle,
+    };
+    Json(json!({"ok": crate::agent::set_status(&s, id, st)}))
+}
+
+async fn get_harness(State(s): State<Arc<AppState>>) -> Json<Value> {
+    Json(json!(*s.harness.read()))
+}
+
+async fn set_harness(State(s): State<Arc<AppState>>, Json(b): Json<Value>) -> Json<Value> {
+    let phase = serde_json::from_value::<LifecyclePhase>(b["phase"].clone()).unwrap_or(LifecyclePhase::Boot);
+    let mut h = s.harness.write();
+    h.set_phase(phase);
+    if let Some(aa) = b["auto_advance"].as_bool() { h.auto_advance = aa; }
+    Json(json!(*h))
+}
+
+async fn advance_harness(State(s): State<Arc<AppState>>) -> Json<Value> {
+    let mut h = s.harness.write();
+    let p = h.advance();
+    Json(json!({"phase": p, "tokens_minted": h.tokens_minted, "tokens_active": h.tokens_active}))
+}
+```
+
+## `static/index.html` (matches your described UI shell)
+
+```html
+<!doctype html><html><head><meta charset="utf-8"><title>Claw Dashboard</title>
+<style>
+ body{margin:0;font:14px/1.4 system-ui;background:#0e1116;color:#e6e6e6;display:flex}
+ .side{width:220px;background:#151a23;padding:14px;border-right:1px solid #222}
+ .side a{display:block;color:#9fb0c5;text-decoration:none;padding:8px 10px;border-radius:6px}
+ .side a:hover,.side a.active{background:#1f2733;color:#fff}
+ .main{flex:1;padding:20px}
+ .card{background:#161b24;border:1px solid #222;border-radius:8px;padding:16px;margin-bottom:14px}
+ input,select,button{padding:8px;background:#0e1116;color:#e6e6e6;border:1px solid #2a3342;border-radius:6px}
+ button{cursor:pointer;background:#2d6cdf;border:none;color:#fff}
+ button.ghost{background:transparent;border:1px solid #2a3342}
+ .grid{display:grid;grid-template-columns:1fr 1fr;gap:14px}
+ table{width:100%;border-collapse:collapse}td,th{padding:8px;border-bottom:1px solid #222;text-align:left}
+ .pill{padding:2px 8px;border-radius:99px;background:#23304a;font-size:11px}
+ .phase{display:inline-block;padding:6px 10px;border-radius:6px;background:#10203a;font-weight:bold}
+</style></head><body>
+<div class="side">
+  <b style="color:#fff">Claw</b><hr style="border-color:#222;margin:10px 0">
+  <a>Search tasks…</a>
+  <a>Teams <span class="pill">Beta</span></a>
+  <a>File Manager</a>
+  <a>Click "New Task" to start</a>
+  <a>Scheduled</a>
+  <hr style="border-color:#222;margin:10px 0">
+  <a class="active">Settings</a>
+  <a style="padding-left:24px">General</a>
+  <a style="padding-left:24px">System</a>
+  <a style="padding-left:24px" class="active">Gateways</a>
+  <a style="padding-left:24px">Agents</a>
+  <a style="padding-left:24px">Skills</a>
+  <a style="padding-left:24px">About</a>
+</div>
+<div class="main">
+  <h2>Gateways</h2>
+  <button onclick="document.getElementById('gw').style.display='block'">+ Add Gateway</button>
+
+  <div id="gw" class="card" style="display:none">
+    <h3>Add Pairing Gateway</h3>
+    <label>Name<br><input id="gw-name" placeholder="e.g. Production Server"></label><br><br>
+    <label>Authentication<br>
+      <select id="gw-auth">
+        <option value="token">Token</option>
+        <option value="password">Password</option>
+        <option value="pairing">Pairing Code</option>
+      </select></label><br><br>
+    <label>Pairing Code<br>
+      <input id="gw-code" placeholder="Paste setup code from gateway web UI or openclaw qr"></label><br><br>
+    <button class="ghost" onclick="document.getElementById('gw').style.display='none'">Cancel</button>
+    <button onclick="addGw()">Add Gateway</button>
+  </div>
+
+  <div class="card">
+    <table><thead><tr><th>Name</th><th>Auth</th><th>Paired</th><th></th></tr></thead>
+    <tbody id="gw-table"></tbody></table>
+  </div>
+
+  <h2>Token Harness Lifecycle</h2>
+  <div class="card">
+    Current phase: <span class="phase" id="phase">boot</span><br><br>
+    Minted: <span id="minted">0</span> | Active: <span id="active">0</span><br><br>
+    <button onclick="advance()">Advance Phase</button>
+    <select id="phase-set">
+      <option value="boot">boot</option><option value="mint">mint</option>
+      <option value="provision">provision</option><option value="active">active</option>
+      <option value="rotate">rotate</option><option value="revoke">revoke</option>
+      <option value="cold">cold</option><option value="fault">fault</option>
+    </select>
+    <button class="ghost" onclick="setPhase()">Set</button>
+  </div>
+</div>
+<script>
+const api = (p, o={}) => fetch('/api'+p, {headers:{'Content-Type':'application/json'}, ...o}).then(r=>r.json());
+
+async function loadGw(){
+  const rows = await api('/gateways');
+  document.getElementById('gw-table').innerHTML = rows.map(g =>
+    `<tr><td>${g.name}</td><td>${JSON.stringify(g.auth)}</td><td>${g.paired?'✓':'—'}</td>
+     <td>${!g.paired ? `<button class="ghost" onclick="pair('${g.id}')">Pair</button>`:''}</td></tr>`).join('');
+}
+async function addGw(){
+  await api('/gateways', {method:'POST', body: JSON.stringify({
+    name: gwName.value, auth: gwAuth.value, code: gwCode.value})});
+  document.getElementById('gw').style.display='none'; loadGw();
+}
+async function pair(id){
+  const code = prompt('Pairing code?'); if(!code) return;
+  await api(`/gateways/${id}/pair`, {method:'POST', body: JSON.stringify({code})}); loadGw();
+}
+async function loadHarness(){
+  const h = await api('/harness');
+  phase.textContent = h.phase; minted.textContent = h.tokens_minted; active.textContent = h.tokens_active;
+}
+async function advance(){ await api('/harness/advance',{method:'POST'}); loadHarness(); }
+async function setPhase(){ await api('/harness',{method:'PUT', body: JSON.stringify({phase: phaseSet.value})}); loadHarness(); }
+
+loadGw(); loadHarness();
+</script></body></html>
+```
+
+## Run it
+
+```bash
+cargo run
+# open http://localhost:8787
+```
+
+## Where your files/snippets plug in
+
+- **Multi-structure builds** → extend `routes.rs` with a `/build` module; add a `src/builder.rs` that orchestrates your snippet assemblies.
+- **Cloud agent stack switch** → wrap `token_harness.rs` calls behind your existing agent entrypoints in `agent.rs` (e.g., gating `register_agent` on `LifecyclePhase::Provision`/`Active`).
+- **Rust snippets** → drop them under `src/snippets/` and `mod snippets;` from `main.rs`.
+- **File Manager / Tasks / Scheduled** → add `src/tasks.rs`, `src/files.rs` route groups; mount in `api_router`.
+
+Tell me the exact shape of your existing Rust snippets (build graph? agent manifest format?) and I'll wire them into `token_harness.rs` and a new `builder.rs` so the dashboard drives real multi-structure builds instead of stubs

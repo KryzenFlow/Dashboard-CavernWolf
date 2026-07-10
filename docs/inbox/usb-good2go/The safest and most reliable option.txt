@@ -1,0 +1,41 @@
+The safest and most reliable option is using Windows Subsystem for Linux (WSL2), because it allows your development scripts to run natively in an isolated environment without modifying or lowering your core Windows OS security settings.
+The fact that you are being locked out of folders on your external drive reveals that Windows Smart App Control (SAC) or automated policy features like Windows Copilot / Microsoft Defender are treating your external drive as an "Untrusted Zone." When developer binaries run from an external or user directory, Windows flags them with a hidden tracking identifier (called a Zone.Identifier stream). Once flagged, SAC locks down those folders and refuses to let any code within them execute. [1, 2, 3] 
+Here is how you can completely resolve the external drive lockout while keeping your system safe.
+## 🛠️ Step 1: Permanently Unlock Your External Drive Folders
+Because the folders are on an external drive, Windows treats files inside them as if they were downloaded from an untrusted network. You can strip the security blocks from these folders using a native PowerShell command.
+
+   1. Open PowerShell as an Administrator (Search for PowerShell, right-click, choose Run as Administrator).
+   2. Run the following command, replacing the path with your actual external drive letter and folder path:
+   
+   Get-ChildItem -Path "E:\YourExternalFolder" -Recurle | Unblock-File
+   
+   This command strips away the hidden "untrusted guest" flag from all subfolders and scripts instantly, granting your local apps access again. [3] 
+
+## 🐳 Step 2: The Safest Configuration (Using WSL2)
+Moving your local agent workspace into WSL2 is the safest path forward.
+
+* Why it works: WSL2 creates a secure, sandboxed Linux micro-VM on your computer.
+* The Benefit: Windows Smart App Control does not monitor or interfere with binaries compiled or run inside the Linux kernel, yet your primary Windows host remains 100% protected against actual malware. [1, 4] 
+
+To set this up:
+
+   1. Open PowerShell and install Linux: wsl --install
+   2. Restart your computer.
+   3. Open your new Linux terminal (Ubuntu), install Node/npm, and run your hermes commands there. Docker Desktop will seamlessly pass commands from the Linux side over to your containers without Windows intercepting them.
+
+## ⚠️ The Alternative: Turning Off Smart App Control
+If you choose not to use WSL2 and want to continue running local scripts directly on your native Windows command prompt, you will likely need to turn Smart App Control Off. [5] 
+
+* Is it safe? Yes, provided you have a traditional antivirus engine running (like the default Windows Defender), which still performs heuristic checks and scans for active threats. SAC is an aggressive "signature-only" gatekeeper that is notoriously disruptive for programmers. [4, 5] 
+* How to turn it off: Go to Windows Security > App & browser control > Smart App Control settings and switch it to Off. [2, 6] 
+* Note: Thanks to recent updates, you can safely toggle this feature back on later without being forced to reinstall your operating system if you change your mind. [7] 
+
+Would you like help getting your external drive correctly mounted into WSL2, or would you prefer assistance verifying your folder permissions to ensure Copilot isn't overriding your administrative controls?
+
+[1] [https://learn.microsoft.com](https://learn.microsoft.com/en-us/windows/apps/develop/smart-app-control/overview)
+[2] [https://www.ninjaone.com](https://www.ninjaone.com/blog/how-to-turn-off-smart-app-control-in-windows-11/)
+[3] [https://www.youtube.com](https://www.youtube.com/watch?v=cfLraa7RJ_k&vl=en-US)
+[4] [https://www.reddit.com](https://www.reddit.com/r/qBittorrent/comments/1kjb8n1/windows_11_smart_app_control_is_blocking/)
+[5] [https://www.computerworld.com](https://www.computerworld.com/article/4043925/windows-11-smart-app-control-explained.html)
+[6] [https://www.youtube.com](https://www.youtube.com/watch?v=heeMady-B40)
+[7] [https://www.windowslatest.com](https://www.windowslatest.com/2025/12/16/microsoft-confirms-you-can-soon-disable-smart-app-control-without-reinstalling-windows-11/)

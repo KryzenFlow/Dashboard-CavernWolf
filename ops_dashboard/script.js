@@ -154,7 +154,7 @@ loadBleeds()
   .then(() => {
     $("ops-status").textContent = "Connected";
     return Promise.all([loadJobs(), loadDrafts()]);
-  }))
+  })
   .catch((err) => {
     $("ops-status").textContent = "Error — set STUDIO_MODE=internal on backend";
     console.error(err);

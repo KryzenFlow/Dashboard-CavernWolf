@@ -4,6 +4,8 @@ Production unified compose: **Hermes Studio** dashboard, **multi-agent backend**
 
 See [SOUL.md](SOUL.md) for agent identity and principles.
 
+**Project memory & status:** [AGENTS.md](AGENTS.md) · [docs/GETTING_STARTED.md](docs/GETTING_STARTED.md) · [docs/BUILD_STATUS.md](docs/BUILD_STATUS.md) · [docs/WHEN_YOU_RETURN.md](docs/WHEN_YOU_RETURN.md)
+
 ## Stack
 
 | Service | Port | Role |

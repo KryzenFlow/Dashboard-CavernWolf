@@ -1,0 +1,5 @@
+gh repo clone skills/expand-your-team-with-copilot
+
+https://github.com/skills/expand-your-team-with-copilot.git
+
+https://github.com/nodesource/distributions.git

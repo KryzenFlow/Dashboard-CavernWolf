@@ -1,0 +1,66 @@
+gh repo clone nshportun/podcast-generator
+
+Software/PolicyKit/PluggableArchitecture
+
+Pluggable Architecture for PolicyKit
+Overview
+The current architecture for the PolicyKit relies on a set of flat files on the local system to use for policy validation. This approach limits PolicyKit to local configuration of policy only. This proposal will describe the conversion of PolicyKit to a new, pluggable architecture. This will allow PolicyKit to receive its configuration from other sources, in addition to the local files.
+   +--------------+
+   |     App1     |
+   +--------------+
+   | libpolkit.so |<---------------+
+﻿   +--------------+                |
+                                   |
+﻿   +--------------+                V
+   |     App2     |         +------------+      +-----------------+
+   +--------------+    |--->| System Bus |<---->| polkit-backendd |
+   | libpolkit.so |<---|    +------------+      +-----------------+
+﻿   +--------------+              ^              | pk-backend-1.so |
+                                 |              | ...             |
+﻿   +--------------+              |              +-----------------+
+   |     App3     |              |
+   +--------------+              |
+   | libpolkit.so |<--------------
+﻿   +--------------+
+
+        ....
+High-level Architecture
+The libpolkit shared library will communicate with a backend service on the D-BUS system bus
+The backend will be a privileged process called polkit-backendd connected to the system bus and answering requests directed to org.freedesktop.PolicyKit.BackendPrivate
+org.freedesktop.PolicyKit.BackendPrivate will export a single object "/" exporting the interface org.freedesktop.PolicyKit.BackendPrivate
+Implementation-wise, the plumbing is going to look a lot like polkitd
+Use dbus-glib
+Define interface via Introspection XML
+Implement methods in a GObject class
+Plug-ins will be configured with a priority.
+Higher-priority backends will be searched first (such as FreeIPA or possibly Samba)
+Lower-priority backends will be searched if and only if the higher-priority backends have no knowledge of a particular Action
+Tasks
+Create the new polkit-backendd daemon
+Decide on the D-BUS interface
+Implement it and use d-feet and/or dbus-send to test it
+Rev where authorizations are stored; probably won't need a polkit user+group anymore as polkit-backendd will simply run as root
+Can take advantage of the daemon used by Avahi
+Port the current (local file) backend over to this daemon
+Replace backend in libpolkit with D-BUS calls to call into org.freedesktop.PolicyKit.BackendPrivate
+Can't use dbus-glib.so
+Rely on libdbus.so (painful, but only needs to be done once)
+libpolkit.so will grow a libdbus.so dependency
+libpolkit and libpolkit-dbus can be merged on next API rev
+May require revving the public API to get better mainloop integration
+Only really needed for async notifications, so may be able to punt this for a bit
+Just use sync calls initially
+Other Details
+Plug-in ABI
+There needs to be a local config file (e.g. /etc/!PolicyKit/backends.d/localfiles.conf, /etc/!PolicyKit/backends.d/freeipa.conf)
+These config files would specify the following information in either .ini format or .xml format (the former preferred for simplicity)
+Enable=1 or 0
+Priority (0 lowest) specifying what order to check authorization. E.g. localfiles would probably have priorty 0, freeIPA would have something higher.
+Module=/lib/PolicyKitPlugins/libpk_localfiles.so (location/names TBD)
+ModuleParameters= (optional parameters to change module behavior)
+
+The plugin architecture will need to support, at minimum, the following interfaces:
+get_name()
+get_version(): version the ABI to ensure backwards-compatibility in the future
+get_priority(): the plugin should be able to specify its default priority, which can be overridden by the config file, as described above
+get_funcs(): Get a list of function pointers supported by the plugin.

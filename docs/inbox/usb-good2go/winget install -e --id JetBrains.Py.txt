@@ -1,0 +1,152 @@
+winget install -e --id JetBrains.PyCharm.Community.EAP
+
+winget install -e --id Fioooooooo.FylloCode
+winget install -e --id MiniMax.MiniMaxCode  Remembers your habits, builds Agent teams, automates the repetitive workwinget install -e --id Alibaba.Qoder  
+Install Qoder with winget
+To install Qoder with winget, use the following command:   About Qoder
+Agentic Coding Platform for Real Software
+Source code for winget package
+Download (.inno)
+Install Sonic Pi with winget
+To install Sonic Pi with winget, use the following command:
+About Sonic Pi
+Free code-based music creation and performance too
+winget install -e --id Xiaomi.MiMoCode.Baseline
+Install MiMoCode (Baseline) with winget
+To install MiMoCode (Baseline) with winget, use the following command:
+About MiMoCode (Baseline)
+A next-generation AI coding assistant for developers. Unlimited context lets you understand, build, and collaborate more efficiently.
+winget install -e --id LoftLabs.DevPod
+Install DevPod with winget
+To install DevPod with winget, use the following command:
+
+About DevPod
+Codespaces but open-source, client-only and unopinionated: Works with any IDE and lets you use any cloud, kubernetes or just localhost docker.
+winget install -e --id okteto.okteto
+Install okteto with winget
+To install okteto with winget, use the following command:
+
+About okteto
+Okteto is a cloud-native development platform that bridges the gap between local development and production, enabling seamless development and deployment in Kubernetes clusters.
+winget install -e --id FactoryAI.Factory
+Install Factory with winget
+To install Factory with winget, use the following command:
+About Factory
+Agent-Native Software Development
+winget install -e --id JetBrains.Rider.EAP
+Install JetBrains Rider (EAP) with winget
+To install JetBrains Rider (EAP) with winget, use the following command:
+About JetBrains Rider (EAP)
+Develop .NET, ASP.NET, .NET Core, Xamarin or Unity applications on Windows, Mac, Linux
+winget install -e --id Microsoft.Gaming.XboxLiveDeveloperTools
+Install Xbox Live Developer Tools with winget
+To install Xbox Live Developer Tools with winget, use the following command:
+About Xbox Live Developer Tools
+Tools to help develop and test games that interact with Xbox services.
+winget install -e --id Microsoft.SQLServer.2025.Developer
+Install Microsoft SQL Server 2025 Developer with winget
+To install Microsoft SQL Server 2025 Developer with winget, use the following command:
+
+About Microsoft SQL Server 2025 Developer
+SQL Server 2025 Developer is a full-featured free edition, licensed for use as a development and test database in a non-production environment.
+winget install -e --id DevToys-app.DevToys
+Install DevToys with winget
+To install DevToys with winget, use the following command:
+About DevToys
+DevToys is a Swiss Army knife for developers.
+winget install -e --id Unity.Unity.6000
+Install Unity 6000 with winget
+To install Unity 6000 with winget, use the following command:
+
+About Unity 6000
+The world’s leading platform for real-time content creation
+winget install -e --id riok.Kreya
+Install Kreya with winget
+To install Kreya with winget, use the following command:
+
+About Kreya
+A GUI client for gRPC and REST APIs with innovative features for environments, authorizations and more.
+Select an importer type, enter the necessary information and click 'Next'. If you want to try Kreya and you don't have any GraphQL schemas at hand, select GraphQL schema introspection importer and enter https://example-api.kreya.app/graphql as the endpoint. Kreya will automatically introspect your GraphQL schema and provide autocomplete for queries, mutations and subscriptions.
+
+In the following screen, enter the API URL which will be prefilled for all operations.
+
+For REST: Adding OpenAPI definitions
+If you do not want to use REST or do not have an OpenAPI definition at hand, skip this step. You can always add an Importer later on.
+Operations
+Operations are the core feature of Kreya. They correspondend to "service methods":
+
+For gRPC, an operation corresponds to a gRPC service method, e.g. MyService.GetList()
+For GraphQL, an operation corresponds to a query, mutation or subscription
+For REST, an operation is an HTTP endpoint, e.g. POST https://example.com/api/invoices
+For WebSocket, an operation is a WebSocket connection, e.g. wss://example.com/ws
+You may create multiple operations for one "service method".
+
+Creating operations
+With REST and WebSocket operations, you can simply create operations from scratch. However, this can be a hassle to do manually.
+
+If you have an API definition, such as an OpenAPI document, you can import operations automatically. For gRPC, this is required, as the API definitions are needed for (de-)serialization.
+
+Organization
+The operations can be organised into directories. Note that this directory structure is stored and read directly from the file system. That is why some characters are forbidden in folder and file names and why the operations are always sorted alphabetically.
+
+When organizing operations into directories, take a look at the directory settings. With this Kreya feature, you can apply settings to all operations within a directory.
+collection invoke
+Invokes (runs) a single collection or a set of collections
+
+kreyac collection invoke [--scripting-timeout] [--relative-to] [--disable-scripts] [--test-report-junit] [Collections]
+
+
+Example
+kreyac collection invoke my-collection.krcol
+
+Options
+scripting-timeout
+--scripting-timeout
+Can also be set via the environment variable KREYA_SCRIPTINGTIMEOUT
+Default: 20
+
+Timeout of operation scripts in seconds
+
+relative-to
+--relative-to
+
+Default: project
+
+Determines the base path for resolving relative paths and globs. Accepted values: project, current-working-directory (alias: cwd)
+
+disable-scripts
+--disable-scripts
+
+Disable the scripts of all operations for this invocation
+
+test-report-junit
+--test-report-junit
+
+Enables the JUnit test reporter and writes the JUnit report to the specified file
+
+Arguments
+Collections required multiple
+Paths of the collections to be invoked, these could be directories, .krcol files or globs (e.g. './my-service/**'). Some shells expand globs automatically, so you should enclose them in quotes. Collections are invoked in alphabetical order.
+
+Previous
+Commands
+Comparisons
+vs Postman
+vs Insomnia
+vs BloomRPC
+vs Bruno
+vs SoapUI
+vs SwaggerUI
+Support
+environment get-active
+Gets the active environment
+
+kreyac environment get-active
+
+Example
+kreyac environment get-active -p ./my-project.krproj
+Install Parley Deck Skill with winget
+To install Parley Deck Skill with winget, use the following command:
+
+About Parley Deck Skill
+Installer for the Parley Deck multi-agent cooperation skill.

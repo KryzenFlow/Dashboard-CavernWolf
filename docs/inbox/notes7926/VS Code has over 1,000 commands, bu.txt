@@ -1,0 +1,259 @@
+VS Code has over 1,000 commands, but you only need about 30 to work efficiently. This guide covers the shortcuts that save real time — editing, navigation, debugging, Git, and terminal integration.
+
+TL;DR
+Command Palette: Ctrl+Shift+P / Cmd+Shift+P — Access everything
+Quick Open: Ctrl+P / Cmd+P — Open files by name
+Multi-cursor: Ctrl+D / Cmd+D — Edit multiple occurrences
+Go to Definition: F12 — Jump to symbol definition
+Integrated Terminal: Ctrl+` — Toggle without leaving editor
+Command + Click: Go to definition with mouse
+Essential Shortcuts
+Command Palette & Navigation
+SHORTCUT	WINDOWS/LINUX	MACOS	ACTION
+Command Palette	Ctrl+Shift+P	Cmd+Shift+P	Access all commands
+Quick Open File	Ctrl+P	Cmd+P	Open file by name
+Go to Symbol	Ctrl+Shift+O	Cmd+Shift+O	Jump to function/class
+Go to Line	Ctrl+G	Cmd+G	Jump to line number
+Go to Definition	F12	F12	Jump to symbol
+Go Back/Forward	Alt+←/→	Ctrl+- / Cmd+Shift+-	Navigate history
+Show Explorer	Ctrl+Shift+E	Cmd+Shift+E	Focus file explorer
+Show Search	Ctrl+Shift+F	Cmd+Shift+F	Global search
+Show Git	Ctrl+Shift+G	Ctrl+Shift+G	Source control panel
+Show Extensions	Ctrl+Shift+X	Cmd+Shift+X	Extensions marketplace
+Editing
+SHORTCUT	WINDOWS/LINUX	MACOS	ACTION
+Multi-cursor Select	Ctrl+D	Cmd+D	Select next occurrence
+Select All Occurrences	Ctrl+Shift+L	Cmd+Shift+L	Edit all at once
+Multi-cursor (click)	Alt+Click	Option+Click	Place cursor anywhere
+Move Line Up/Down	Alt+↑/↓	Option+↑/↓	Move line
+Copy Line Up/Down	Shift+Alt+↑/↓	Shift+Option+↑/↓	Duplicate line
+Delete Line	Ctrl+Shift+K	Cmd+Shift+K	Remove current line
+Insert Line Below	Ctrl+Enter	Cmd+Enter	New line, stay put
+Insert Line Above	Ctrl+Shift+Enter	Cmd+Shift+Enter	New line above
+Toggle Comment	Ctrl+/	Cmd+/	Comment/uncomment line
+Format Document	Shift+Alt+F	Shift+Option+F	Auto-format
+Format Selection	Ctrl+K Ctrl+F	Cmd+K Cmd+F	Format selected
+Fold/Unfold	Ctrl+Shift+[ / ]	Cmd+Option+[ / ]	Collapse code
+Toggle Word Wrap	Alt+Z	Option+Z	Wrap long lines
+Code Navigation
+SHORTCUT	WINDOWS/LINUX	MACOS	ACTION
+Peek Definition	Alt+F12	Option+F12	Inline definition
+Find All References	Shift+F12	Shift+F12	List references
+Rename Symbol	F2	F2	Refactor rename
+Show Problems	Ctrl+Shift+M	Cmd+Shift+M	Error list
+Next Error/Warning	F8	F8	Jump to next issue
+Previous Error	Shift+F8	Shift+F8	Jump to previous
+Trigger Suggest	Ctrl+Space	Ctrl+Space	Show autocomplete
+Trigger Parameter Hint	Ctrl+Shift+Space	Cmd+Shift+Space	Function params
+Show Hover	Ctrl+K Ctrl+I	Cmd+K Cmd+I	Show info tooltip
+Go to Bracket	Ctrl+Shift+\	Cmd+Shift+\	Jump to matching bracket
+Selection & Search
+SHORTCUT	WINDOWS/LINUX	MACOS	ACTION
+Find	Ctrl+F	Cmd+F	Current file search
+Replace	Ctrl+H	Cmd+H	Find and replace
+Find in Files	Ctrl+Shift+F	Cmd+Shift+F	Global search
+Replace in Files	Ctrl+Shift+H	Cmd+Shift+H	Global replace
+Select Line	Ctrl+L	Cmd+L	Select entire line
+Expand Selection	Shift+Alt+→	Ctrl+Shift+→	Smart expand
+Shrink Selection	Shift+Alt+←	Ctrl+Shift+←	Smart shrink
+Terminal Integration
+SHORTCUT	WINDOWS/LINUX	MACOS	ACTION
+Toggle Terminal	Ctrl+`	Ctrl+`	Show/hide terminal
+New Terminal	Ctrl+Shift+	Ctrl+Shift+	Create new terminal
+Focus Terminal	`Ctrl+“	`Ctrl+“	Switch to terminal
+Focus Editor	Ctrl+1	Cmd+1	Switch to editor
+Run Selected	Ctrl+Shift+Enter	Cmd+Shift+Enter	Run in terminal
+Kill Terminal	Ctrl+Shift+K	Cmd+Shift+K	Close terminal
+Debugging
+SHORTCUT	WINDOWS/LINUX	MACOS	ACTION
+Start Debugging	F5	F5	Run with debugger
+Run Without Debug	Ctrl+F5	Cmd+F5	Run without attach
+Stop Debugging	Shift+F5	Shift+F5	Stop session
+Toggle Breakpoint	F9	F9	Add/remove breakpoint
+Step Over	F10	F10	Next line
+Step Into	F11	F11	Enter function
+Step Out	Shift+F11	Shift+F11	Exit function
+Continue	F5	F5	Resume execution
+Restart	Ctrl+Shift+F5	Cmd+Shift+F5	Restart debugging
+Show Debug Console	Ctrl+Shift+Y	Cmd+Shift+Y	Debug output
+Git Integration
+SHORTCUT	WINDOWS/LINUX	MACOS	ACTION
+Open Source Control	Ctrl+Shift+G	Ctrl+Shift+G	Git panel
+Stage Selected	Ctrl+Enter	Cmd+Enter	Stage changes
+Stage All	Ctrl+Shift+Enter	Cmd+Shift+Enter	Stage everything
+Commit	Ctrl+Enter	Cmd+Enter	Commit staged
+Commit All	Ctrl+Shift+Enter	Cmd+Shift+Enter	Commit all
+Pull	N/A	N/A	Use command palette
+Push	N/A	N/A	Use command palette
+Open Changes	Ctrl+K Ctrl+D	Cmd+K Cmd+D	Show diff
+Show Git Log	N/A	N/A	Use GitLens extension
+Window & View Management
+SHORTCUT	WINDOWS/LINUX	MACOS	ACTION
+Toggle Sidebar	Ctrl+B	Cmd+B	Show/hide explorer
+Toggle Panel	Ctrl+J	Cmd+J	Show/hide bottom panel
+Toggle Terminal	Ctrl+`	Ctrl+`	Show/hide terminal
+Split Editor	Ctrl+\	Cmd+\	Create new editor group
+Focus Next Group	Ctrl+1/2/3	Cmd+1/2/3	Switch editor groups
+Close Editor	Ctrl+W	Cmd+W	Close current tab
+Close All	Ctrl+K Ctrl+W	Cmd+K Cmd+W	Close all tabs
+Reopen Closed	Ctrl+Shift+T	Cmd+Shift+T	Restore closed tab
+Full Screen	F11	Ctrl+Cmd+F	Toggle fullscreen
+Zen Mode	Ctrl+K Z	Cmd+K Z	Distraction-free
+Pro Tips
+Quick File Navigation
+PLAINTEXT
+
+Ctrl+P (or Cmd+P on Mac)
+> Type filename (fuzzy match)
+> Use @ to go to symbol: file@function
+> Use : to go to line: file:42
+> Use > to run command
+Examples:
+
+user → finds UserController.ts
+user@create → opens UserController.ts at create function
+user:25 → opens at line 25
+Multi-Cursor Magic
+PLAINTEXT
+
+1. Alt+Click (Option+Click) → place cursors anywhere
+2. Ctrl+D (Cmd+D) → select next occurrence
+3. Ctrl+Shift+L (Cmd+Shift+L) → select all occurrences
+4. Ctrl+Alt+↓ (Cmd+Option+↓) → add cursor to next line
+Emmet Abbreviations
+Built into VS Code for HTML/CSS:
+
+PLAINTEXT
+
+! → HTML5 boilerplate
+div.container → <div class="container"></div>
+ul>li*5 → 5 list items
+header+main+footer → 3 sibling elements
+Type abbreviation then press Tab.
+
+Snippets
+PLAINTEXT
+
+Create custom snippets:
+File → Preferences → User Snippets
+
+Example (JavaScript):
+"console.log": {
+    "prefix": "clog",
+    "body": "console.log('$1:', $1);",
+    "description": "Log with label"
+}
+Type clog, press Tab, enter variable name.
+
+Custom Keybindings
+Add to keybindings.json
+Ctrl+K Ctrl+S → Open Keyboard Shortcuts → Click icon to open JSON:
+
+JSON
+
+[
+    {
+        "key": "ctrl+shift+t",
+        "command": "workbench.action.terminal.focus"
+    },
+    {
+        "key": "ctrl+shift+a",
+        "command": "workbench.action.quickOpen"
+    },
+    {
+        "key": "f12",
+        "command": "editor.action.revealDefinition",
+        "when": "editorHasDefinitionProvider && editorTextFocus && !isInEmbeddedEditor"
+    },
+    {
+        "key": "ctrl+shift+r",
+        "command": "editor.action.rename",
+        "when": "editorHasRenameProvider && editorTextFocus && !editorReadonly"
+    }
+]
+Conditional Keybindings
+JSON
+
+{
+    "key": "ctrl+enter",
+    "command": "acceptSelectedSuggestion",
+    "when": "suggestWidgetVisible && textInputFocus"
+}
+Essential Extensions
+EXTENSION	SHORTCUT	PURPOSE
+GitLens	—	Enhanced Git annotations
+Prettier	Shift+Alt+F	Code formatting
+ESLint	—	JavaScript linting
+Vim	—	Vim keybindings
+Python	—	Python support
+Docker	—	Container management
+Thunder Client	—	API testing
+Error Lens	—	Inline error display
+Settings for Speed
+Add to settings.json:
+
+JSON
+
+{
+    "editor.cursorBlinking": "smooth",
+    "editor.cursorSmoothCaretAnimation": true,
+    "editor.smoothScrolling": true,
+    "editor.formatOnSave": true,
+    "editor.formatOnPaste": true,
+    "editor.tabSize": 2,
+    "editor.insertSpaces": true,
+    "editor.detectIndentation": true,
+    "editor.quickSuggestions": {
+        "other": true,
+        "comments": false,
+        "strings": false
+    },
+    "editor.suggestSelection": "first",
+    "editor.acceptSuggestionOnCommitCharacter": false,
+    "terminal.integrated.cursorBlinking": true,
+    "workbench.tree.indent": 20,
+    "files.autoSave": "afterDelay",
+    "files.autoSaveDelay": 1000
+}
+Language-Specific Shortcuts
+TypeScript/JavaScript
+SHORTCUT	ACTION
+Ctrl+. / Cmd+.	Quick fix (add import, fix error)
+F2	Rename symbol
+Ctrl+Shift+R	Refactor
+Ctrl+Shift+.	Insert import
+Python
+SHORTCUT	ACTION
+Shift+Enter	Run selection in Python terminal
+Ctrl+Shift+P → Python: Run File	Run current file
+F5	Debug Python file
+Markdown
+SHORTCUT	ACTION
+Ctrl+Shift+V	Preview
+Ctrl+K V	Side-by-side preview
+Ctrl+B	Bold
+Ctrl+I	Italic
+Summary
+Master these 20 shortcuts first:
+
+Ctrl+P / Cmd+P — Open files
+Ctrl+Shift+P / Cmd+Shift+P — Command palette
+Ctrl+D / Cmd+D — Multi-cursor
+F12 — Go to definition
+Ctrl+G / Cmd+G — Go to line
+Ctrl+` — Toggle terminal
+Ctrl+/ / Cmd+/ — Toggle comment
+Alt+↑/↓ / Option+↑/↓ — Move line
+Ctrl+F / Cmd+F — Find
+Ctrl+H / Cmd+H — Replace
+Ctrl+Shift+F / Cmd+Shift+F — Find in files
+Shift+Alt+F / Shift+Option+F — Format
+Ctrl+Space — Trigger suggest
+F2 — Rename
+Ctrl+B / Cmd+B — Toggle sidebar
+Ctrl+W / Cmd+W — Close tab
+Ctrl+Shift+T / Cmd+Shift+T — Reopen closed
+Ctrl+Shift+O / Cmd+Shift+O — Go to symbol
+Ctrl+K Ctrl+S / Cmd+K Cmd+S — Keyboard shortcuts
+Ctrl+K Z / Cmd+K Z — Zen mode
+Speed comes from muscle memory. Pick 5 shortcuts, use them exclusively for a day, then add more.

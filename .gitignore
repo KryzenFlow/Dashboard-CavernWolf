@@ -1,3 +1,4 @@
+.wrangler/
 node_modules/
 __pycache__/
 *.py[cod]
@@ -9,6 +10,13 @@ frontend/dist/
 *.log
 .DS_Store
 Thumbs.db
+.idea/
+*.iml
+
+# Never commit secret dumps from USB / notes
+**/My Startup.txt
+**/My Startup*.txt
+**/Good Notes.txt
 
 models/*.bin
 models/*.gguf
@@ -33,3 +41,10 @@ audit-log-exports/
 clinic/cockroach-sandbox/test-data/
 !shared/workflows/vellorae-demos/
 !shared/workflows/vellorae-demos/**
+
+**/KIngdom-KrazenFlow.txt
+**/dAashhh.txt
+
+
+**/projects847409545786 Gemini google.txt
+

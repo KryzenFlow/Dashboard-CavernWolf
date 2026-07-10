@@ -1,0 +1,1 @@
+{"$id":"1","innerException":null,"message":"Necessary parameters ownerId or memberId were not provided in the request.","typeName":"Microsoft.VisualStudio.Services.Account.AccountException, Microsoft.VisualStudio.Services.WebApi","typeKey":"AccountException","errorCode":0,"eventId":4236}

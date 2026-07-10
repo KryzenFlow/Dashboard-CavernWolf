@@ -1,0 +1,8 @@
+
+2NHCK-6DY8V-7HCQX-HDK49-C7QC8
+
+
+Esnet
+HFCR-W33H-SB36-6DR3-N7VA
+
+Your Tech Stack Cheat SheetESET: This is your core antivirus security shield, running silently in the background to protect your local files, system memory, and operating system from malware and threats without slowing down your computer.VMware Workstation: This is your virtual sandbox simulator, which lets you build and run entirely separate, isolated "virtual computers" (like an independent copy of Windows or Linux) safely inside your main desktop.Your Drive Layout: This is your physical and digital storage architecture, dividing your local operating system files (C: drive) from your deep data repositories, local workspace archives, and backup projects (D: and E: drives) to keep your functional files organized, fast, and completely safe.

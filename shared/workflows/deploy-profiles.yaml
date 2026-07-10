@@ -76,6 +76,19 @@ profiles:
       - action: start_cockroach_sandbox
         params: {}
 
+  cloudflare-pages:
+    label: "Cloudflare Pages (vellorae.org)"
+    description: Deploy static site to Cloudflare Pages. Run wrangler pages deploy or use CF dashboard.
+    requires_env: []
+    steps:
+      - action: build_website
+        params:
+          output_dir: "/shared/workflows/{project}"
+      - action: deploy_cloudflare_pages
+        params:
+          site_dir: "/shared/workflows/vellorae-demos"
+          project_name: "vellorae-main"
+
 # Allowed hermes-cli subcommands for POST /studio/cli/run (no shell injection)
 # Public Studio enforces studio_security.PUBLIC_ALLOWED_COMMANDS in code.
 cli_allowlist:
@@ -91,6 +104,7 @@ public_deploy_profiles:
   - static-export
   - github-pages
   - docker
+  - cloudflare-pages
 
 internal_deploy_profiles:
   - railway

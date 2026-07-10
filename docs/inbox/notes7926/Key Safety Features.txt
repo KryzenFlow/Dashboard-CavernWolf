@@ -1,0 +1,318 @@
+Key Safety Features
+Short Life Cycles
+
+Every agent container is spawned per request or per short session.
+After task completion, container is destroyed.
+No persistent memory unless explicitly allowed.
+Token Harness
+
+Supervisor tracks token usage for each agent and sub‑agent.
+If usage exceeds quota → terminate container.
+Prevents runaway loops or infinite API calls.
+Deviation & Loop Detection
+
+Supervisor monitors:
+Execution time.
+Repeated identical requests.
+Unexpected output patterns.
+If detected → kill container and log event.
+Sub‑Agent Control
+
+All sub‑agents must register with the parent agent.
+Parent agent’s container is under Supervisor control.
+Killing the parent automatically kills all sub‑agents.
+Rust Supervisor Skeleton (Controls Sub‑Agents)
+Rust
+
+Copy code
+use std::process::{Command, Stdio};
+use std::time::{Duration, Instant};
+
+struct AgentConfig {
+    name: String,
+    max_tokens: u32,
+    max_runtime: Duration,
+}
+
+fn run_agent(config: AgentConfig, input: &str) -> Result<String, String> {
+    let start_time = Instant::now();
+
+    let mut child = Command::new("docker")
+        .args(&["run", "--rm", &config.name])
+        .stdin(Stdio::piped())
+        .stdout(Stdio::piped())
+        .spawn()
+        .map_err(|e| e.to_string())?;
+
+    if let Some(stdin) = child.stdin.as_mut() {
+        stdin.write_all(input.as_bytes()).map_err(|e| e.to_string())?;
+    }
+
+    let output = child.wait_with_output().map_err(|e| e.to_string())?;
+
+    // Runtime check
+    if start_time.elapsed() > config.max_runtime {
+        kill_agent(&config.name)?;
+        return Err("Agent exceeded max runtime".into());
+    }
+
+    let stdout_str = String::from_utf8_lossy(&output.stdout).to_string();
+
+    // Token check (simple example)
+    let token_count = stdout_str.split_whitespace().count() as u32;
+    if token_count > config.max_tokens {
+        kill_agent(&config.name)?;
+        return Err("Agent exceeded token limit".into());
+    }
+
+    Ok(stdout_str)
+}
+
+fn kill_agent(container_name: &str) -> Result<(), String> {
+    let status = Command::new("docker")
+        .args(&["kill", container_name])
+        .status()
+        .map_err(|e| e.to_string())?;
+    if status.success() {
+        Ok(())
+    } else {
+        Err(format!("Failed to kill container {}", container_name))
+    }
+}
+Python LangChange Agent Example
+This agent converts between Markdown, TypeScript, and plain text.
+
+Python
+
+Copy code
+import sys, json
+
+def convert_code(code: str, from_lang: str, to_lang: str) -> str:
+    # Placeholder: real version would use parsing libraries
+    return f"// Converted from {from_lang} to {to_lang}\n{code}"
+
+if __name__ == "__main__":
+    try:
+        data = json.loads(sys.stdin.read())
+        result = convert_code(data["code"], data["from"], data["to"])
+        print(json.dumps({"converted": result}))
+    except Exception as e:
+        print(json.dumps({"error": str(e)}))
+Tauri Dashboard
+Shows active agents and sub‑agents.
+Displays token usage and runtime in real time.
+Has kill buttons for manual override.
+Logs all deviations and terminations.
+How This Controls Sub‑Agents
+All agents run in containers — no direct process spawning outside Supervisor.
+Sub‑agents are just processes inside the parent container.
+Killing the parent container kills all sub‑agents instantly.
+Supervisor enforces max runtime and max tokens for the parent, indirectly controlling sub‑agents.
+Next Step
+I can give you a full working VM‑ready skeleton that:
+
+Runs in Docker or WSL.
+Has Rust Supervisor + Python LangChange agent.
+Includes Tauri dashboard for control.
+Is ready to plug in Claude/Claw/Hermes cloud agents.
+That way, when you drop it into your VM sandbox, it will look “natural” from the start and start learning what to watch for.
+
+Do you want me to prepare that full VM‑ready Natural Bot harness with Tauri dashboard and container orchestration next? That would be your plug‑and‑play control center.
+
+Yes — VMware Workstation Pro 17 is more than good enough for this setup.
+It will let you run a full Linux VM (Ubuntu/Debian recommended) with Docker, WSL‑like isolation, and your Rust + Python + Tauri harness inside a sandbox.
+Here’s how I’d set you up so you can drop the “Natural Bot” harness into your VM and have it ready to control all agents from day one.
+
+1. VM Environment Setup
+Inside VMware Workstation Pro 17:
+
+
+Create a new VM
+
+OS: Ubuntu 22.04 LTS (stable, good Rust/Python/Docker support)
+CPU: 4 cores (minimum)
+RAM: 8 GB+
+Disk: 40 GB+ (thin provision OK)
+
+
+
+Install base packages
+
+
+Bashsudo apt update && sudo apt upgrade -y
+sudo apt install -y curl git build-essential python3 python3-pip docker.io docker-compose
+
+
+Install Rust
+
+Bashcurl --proto '=https' --tlsv1.2 -sSf https://sh.rustup.rs | sh
+source $HOME/.cargo/env
+
+
+Install Node.js (for Tauri frontend)
+
+Bashcurl -fsSL https://deb.nodesource.com/setup_20.x | sudo -E bash -
+sudo apt install -y nodejs
+
+
+Enable Docker for your user
+
+Bashsudo usermod -aG docker $USER
+newgrp docker
+
+
+2. Project Structure
+Inside your VM:
+natural-bot/
+├── src-tauri/              # Rust Supervisor + Tauri backend
+│   └── src/main.rs
+├── agents/
+│   ├── langchange/         # Python code conversion agent
+│   │   ├── backend.py
+│   │   └── Dockerfile
+│   ├── claw/               # Cloud agent wrapper
+│   ├── hermes/              # Cloud agent wrapper
+├── dashboard/              # React/Vue/Svelte frontend
+├── docker-compose.yml
+
+
+3. Docker Compose (Container Orchestration)
+docker-compose.yml
+Yamlversion: "3.9"
+services:
+  langchange:
+    build: ./agents/langchange
+    container_name: langchange_agent
+    stdin_open: true
+    tty: true
+    networks:
+      - agents_net
+
+  claw:
+    build: ./agents/claw
+    container_name: claw_agent
+    stdin_open: true
+    tty: true
+    networks:
+      - agents_net
+
+  hermes:
+    build: ./agents/hermes
+    container_name: hermes_agent
+    stdin_open: true
+    tty: true
+    networks:
+      - agents_net
+
+networks:
+  agents_net:
+    driver: bridge
+
+
+4. Python LangChange Agent
+agents/langchange/backend.py
+Pythonimport sys, json
+
+def convert_code(code: str, from_lang: str, to_lang: str) -> str:
+    return f"// Converted from {from_lang} to {to_lang}\n{code}"
+
+if __name__ == "__main__":
+    try:
+        data = json.loads(sys.stdin.read())
+        result = convert_code(data["code"], data["from"], data["to"])
+        print(json.dumps({"converted": result}))
+    except Exception as e:
+        print(json.dumps({"error": str(e)}))
+
+agents/langchange/Dockerfile
+DockerfileFROM python:3.11-slim
+WORKDIR /app
+COPY backend.py /app/backend.py
+CMD ["python", "backend.py"]
+
+
+5. Rust Supervisor (Tauri Backend)
+src-tauri/src/main.rs
+Rust#![cfg_attr(not(debug_assertions), windows_subsystem = "windows")]
+
+use std::process::{Command, Stdio};
+use std::io::Write;
+use tauri::command;
+use serde::{Serialize, Deserialize};
+use std::time::{Duration, Instant};
+
+#[derive(Serialize, Deserialize)]
+struct ConvertRequest {
+    code: String,
+    from: String,
+    to: String,
+}
+
+#[derive(Serialize, Deserialize)]
+struct ConvertResponse {
+    converted: String,
+}
+
+#[command]
+fn run_langchange(req: ConvertRequest) -> Result<ConvertResponse, String> {
+    let start_time = Instant::now();
+    let max_runtime = Duration::from_secs(5);
+
+    let mut child = Command::new("docker")
+        .args(&["run", "--rm", "-i", "langchange_agent"])
+        .stdin(Stdio::piped())
+        .stdout(Stdio::piped())
+        .spawn()
+        .map_err(|e| e.to_string())?;
+
+    if let Some(stdin) = child.stdin.as_mut() {
+        let input_json = serde_json::to_string(&req).map_err(|e| e.to_string())?;
+        stdin.write_all(input_json.as_bytes()).map_err(|e| e.to_string())?;
+    }
+
+    let output = child.wait_with_output().map_err(|e| e.to_string())?;
+
+    if start_time.elapsed() > max_runtime {
+        return Err("Agent exceeded max runtime".into());
+    }
+
+    let stdout_str = String::from_utf8_lossy(&output.stdout);
+    serde_json::from_str::<ConvertResponse>(&stdout_str)
+        .map_err(|e| format!("Parse error: {} | Raw: {}", e, stdout_str))
+}
+
+fn main() {
+    tauri::Builder::default()
+        .invoke_handler(tauri::generate_handler![run_langchange])
+        .run(tauri::generate_context!())
+        .expect("error while running tauri app");
+}
+
+
+6. Tauri Dashboard
+
+Shows active containers (docker ps output).
+Displays token usage and runtime.
+Has kill buttons for each agent.
+Can spawn new agents on demand.
+
+
+7. How This Meets Your Goals
+
+VM sandbox: Entire system runs inside VMware → isolated from host.
+Short life cycles: Containers are --rm (auto-delete after run).
+No memory creep: No persistent storage unless explicitly mounted.
+Supervisor control: Rust backend can kill any container instantly.
+Sub-agent control: Killing parent container kills all sub-processes inside.
+Cloud agent safety: Token harness can limit API calls to Claude/Claw/Hermes.
+
+
+If you want, I can now package this into a ready-to-clone GitHub repo with:
+
+Prebuilt Dockerfiles for all agents.
+Tauri + React dashboard.
+Supervisor harness.
+Install script for Ubuntu in VMware.
+
+That way you can import it into VMware Workstation Pro 17 and be running in under an hour.
+Do you want me to prepare that full repo + install script next so you can just drop it into your VM and start?

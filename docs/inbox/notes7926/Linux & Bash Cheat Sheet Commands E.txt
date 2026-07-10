@@ -1,0 +1,299 @@
+Linux & Bash Cheat Sheet: Commands Every Dev Needs
+
+By Vishnu
+December 27, 2025
+|
+UPDATED: MAR 11, 2026
+
+TL;DR
+Navigation: cd, ls, pwd, find, locate — know these by heart
+File operations: cp -r, mv, rm -rf (careful), tar, rsync
+Text processing: grep, awk, sed, cut, sort, uniq, wc
+Permissions: chmod 755, chown user:group, sudo
+Processes: ps aux, top, kill -9, & (background), nohup
+Quick reference tables
+Navigation
+COMMAND	WHAT IT DOES
+pwd	Print current directory
+ls	List files
+ls -la	List all files with details (including hidden)
+ls -lh	Human-readable file sizes
+cd /path	Change to absolute path
+cd ~	Go to home directory
+cd -	Go to previous directory
+cd ..	Go up one level
+tree	Show directory tree
+tree -L 2	Tree limited to 2 levels deep
+File operations
+COMMAND	WHAT IT DOES
+touch file.txt	Create an empty file
+mkdir dir	Create a directory
+mkdir -p a/b/c	Create nested directories
+cp file dest	Copy file
+cp -r dir dest	Copy directory recursively
+mv file dest	Move or rename file
+rm file	Remove a file
+rm -r dir	Remove directory recursively
+rm -rf dir	Force remove (no prompts — careful!)
+ln -s target link	Create a symbolic link
+Reading files
+COMMAND	WHAT IT DOES
+cat file	Print entire file
+less file	Scroll through file (q to quit)
+head file	First 10 lines
+head -n 20 file	First 20 lines
+tail file	Last 10 lines
+tail -n 20 file	Last 20 lines
+tail -f file	Follow file in real time (logs)
+wc -l file	Count lines
+wc -w file	Count words
+Searching — grep & find
+COMMAND	WHAT IT DOES
+grep "pattern" file	Search for pattern in file
+grep -r "pattern" dir	Search recursively in directory
+grep -i "pattern" file	Case-insensitive search
+grep -n "pattern" file	Show line numbers
+grep -v "pattern" file	Invert — lines that don’t match
+grep -l "pattern" dir/*	List files containing pattern
+find . -name "*.js"	Find files by name pattern
+find . -type f -name "*.log"	Find files only (not dirs)
+find . -type d -name "node_modules"	Find directories by name
+find . -mtime -7	Files modified in last 7 days
+find . -size +10M	Files larger than 10MB
+Permissions
+COMMAND	WHAT IT DOES
+ls -l	Show permissions in listing
+chmod 755 file	Set permissions (rwxr-xr-x)
+chmod +x file	Make file executable
+chmod -R 755 dir	Set permissions recursively
+chown user file	Change file owner
+chown user:group file	Change owner and group
+chown -R user:group dir	Change ownership recursively
+sudo command	Run as superuser
+su - user	Switch to another user
+Permission numbers:
+
+NUMBER	PERMISSIONS
+7	rwx (read + write + execute)
+6	rw- (read + write)
+5	r-x (read + execute)
+4	r— (read only)
+0	--- (no permissions)
+Processes
+COMMAND	WHAT IT DOES
+ps aux	List all running processes
+ps aux | grep node	Find a specific process
+top	Live process monitor
+htop	Better live process monitor
+kill PID	Kill a process by ID
+kill -9 PID	Force kill
+killall node	Kill all processes named node
+pkill -f "pattern"	Kill processes matching pattern
+bg	Resume stopped job in background
+fg	Bring background job to foreground
+jobs	List background jobs
+nohup cmd &	Run command immune to hangup
+Disk & memory
+COMMAND	WHAT IT DOES
+df -h	Disk space usage (human-readable)
+du -sh dir	Size of a directory
+du -sh *	Size of each item in current dir
+free -h	RAM usage
+lsblk	List block devices (disks)
+Networking
+COMMAND	WHAT IT DOES
+ip a	Show IP addresses
+ip r	Show routing table
+ping host	Ping a host
+curl url	Fetch a URL
+curl -I url	Show HTTP headers only
+curl -o file url	Download to a file
+wget url	Download a file
+ss -tulnp	Show listening ports
+netstat -tulnp	Show listening ports (older)
+ssh user@host	SSH into a remote machine
+scp file user@host:/path	Copy file to remote
+rsync -avz src/ dest/	Sync directories
+Archives & compression
+COMMAND	WHAT IT DOES
+tar -czf archive.tar.gz dir/	Create gzipped tar archive
+tar -xzf archive.tar.gz	Extract gzipped tar
+tar -tzf archive.tar.gz	List contents without extracting
+zip -r archive.zip dir/	Create zip archive
+unzip archive.zip	Extract zip
+gzip file	Compress a file (replaces original)
+gunzip file.gz	Decompress
+Pipes, redirects & shortcuts
+SYMBOL	WHAT IT DOES
+cmd1 | cmd2	Pipe output of cmd1 to cmd2
+> file	Redirect stdout to file (overwrite)
+>> file	Redirect stdout to file (append)
+2> file	Redirect stderr to file
+2>&1	Redirect stderr to stdout
+&> file	Redirect both stdout and stderr
+/dev/null	Discard output
+< file	Read stdin from file
+cmd &	Run command in background
+Shell keyboard shortcuts
+SHORTCUT	WHAT IT DOES
+Ctrl+C	Kill current process
+Ctrl+Z	Suspend current process
+Ctrl+D	Exit shell / EOF
+Ctrl+L	Clear screen
+Ctrl+A	Jump to start of line
+Ctrl+E	Jump to end of line
+Ctrl+U	Delete from cursor to start of line
+Ctrl+K	Delete from cursor to end of line
+Ctrl+W	Delete word before cursor
+Ctrl+R	Search command history
+↑ / ↓	Navigate command history
+!!	Repeat last command
+!$	Last argument of previous command
+!cmd	Run most recent command starting with cmd
+Variables & environment
+COMMAND	WHAT IT DOES
+VAR=value	Set a local variable
+export VAR=value	Set an environment variable
+echo $VAR	Print a variable
+env	Show all environment variables
+unset VAR	Remove a variable
+printenv PATH	Print a specific env variable
+source ~/.bashrc	Reload shell config
+which cmd	Show path to a command
+type cmd	Show how a command is interpreted
+Detailed sections
+Pipes — the real power of the terminal
+Pipes (|) connect commands so the output of one becomes the input of the next.
+
+BASH
+
+# Find all .js files and count them
+find . -name "*.js" | wc -l
+
+# See the 10 largest files
+du -sh * | sort -rh | head -10
+
+# Search running processes for 'node' and kill them
+ps aux | grep node | awk '{print $2}' | xargs kill
+
+# See only unique lines in a file
+cat file.txt | sort | uniq
+
+# Count occurrences of each word
+cat file.txt | tr ' ' '\n' | sort | uniq -c | sort -rn | head -20
+Grep — search like a pro
+BASH
+
+# Search recursively, show filename and line number
+grep -rn "TODO" ./src
+
+# Search for multiple patterns
+grep -E "error|warning|critical" app.log
+
+# Show context around matches (3 lines before and after)
+grep -C 3 "error" app.log
+
+# Count matches per file
+grep -rc "TODO" ./src
+
+# Exclude a directory
+grep -r "pattern" . --exclude-dir=node_modules
+Find — locate files quickly
+BASH
+
+# Find and delete all .DS_Store files
+find . -name ".DS_Store" -delete
+
+# Find files modified in the last 24 hours
+find . -mtime -1 -type f
+
+# Find files larger than 100MB
+find . -size +100M -type f
+
+# Execute a command on each result
+find . -name "*.log" -exec rm {} \;
+
+# Find empty directories
+find . -type d -empty
+Cron — scheduled tasks
+Edit the crontab:
+
+BASH
+
+crontab -e
+Format: minute hour day-of-month month day-of-week command
+
+BASH
+
+# Every minute
+* * * * * /path/to/script.sh
+
+# Every day at midnight
+0 0 * * * /path/to/script.sh
+
+# Every Monday at 9am
+0 9 * * 1 /path/to/script.sh
+
+# Every 15 minutes
+*/15 * * * * /path/to/script.sh
+
+# First day of every month at noon
+0 12 1 * * /path/to/script.sh
+List cron jobs: crontab -l Remove all cron jobs: crontab -r
+
+SSH essentials
+BASH
+
+# Connect to a server
+ssh user@192.168.1.10
+
+# Connect on a non-standard port
+ssh -p 2222 user@host
+
+# Copy a file to a server
+scp localfile.txt user@host:/remote/path/
+
+# Copy a directory to a server
+scp -r localdir/ user@host:/remote/path/
+
+# Generate an SSH key pair
+ssh-keygen -t ed25519 -C "your@email.com"
+
+# Copy your public key to a server (enables passwordless login)
+ssh-copy-id user@host
+
+# SSH tunnel (forward remote port 5432 to localhost)
+ssh -L 5432:localhost:5432 user@host
+Writing shell scripts
+BASH
+
+#!/bin/bash
+set -e    # exit on any error
+set -u    # error on undefined variables
+
+# Variables
+NAME="world"
+echo "Hello, $NAME!"
+
+# Conditionals
+if [ -f "file.txt" ]; then
+  echo "File exists"
+else
+  echo "File not found"
+fi
+
+# Loops
+for file in *.js; do
+  echo "Processing $file"
+done
+
+# Functions
+greet() {
+  echo "Hello, $1!"
+}
+greet "developer"
+
+# Command substitution
+DATE=$(date +%Y-%m-%d)
+echo "Today is $DATE"
+Make it executable: chmod +x script.sh Run it: ./script.sh

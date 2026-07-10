@@ -1,0 +1,136 @@
+Got it — you want to build a Claude Code dashboard quickly using Rust + Tauri for the desktop shell and Python for backend logic.
+This is a common hybrid approach: Rust handles the native GUI (fast, small footprint), while Python handles AI/ML logic or API calls.
+
+Here’s a minimal but complete starting point for a Rust–Tauri–Python mixed app.
+
+1. Project Structure
+
+Copy code
+claude-dashboard/
+├── src-tauri/
+│   ├── src/
+│   │   └── main.rs        # Rust Tauri entry
+│   └── Cargo.toml
+├── python/
+│   └── backend.py         # Python AI logic
+├── dist/                  # Your React/Vue/Svelte frontend build
+├── package.json           # Frontend config
+2. Python Backend (python/backend.py)
+Python
+
+Copy code
+#!/usr/bin/env python3
+import sys
+import json
+
+def handle_request(data):
+    # Example: simulate Claude Code API call
+    prompt = data.get("prompt", "")
+    return {"response": f"Claude processed: {prompt}"}
+
+if __name__ == "__main__":
+    try:
+        # Read JSON from stdin
+        raw_input = sys.stdin.read()
+        data = json.loads(raw_input)
+        result = handle_request(data)
+        print(json.dumps(result))
+    except Exception as e:
+        print(json.dumps({"error": str(e)}))
+✅ Notes:
+
+Reads JSON from stdin (safe for Tauri IPC).
+Returns JSON to stdout.
+Replace handle_request with real Claude API calls.
+3. Rust Tauri Main (src-tauri/src/main.rs)
+Rust
+
+Copy code
+#![cfg_attr(not(debug_assertions), windows_subsystem = "windows")]
+
+use std::process::{Command, Stdio};
+use std::io::Write;
+use tauri::command;
+use serde::{Serialize, Deserialize};
+
+#[derive(Serialize, Deserialize)]
+struct ClaudeRequest {
+    prompt: String,
+}
+
+#[derive(Serialize, Deserialize)]
+struct ClaudeResponse {
+    response: String,
+}
+
+#[command]
+fn run_claude(req: ClaudeRequest) -> Result<ClaudeResponse, String> {
+    let mut child = Command::new("python3")
+        .arg("python/backend.py")
+        .stdin(Stdio::piped())
+        .stdout(Stdio::piped())
+        .spawn()
+        .map_err(|e| e.to_string())?;
+
+    if let Some(stdin) = child.stdin.as_mut() {
+        let input_json = serde_json::to_string(&req).map_err(|e| e.to_string())?;
+        stdin.write_all(input_json.as_bytes()).map_err(|e| e.to_string())?;
+    }
+
+    let output = child.wait_with_output().map_err(|e| e.to_string())?;
+    let stdout_str = String::from_utf8_lossy(&output.stdout);
+
+    serde_json::from_str::<ClaudeResponse>(&stdout_str)
+        .map_err(|e| format!("Parse error: {} | Raw: {}", e, stdout_str))
+}
+
+fn main() {
+    tauri::Builder::default()
+        .invoke_handler(tauri::generate_handler![run_claude])
+        .run(tauri::generate_context!())
+        .expect("error while running tauri app");
+}
+✅ Notes:
+
+Uses tauri::command for frontend → backend calls.
+Spawns Python process, sends JSON, reads JSON back.
+Handles errors gracefully.
+4. Frontend Example (React)
+Javascript
+
+Copy code
+import { invoke } from "@tauri-apps/api/tauri";
+import { useState } from "react";
+
+export default function App() {
+  const [prompt, setPrompt] = useState("");
+  const [result, setResult] = useState("");
+
+  async function sendPrompt() {
+    try {
+      const res = await invoke("run_claude", { req: { prompt } });
+      setResult(res.response);
+    } catch (err) {
+      setResult("Error: " + err);
+    }
+  }
+
+  return (
+    <div>
+      <h1>Claude Dashboard</h1>
+      <textarea value={prompt} onChange={e => setPrompt(e.target.value)} />
+      <button onClick={sendPrompt}>Send</button>
+      <pre>{result}</pre>
+    </div>
+  );
+}
+5. Why This Is Fast for Building
+Tauri: Small binary, native menus, cross-platform.
+Rust: Handles IPC, security, and packaging.
+Python: Lets you reuse AI/Claude-related code without rewriting in Rust.
+Frontend: Any JS framework (React/Vue/Svelte) for rapid UI iteration.
+6. Next Steps
+Add Claude API key handling in Python backend.
+Implement streaming responses for real-time output.
+Use async Rust for non-blocking Python calls.
+Bundle Python with Tauri using tauri-bundler or pyinstaller.

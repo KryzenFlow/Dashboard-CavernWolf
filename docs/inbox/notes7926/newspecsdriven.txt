@@ -1,0 +1,99 @@
+newspecsdriven
+
+
+
+
+
+╔══════════════════════════════════════════════════════════════╗
+║                                                              ║
+║   ██╗  ██╗ ██████╗ ██████╗ ██╗   ██╗███████╗                ║
+║   ██║  ██║██╔═══██╗██╔══██╗██║   ██║██╔════╝                ║
+║   ███████║██║   ██║██████╔╝██║   ██║███████╗                ║
+║   ██╔══██║██║   ██║██╔══██╗██║   ██║╚════██║                ║
+║   ██║  ██║╚██████╔╝██║  ██║╚██████╔╝███████║                ║
+║   ╚═╝  ╚═╝ ╚═════╝ ╚═╝  ╚═╝ ╚═════╝ ╚══════╝                ║
+║                                                              ║
+║   ███████╗██████╗ ███████╗ ██████╗                           ║
+║   ██╔════╝██╔══██╗██╔════╝██╔════╝                           ║
+║   ███████╗██████╔╝█████╗  ██║                                ║
+║   ╚════██║██╔═══╝ ██╔══╝  ██║                                ║
+║   ███████║██║     ███████╗╚██████╗                           ║
+║   ╚══════╝╚═╝     ╚══════╝ ╚═════╝                           ║
+║                                                              ║
+║   ██████╗ ██████╗ ██╗██╗   ██╗███████╗███╗   ██╗            ║
+║   ██╔══██╗██╔══██╗██║██║   ██║██╔════╝████╗  ██║            ║
+║   ██║  ██║██████╔╝██║██║   ██║█████╗  ██╔██╗ ██║            ║
+║   ██║  ██║██╔══██╗██║╚██╗ ██╔╝██╔══╝  ██║╚██╗██║            ║
+║   ██████╔╝██║  ██║██║ ╚████╔╝ ███████╗██║ ╚████║            ║
+║   ╚═════╝ ╚═╝  ╚═╝╚═╝  ╚═══╝  ╚══════╝╚═╝  ╚═══╝            ║
+║                                                              ║
+╚══════════════════════════════════════════════════════════════╝
+Spec-Driven Development for Every CLI
+67 upstream commands → 3 roles + config. 4 files (Hermes/Claude), 16 (Codex/Gemini/Copilot).
+
+License: MIT version en pt
+
+Slash Commands
+📋 /osd-pm — Project Manager (5 subcommands)
+Creates projects, tracks progress, manages releases.
+
+Subcommand	Maps from (gsd-core)
+new	new-project, new-milestone
+track	progress, workstreams, thread, phase, workspace, graphify, stats
+ship	ship, pr-branch, complete-milestone, milestone-summary, undo, update
+config	config, settings, profile-user
+manage	manager, surface, pause-work, resume-work, help, inbox
+🚀 Smart Auto-Detect: if no .planning/ exists, /osd-pm automatically runs map-codebase → new-project before proceeding.
+
+⚡ /osd-dev — Developer (7 subcommands)
+Discover, define, plan, build, debug, maintain, ui — the full dev cycle.
+
+Subcommand	Maps from
+discover	explore, spike, sketch, capture, ns-ideate, map-codebase, ns-context
+define	discuss-phase, spec-phase, mvp-phase
+plan	plan-phase, ultraplan-phase, ai-integration-phase
+build	execute-phase, autonomous, quick, fast
+debug	debug, forensics
+maintain	docs-update, extract-learnings, ingest-docs, import, cleanup
+ui	ui-phase, ui-review
+✅ /osd-qa — Quality (3 subcommands)
+Validate, audit, review — quality at every stage.
+
+Subcommand	Maps from
+validate	validate-phase, verify-work, health, add-tests
+audit	audit-fix, audit-milestone, audit-uat
+review	code-review, eval-review, review, review-backlog, plan-review-convergence, secure-phase
+⚙️ /osd-config — Configuration
+Setting	Values	Description
+language	pt, en	Switch display language
+compression	lite, full, ultra	Speech compression (caveman mode)
+agents	investigator, builder, reviewer, off	Cavecrew subagents
+Specialized Agents
+Agent	Role	Tools
+osd-pm-agent	PM	read, write, terminal, search, delegate
+osd-dev-agent	DEV	read, write, terminal, search, delegate
+osd-qa-agent	QA	read, write, terminal, search, delegate
+Platform Layout
+Runtime	Commands	Format	Routing
+Hermes	/osd-pm /osd-dev /osd-qa /osd-config (4)	SKILL.md nested	$ARGUMENTS[0]
+Claude Code	/osd-pm /osd-dev /osd-qa /osd-config (4)	SKILL.md flat	$ARGUMENTS[0]
+Codex CLI	osd-pm-new ... osd-qa-review (16)	prompt.md	1 file/subcommand
+Gemini CLI	/osd-pm:new ... /osd-qa:review (16)	.toml	1 file/subcommand
+GitHub Copilot	osd-pm-new ... osd-qa-review (16)	.md	1 file/subcommand
+Install
+git clone --recurse-submodules https://github.com/giovannimnz/omni-spec-driven.git
+cd omni-spec-driven
+node bin/install.js install --runtime=hermes --global
+Documentation
+Doc	Content
+README.md	Portuguese version
+COMPATIBILITY.md	Cross-CLI compatibility matrix
+ARCHITECTURE.md	Full system architecture
+modules/README.md	Submodules (gsd-core, caveman, impeccable)
+╔══════════════════════════════════════════════════════════════╗
+║   📋 PM creates. ⚡ DEV builds. ✅ QA verifies.            ║
+║   /osd-pm new → /osd-dev plan → /osd-dev build              ║
+║   → /osd-qa validate → /osd-pm ship                         ║
+║   4 commands. 5 platforms. Full cycle.                      ║
+╚══════════════════════════════════════════════════════════════╝
+Omni Spec Driven v4.1

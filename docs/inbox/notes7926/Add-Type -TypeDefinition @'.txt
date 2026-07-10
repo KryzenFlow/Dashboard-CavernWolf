@@ -1,0 +1,271 @@
+ Add-Type -TypeDefinition @'  
+   DetailSequence=1 DetailTotal=1 SequenceNumber=15 UserId=BOSSMAN\BossMan HostName=ConsoleHost HostVersion=5.1.26100.8737 HostId=3e2a2ab2-0e47-4a04-86f4-580d3f370963 HostApplication=powershell.exe -NoProfile -NonInteractive -Command $ErrorActionPreference = 'SilentlyContinue'; $ids = @(47828,47184,40548,33088,48108,9104,22024); $processRows = @(); if ($ids.Count -gt 0) { $processRows = @(Get-Process -Id $ids -ErrorAction SilentlyContinue | Select-Object Id, @{n='ReadBytes';e={$_.IOReadBytes}}, @{n='WriteBytes';e={$_.IOWriteBytes}}); } $main = $null; $p = Get-Process -Id 47828 -ErrorAction SilentlyContinue; if ($p) { $gdi = -1; try { Add-Type -TypeDefinition @' using System; using System.Runtime.InteropServices; using System.Diagnostics; public class ZCodeGuiStats { [DllImport("user32.dll")] public static extern uint GetGuiResources(IntPtr h, uint f); public static int Gdi(int pid) { var pr = Process.GetProcessById(pid); return (int)GetGuiResources(pr.Handle, 0); } } '@ -ErrorAction SilentlyContinue; $gdi = [ZCodeGuiStats]::Gdi(47828); } catch {} $main = [pscustomobject]@{ Handles = $p.HandleCount; Threads = $p.Threads.Count; Gdi = $gdi }; } [pscustomobject]@{ processes = $processRows; main = $main } | ConvertTo-Json -Depth 4 -Compress EngineVersion=5.1.26100.8737 RunspaceId=30e2637b-c9b4-4eeb-a0f6-ee9a358a9695 PipelineId=1 ScriptName= CommandLine= Add-Type -TypeDefinition @'  
+   CommandInvocation(Add-Type): "Add-Type" ParameterBinding(Add-Type): name="TypeDefinition"; value="using System; using System.Runtime.InteropServices; using System.Diagnostics; public class ZCodeGuiStats { [DllImport("user32.dll")] public static extern uint GetGuiResources(IntPtr h, uint f); public static int Gdi(int pid) { var pr = Process.GetProcessById(pid); return (int)GetGuiResources(pr.Handle, 0); } }" ParameterBinding(Add-Type): name="ErrorAction"; value="SilentlyContinue"  
+
+ 
+
+  - Provider 
+
+   [ Name]  PowerShell 
+ 
+  - EventID 600 
+
+   [ Qualifiers]  0 
+ 
+   Version 0 
+ 
+   Level 4 
+ 
+   Task 6 
+ 
+   Opcode 0 
+ 
+   Keywords 0x80000000000000 
+ 
+  - TimeCreated 
+
+   [ SystemTime]  2026-07-01T10:48:57.7451662Z 
+ 
+   EventRecordID 93693 
+ 
+   Correlation 
+ 
+  - Execution 
+
+   [ ProcessID]  40336 
+   [ ThreadID]  0 
+ 
+   Channel Windows PowerShell 
+ 
+   Computer BoSSMaN 
+ 
+   Security 
+ 
+
+- EventData 
+
+   Alias 
+   Started 
+   ProviderName=Alias NewProviderState=Started SequenceNumber=3 HostName=ConsoleHost HostVersion=5.1.26100.8737 HostId=68382e0d-1241-4569-9947-e7030e20c580 HostApplication=powershell.exe -NoProfile -NonInteractive -Command $ErrorActionPreference = 'SilentlyContinue'; $ids = @(47828,47184,40548,33088,48108,9104,22024); $processRows = @(); if ($ids.Count -gt 0) { $processRows = @(Get-Process -Id $ids -ErrorAction SilentlyContinue | Select-Object Id, @{n='ReadBytes';e={$_.IOReadBytes}}, @{n='WriteBytes';e={$_.IOWriteBytes}}); } $main = $null; $p = Get-Process -Id 47828 -ErrorAction SilentlyContinue; if ($p) { $gdi = -1; try { Add-Type -TypeDefinition @' using System; using System.Runtime.InteropServices; using System.Diagnostics; public class ZCodeGuiStats { [DllImport("user32.dll")] public static extern uint GetGuiResources(IntPtr h, uint f); public static int Gdi(int pid) { var pr = Process.GetProcessById(pid); return (int)GetGuiResources(pr.Handle, 0); } } '@ -ErrorAction SilentlyContinue; $gdi = [ZCodeGuiStats]::Gdi(47828); } catch {} $main = [pscustomobject]@{ Handles = $p.HandleCount; Threads = $p.Threads.Count; Gdi = $gdi }; } [pscustomobject]@{ processes = $processRows; main = $main } | ConvertTo-Json -Depth 4 -Compress EngineVersion= RunspaceId= PipelineId= CommandName= CommandType= ScriptName= CommandPath= CommandLine= 
+
+
+  - Provider 
+
+   [ Name]  Trust Service 
+ 
+  - EventID 1000 
+
+   [ Qualifiers]  0 
+ 
+   Version 0 
+ 
+   Level 4 
+ 
+   Task 0 
+ 
+   Opcode 0 
+ 
+   Keywords 0x80000000000000 
+ 
+  - TimeCreated 
+
+   [ SystemTime]  2026-06-28T22:51:54.4230947Z 
+ 
+   EventRecordID 11 
+ 
+   Correlation 
+ 
+  - Execution 
+
+   [ ProcessID]  22996 
+   [ ThreadID]  0 
+ 
+   Channel Visual Studio 
+ 
+   Computer BoSSMaN 
+ 
+   Security 
+ 
+
+- EventData 
+
+   The Visual Studio Trust Service has been configured as follows. Require a trust decision before opening content: True. Allow Git repositories to be used as trusted locations: MarkOfTheWebOnly. Skip trust checks for temporary locations Visual Studio creates automatically: True. Enable Mark of the Web check: False. Trusted locations: C:\Program Files\Microsoft Visual Studio\18\Professional\ C:\Program Files C:\Program Files (x86) C:\Users\BossMan\AppData\Local\Temp\TFSTemp C:\Users\BossMan\AppData\Local\Temp\VSGeneratedDocuments C:\Users\BossMan\AppData\Local\Temp\.dwsrc C:\Users\BossMan\AppData\Local\Temp\MetadataAsSource C:\Users\BossMan\AppData\Local\Temp\.vsdbgsrc C:\Users\BossMan\AppData\Local\Temp\VCTempFiles C:\Users\BossMan\AppData\Local\Temp\VsTempFiles C:\Users\BossMan\AppData\Local\SourceServer C:\Users\BossMan\AppData\Roaming\Microsoft\UserSecrets. 
+
+The Visual Studio Trust Service has been configured as follows. Require a trust decision before opening content: True. Allow Git repositories to be used as trusted locations: MarkOfTheWebOnly. Skip trust checks for temporary locations Visual Studio creates automatically: False. Enable Mark of the Web check: False. Trusted locations: .
+
+
+  - Provider 
+
+   [ Name]  Intel.GraphicsSoftware.Service 
+ 
+  - EventID 112 
+
+   [ Qualifiers]  0 
+ 
+   Version 0 
+ 
+   Level 4 
+ 
+   Task 33241 
+ 
+   Opcode 0 
+ 
+   Keywords 0x80000000000000 
+ 
+  - TimeCreated 
+
+   [ SystemTime]  2026-07-01T08:52:18.9114795Z 
+ 
+   EventRecordID 410 
+ 
+   Correlation 
+ 
+  - Execution 
+
+   [ ProcessID]  11348 
+   [ ThreadID]  0 
+ 
+   Channel Intel Graphics Software 
+ 
+   Computer BoSSMaN 
+ 
+   Security 
+ 
+
+- EventData 
+
+   {"category":"Win32PnpWatcher","level":"Information","message":"PnP Event","parameters":{"caller":"HandleConfigManagerNotification","device":"DisplayAdapter","action":"Deleted"}} 
+7/1/26
++ System 
+
+  - Provider 
+
+   [ Name]  Intel.GraphicsSoftware.Service 
+ 
+  - EventID 76 
+
+   [ Qualifiers]  0 
+ 
+   Version 0 
+ 
+   Level 4 
+ 
+   Task 33241 
+ 
+   Opcode 0 
+ 
+   Keywords 0x80000000000000 
+ 
+  - TimeCreated 
+
+   [ SystemTime]  2026-07-01T04:19:58.7428837Z 
+ 
+   EventRecordID 374 
+ 
+   Correlation 
+ 
+  - Execution 
+
+   [ ProcessID]  11348 
+   [ ThreadID]  0 
+ 
+   Channel Intel Graphics Software 
+ 
+   Computer BoSSMaN 
+ 
+   Security 
+ 
+
+- EventData 
+
+   {"category":"Win32PnpWatcher","level":"Information","message":"PnP Event","parameters":{"caller":"HandleConfigManagerNotification","device":"DisplayMonitor","action":"Deleted"}} 
+
+
+7/1/26 error
++ System 
+
+  - Provider 
+
+   [ Name]  Intel.GraphicsSoftware.Service 
+ 
+  - EventID 128 
+
+   [ Qualifiers]  0 
+ 
+   Version 0 
+ 
+   Level 2 
+ 
+   Task 37595 
+ 
+   Opcode 0 
+ 
+   Keywords 0x80000000000000 
+ 
+  - TimeCreated 
+
+   [ SystemTime]  2026-07-01T08:52:22.0071954Z 
+ 
+   EventRecordID 426 
+ 
+   Correlation 
+ 
+  - Execution 
+
+   [ ProcessID]  11348 
+   [ ThreadID]  0 
+ 
+   Channel Intel Graphics Software 
+ 
+   Computer BoSSMaN 
+ 
+   Security 
+ 
+
+- EventData 
+
+   {"category":"Igcl","level":"Error","message":"ctlInit, result=1073741825"} 
+I keep seein deleted and created like this 7/5/26
++ System 
+
+  - Provider 
+
+   [ Name]  Intel.GraphicsSoftware.Service 
+ 
+  - EventID 15 
+
+   [ Qualifiers]  0 
+ 
+   Version 0 
+ 
+   Level 4 
+ 
+   Task 36405 
+ 
+   Opcode 0 
+ 
+   Keywords 0x80000000000000 
+ 
+  - TimeCreated 
+
+   [ SystemTime]  2026-07-05T04:30:08.7416538Z 
+ 
+   EventRecordID 475 
+ 
+   Correlation 
+ 
+  - Execution 
+
+   [ ProcessID]  11836 
+   [ ThreadID]  0 
+ 
+   Channel Intel Graphics Software 
+ 
+   Computer BoSSMaN 
+ 
+   Security 
+ 
+
+- EventData 
+
+   {"category":"Win32PnpWatcher","level":"Information","message":"PnP Event","parameters":{"caller":"HandleConfigManagerNotification","device":"DisplayMonitor","action":"Deleted"}} 

@@ -1,0 +1,46 @@
+Use the cheapest reliable stack:
+
+  Cloudflare for DNS, SSL, security, and simple edge routing
+  Cloudflare Workers for lightweight agent/webhook logic
+  Cloudflare Pages for the landing page
+  Azure only if you need heavier backend services
+  CockroachDB for data if you already have it, but keep usage minimal
+
+For the workflow agents:
+
+  calendar booking
+  SMS/text replies
+  basic FAQ handling
+  appointment confirmation and reminders
+
+Cheapest practical architecture:
+
+  Landing page on Cloudflare Pages
+  Agent webhook/API on Cloudflare Workers
+  Calendar integration via webhook/API to Google Calendar or Calendly
+  SMS through a low-cost provider like Twilio only when needed
+  Database only for essential leads and bookings
+
+If the agents only need to answer small questions and set appointments, you do not need a full Node server at first. Use serverless first, then move to NodeJS on Railway or Azure only if the workflows get heavier.
+Best subdomain to point everything to: demo.vellorae.org or book.vellorae.org.
+
+Since you want NodeJS like Railway, your best options are:
+
+Railway — easiest for Node apps and quick MVPs
+Azure App Service — solid if you already have Azure
+Cloudflare Pages + Workers — great for fast frontend + edge logic
+Render or Fly.io — simple, reputable deployment targets
+If your goal is to avoid anything that looks “risky,” the strongest setup is:
+
+Buy/use vellorae.org as the root trust domain
+Attach demo.vellorae.org to the MVP site
+Run NodeJS on Azure App Service or Railway
+Put Cloudflare in front for DNS, SSL, and protection
+Use CockroachDB for the database
+Recommended live architecture:
+
+Cloudflare → DNS + SSL + security
+demo.vellorae.org → landing/demo frontend
+api.vellorae.org → NodeJS backend
+CockroachDB → lead and clinic data
+If you want the fastest path today, I’d use Railway for NodeJS, Cloudflare for the domain, and demo.vellorae.org as the public point of entry.

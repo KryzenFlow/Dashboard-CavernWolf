@@ -1,0 +1,269 @@
+VELLORAE MASTER BLUEPRINT (V2.3 - LocalRankai.net)
+Umbrella Company: Vellorae.org (High-end AI Agency, VIP Portal, Clinic Pilots) Sub-Projects: LocalRankai.net, MechIQ (AI Auto Repair Guide with AR/Audio) Infrastructure: Cloudflare (DNS/Edge), Render & Railway (Node/Microservices), Alibaba Cloud (Heavy AI/LLaMA), CockroachDB (Global DB), Qdrant (Vector Memory), Redis (State/Cache)
+
+1. CURSOR GLOBAL INSTRUCTIONS (.cursorrules logic)
+When operating in this repository, adhere to the following:
+
+Architecture: Multi-agent LangGraph-style system. Supervisor + Specialist pattern.
+Agent Workflow: VersionEvaluator -> Reasoning -> Auto-Debugger -> Ghost Scraper -> MemoryStore -> Deployment.
+Bug Tagging: Debugger agent must tag bugs with abbreviations: [SYN], [DEP], [LOG], [SEC], [MEM] before fixing.
+VIP Alerts: Critical deployments, bugs, and scores must POST webhooks to vip.vellorae.org.
+Base44 SDK: Use exact Base44 method names (e.g., functions.invoke, entities.filter, loginViaEmailPassword). Do NOT hallucinate Firebase/Supabase methods.
+Frontend: Use Tailwind CSS for UI. Support HTML/HTMX demos on subdomains (e.g., demo.vellorae.org).
+2. PROJECT DIRECTORY STRUCTURE
+My_Mega_Project/
+├── .cursorrules
+├── 00_Project_Notes/         # Daily notes, branding, domains
+├── 01_Supervisor_Agent/      # LangGraph orchestration logic
+├── 02_VersionEvaluator/      # Scores repo versions before deployment
+├── 03_Auto_Debugger/         # Analyzes ghost repos, tags [DEP]/[SYN] bugs, fixes code
+├── 04_Ghost_Scraper/         # Scrapes GitHub for abandoned repos
+├── 05_Local_Database/        # CockroachDB/SQLite schemas and connections
+├── 06_MechIQ_AutoRepair/     # Librosa audio diagnosis, AR overlays, AutoRepairAdvisor
+├── 07_Mobile_Sync/           # API for phone-VM dashboard control
+├── 08_Cloud_K8s/             # YAML files for Kubernetes, Render, Railway
+├── 09_Vellorae_Landing/      # index.html for Vellorae.org
+└── docker-compose.yml        # Unified LLaMA + Redis + Qdrant stack
+3. UNIFIED DOCKER-COMPOSE.YML
+Run shared LLaMA 3.2 (reasoning),  (Qdrant memory), Redis, and Dashboards.
+
+version: "3.9"
+services:
+  llama3.2:
+    image: ghcr.io/ggerganov/llama.cpp:latest
+    command: ["--model", "/models/llama-3.2.gguf", "--host", "0.0.0.0", "--port", "8080"]
+    volumes: ["./models:/models"]
+    ports: ["8080:8080"]
+  llama3.2:
+    image: ghcr.io/ggerganov/llama.cpp:latest
+    command: ["--model", "/models/llama-3.2.gguf", "--host", "0.0.0.0", "--port", "8081"]
+    volumes: ["./models:/models"]
+    ports: ["8081:8081"]
+  qdrant:
+    image: qdrant/qdrant
+    ports: ["6333:6333"]
+    volumes: ["./qdrant_storage:/qdrant/storage"]
+  redis:
+    image: redis:7
+    ports: ["6379:6379"]
+  reasoning_agent:
+    build: ./services/reasoning_agent
+    environment:
+      - MODEL_URL=http://llama32:8080
+      - REDIS_URL=redis://redis:6379
+    depends_on: [llama3.2, redis]
+  memory_agent:
+    build: ./services/memory_agent
+    environment:
+      - MODEL_URL=http://llama2_13b:8081
+      - QDRANT_URL=http://qdrant:6333
+    depends_on: [llama2_13b, qdrant]
+  orchestrator:
+    build: ./services/orchestrator
+    environment:
+      - REDIS_URL=redis://redis:6379
+    depends_on: [redis]
+  dashboard:
+    build: ./services/dashboard
+    ports: ["3000:3000"]
+    depends_on: [orchestrator, reasoning_agent, memory_agent]
+4. LOCAL DATABASE SCHEMA (PostgreSQL/SQLite)
+For agents that update, improve, and adapt stored data over time.
+
+CREATE TABLE prompts (
+    id SERIAL PRIMARY KEY,
+    text TEXT NOT NULL,
+    tags TEXT[],
+    created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+    updated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
+);
+CREATE TABLE agent_states (
+    id SERIAL PRIMARY KEY,
+    agent_name TEXT NOT NULL,
+    memory_json JSONB,
+    last_run TIMESTAMP
+);
+CREATE TABLE patches (
+    id SERIAL PRIMARY KEY,
+    prompt_id INT REFERENCES prompts(id),
+    patch_text TEXT,
+    patch_type TEXT,
+    applied_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
+);
+5. ORCHESTRATION RULES (JSON via Redis)
+UI-Editable rules stored at /api/orchestrator/rules so you can toggle agents from your phone.
+
+[
+  {"name": "VersionEvaluator", "priority": 0, "cooldown_seconds": 0, "depends_on": [], "tools": ["file_reader", "scoring_engine"]},
+  {"name": "ReasoningAgent", "priority": 1, "cooldown_seconds": 5, "depends_on": ["VersionEvaluator"], "model_url": "http://llama32:8080"},
+  {"name": "WebScraper", "priority": 2, "cooldown_seconds": 10, "depends_on": ["ReasoningAgent"], "tools": ["web_scraper", "file_read"]},
+  {"name": "MemoryStoreQdrant", "priority": 3, "cooldown_seconds": 15, "depends_on": ["WebScraper"], "model_url": "http://llama2_13b:8081"},
+  {"name": "DeploymentAgent", "priority": 4, "cooldown_seconds": 0, "depends_on": ["MemoryStoreQdrant"], "tools": ["file_merge", "docker_deploy"]}
+]
+6. CORE AGENT CODEBLOCKS
+A. Version Evaluator & Deployment (with Rollback & Pushover Alerts)
+# services/deploymentagent/main.py
+import os, redis, subprocess, requests, time, json
+
+REDIS_HOST = os.getenv("REDIS_HOST", "redis")
+RESULT_KEY = "best_version"
+LAST_GOOD_KEY = "last_good_version"
+PUSHOVER_USER_KEY = os.getenv("PUSHOVER_USER_KEY")
+PUSHOVER_API_TOKEN = os.getenv("PUSHOVER_API_TOKEN")
+
+def send_push_notification(title, message):
+    if PUSHOVER_USER_KEY and PUSHOVER_API_TOKEN:
+        requests.post("https://api.pushover.net/1/messages.json", data={
+            "token": PUSHOVER_API_TOKEN, "user": PUSHOVER_USER_KEY, "title": title, "message": message
+        })
+
+def health_check(url):
+    try: return requests.get(url, timeout=5).status_code == 200
+    except: return False
+
+def deploy_version(version):
+    try:
+        subprocess.run(["bash", "deploy.sh", version], check=True)
+        return True
+    except subprocess.CalledProcessError: return False
+
+def main():
+    r = redis.Redis(host=REDIS_HOST, port=int(os.getenv("REDIS_PORT", 6379)), decode_responses=True)
+    best_version = r.get(RESULT_KEY)
+    if not best_version: return
+    
+    if not deploy_version(best_version):
+        send_push_notification("Deployment Failed", f"Version {best_version} failed to deploy.")
+        rollback = r.get(LAST_GOOD_KEY)
+        if rollback:
+            deploy_version(rollback)
+            send_push_notification("Rollback Performed", f"Rolled back to {rollback}.")
+        return
+
+    time.sleep(5)
+    if health_check(os.getenv("DEPLOYED_URL", "http://localhost:8080")):
+        r.set(LAST_GOOD_KEY, best_version)
+        send_push_notification("Deployment Successful", f"Version {best_version} deployed.")
+    else:
+        send_push_notification("Deployment Failed", f"Version {best_version} failed health check.")
+        rollback = r.get(LAST_GOOD_KEY)
+        if rollback:
+            deploy_version(rollback)
+            send_push_notification("Rollback Performed", f"Rolled back to {rollback}.")
+B. LangGraph Supervisor + Meta/Growth Agent (Autonomous)
+from typing import TypedDict, List, Dict
+from langgraph.graph import StateGraph, END
+from langgraph.checkpoint.sqlite import SqliteSaver
+
+class AgentState(TypedDict):
+    user_goal: str
+    plan: List[str]
+    current_step: int
+    research_notes: List[str]
+    code_artifacts: Dict[str, str]
+    learnings: List[str]
+    next_run_time: str
+
+def supervisor(state: AgentState) -> AgentState:
+    if not state.get("plan"):
+        state["plan"] = ["initial_research", "debug_repo", "deploy", "reflect_and_update"]
+        state["current_step"] = 0
+    step = state["plan"][state["current_step"]]
+    routing = {"initial_research": "researcher", "debug_repo": "coder", "deploy": "deployer", "reflect_and_update": "meta_agent"}
+    return {"next_step": routing.get(step, "meta_agent")}
+
+def meta_agent(state: AgentState) -> AgentState:
+    # Mutates patch: updates roadmap based on learnings
+    import datetime
+    state.setdefault("learnings", []).append("Refactor deployment script next time.")
+    state["next_run_time"] = (datetime.datetime.utcnow() + datetime.timedelta(days=1)).isoformat()
+    state["current_step"] += 1
+    return state
+
+# Graph wiring...
+graph = StateGraph(AgentState)
+graph.add_node("supervisor", supervisor)
+graph.add_node("meta_agent", meta_agent)
+# (Add researcher, coder, deployer nodes similarly)
+graph.set_entry_point("supervisor")
+graph.add_conditional_edges("supervisor", lambda s: s["next_step"], {"meta_agent": "meta_agent", "final": END})
+app = graph.compile(checkpointer=SqliteSaver.from_file("agent_memory.db"))
+7. MECHIQ AUTO REPAIR AI (Audio + AR)
+Audio Diagnostic Agent (Librosa):
+
+import librosa, numpy as np, joblib
+def diagnose_sound(file_path):
+    y, sr = librosa.load(file_path)
+    mfcc = librosa.feature.mfcc(y=y, sr=sr, n_mfcc=40)
+    features = np.mean(mfcc.T, axis=0).reshape(1, -1)
+    model = joblib.load("engine_sound_model.pkl")
+    return model.predict(features)[0] # Returns: Belt squeal, Engine knock, etc.
+AutoRepairAdvisor (Dynamic SQL Patch):
+
+import json
+from pathlib import Path
+AGENTS_FILE = Path("services/agents/agents_config.json")
+def add_auto_repair_agent():
+    # Reads JSON, appends AutoRepairAdvisor with model_backend: llama-3-70b
+    # prompt_template: "You are an expert auto mechanic. Ask user about symptoms..."
+    pass # Implementation injected dynamically via UI
+8. BASE44 SDK & CLI CONTEXT
+CRITICAL API RULES FOR CURSOR:
+
+Auth: loginViaEmailPassword(email, pw), me(), NOT signIn().
+Functions: functions.invoke('name', data), NOT call().
+Integrations: integrations.Core.InvokeLLM({prompt}), SendEmail({to, subject, body}), UploadFile({file}).
+Entities: entities.Task.filter({...}), get(id), create(data), delete(id), subscribe(cb). NOT find() or insert().
+Backend: Use base44.asServiceRole.entities... for admin access in Deno backend functions.
+9. VELLORAE.ORG LANDING PAGE
+Save as index.html and deploy via Cloudflare Pages or Netlify.
+
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Vellorae | AI-Driven Growth for Local Clinics</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+</head>
+<body class="bg-slate-50 text-slate-900 font-sans">
+    <nav class="p-6 flex justify-between items-center max-w-6xl mx-auto">
+        <h1 class="text-2xl font-bold tracking-tight text-indigo-600">VELLORAE</h1>
+        <div class="space-x-6 hidden md:block text-sm font-medium text-slate-600">
+            <a href="#pilots" class="hover:text-indigo-600">Clinic Pilots</a>
+            <a href="mailto:contact@vellorae.org" class="bg-indigo-600 text-white px-4 py-2 rounded-lg hover:bg-indigo-700">Work With Us</a>
+        </div>
+    </nav>
+    <header class="py-20 px-6 max-w-4xl mx-auto text-center">
+        <h2 class="text-5xl font-extrabold leading-tight mb-6">More Bookings. <br><span class="text-indigo-600">Zero Technical Friction.</span></h2>
+        <p class="text-xl text-slate-600 mb-10">We build high-performance AI websites for local clinics that turn search traffic into recurring appointments.</p>
+        <a href="#pilots" class="bg-indigo-600 text-white px-8 py-4 rounded-xl text-lg font-bold shadow-lg hover:bg-indigo-700 transition">View Clinic MVP</a>
+    </header>
+</body>
+</html>
+
+
+CURSOR DEVOPS & PUBLISHING WORKFLOW (The Little Cuttler Protocol)
+Instead of standard CI/CD, we use Cursor's integrated terminal and AI chat to build, run, and publish.
+
+A. VSIX Visual Studio Pro Integration
+When deploying the C# VSIX extension, it must auto-detect localhost (dev) vs Cloud (prod). Use this C# snippet in the VSIX project:
+
+string baseUrl = Debugger.IsAttached 
+    ? "http://localhost:8002/execute?task=" 
+    : "https://api.vellorae.org/execute?task=";
+string url = $"{baseUrl}{Uri.EscapeDataString(task)}";
+B. THE CURSOR AI PROMPT PACK
+When ready to build and deploy, open Cursor Chat (Ctrl+K or Ctrl+I for Composer) and feed it these exact prompts in order:
+
+Prompt 1: Local Dockerization & Testing
+
+"Read the docker-compose.yml and the service folders in this project. Write any missing Dockerfiles needed for the reasoning_agent, memory_agent, and agent_claw services. Then, give me the exact terminal commands to run docker-compose up --build and test the endpoints on localhost:8000, 8001, and 8002."
+
+Prompt 2: Generate the Deployment Script (deploy.sh)
+
+"Write a bash script named deploy.sh that automates the deployment of our agent stack. The script should: 1) Build the Docker images for all services. 2) Tag them for Docker Hub (using a placeholder for my Docker Hub username). 3) Push them to Docker Hub. 4) Output the exact docker run or Render/Railway CLI commands needed to deploy them to the cloud."
+
+Prompt 3: VSIX Extension Refactoring
+
+"Look at my VSIX extension C# code. Refactor the HTTP client logic so it automatically detects if it is running in Debug mode (use localhost) or Release mode (use the production cloud URL like https://api.vellorae.org). Ensure it safely handles API timeouts and errors from the Agent Claw API."

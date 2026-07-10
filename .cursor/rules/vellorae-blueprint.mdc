@@ -1,0 +1,45 @@
+---
+description: Vellorae umbrella architecture, agent workflow, and API conventions from master blueprint v2.3
+alwaysApply: true
+---
+
+# Vellorae / Hermes Stack conventions
+
+Read `AGENTS.md` and `docs/BUILD_STATUS.md` before large changes.
+
+## Architecture
+
+- Multi-agent supervisor + specialist pattern (LangGraph target).
+- Workflow: VersionEvaluator → Reasoning → Auto-Debugger → Ghost Scraper → MemoryStore → Deployment.
+- Live code lives in `backend/agents/`, `agent_claw/`, `shared/agents/registry.yaml`.
+
+## Bug fixes
+
+Tag before fixing: `[SYN]` `[DEP]` `[LOG]` `[SEC]` `[MEM]`.
+
+## Bleeds (verticals)
+
+Switch via `ACTIVE_BLEED` + `shared/workflows/bleed-manifest.yaml`. Do not hardcode clinic/auto/SaaS copy in Python.
+
+## Base44 (when touching Base44 apps)
+
+- Auth: `loginViaEmailPassword`, `me()` — never `signIn()`.
+- Functions: `functions.invoke('name', data)`.
+- Entities: `filter`, `get`, `create`, `delete`, `subscribe` — never `find`/`insert`.
+
+## Frontend
+
+Tailwind for customer sites. Static-export default for clinic pilots.
+
+## Scripts
+
+Prefer `scripts/setup_stack.ps1`, `start_minimal.ps1`, `verify_stack.ps1` over desktop chat exports in `docs/reference/`.
+
+## Four projects — do not conflate
+
+1. Dashboard CavernWolf (this repo)
+2. Vellorae.org (bleed `vellorae`)
+3. LocalRankai.net (OneDrive Grease Monkey tree)
+4. MechIQ (auto_repair bleed; not merged yet)
+
+Do not copy 80k+ OneDrive node_modules into this repo.

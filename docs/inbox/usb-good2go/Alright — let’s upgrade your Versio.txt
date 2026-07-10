@@ -1,0 +1,198 @@
+Alright — let’s upgrade your VersionEvaluator Agent so it’s not just checking for features in code, but also running each version in a sandbox to measure real-world performance before deployment.
+This will make your Auto Repair Website self-optimizing for both features and speed/stability — and it will still integrate into your UI-controlled orchestrator so you can run it from your phone.
+
+1. New Evaluation Criteria
+We’ll keep your feature checklist scoring, but add:
+
+
+
+Metric
+How We Measure
+Why It Matters
+
+
+
+
+Page Load Time
+Lighthouse CLI or Playwright
+User experience & SEO
+
+
+API Response Time
+HTTP requests to key endpoints
+Backend performance
+
+
+Error Rate
+Parse logs for errors/warnings
+Stability
+
+
+Memory Usage
+Docker stats during test
+Resource efficiency
+
+
+
+
+2. Updated VersionEvaluator Agent
+This version will:
+
+Spin up each version in a temporary Docker container
+Run Lighthouse for frontend metrics
+Run API tests for backend speed
+Parse logs for errors
+Combine results into a weighted score
+
+Python# services/versionevaluator/main.py
+import os
+import json
+import redis
+import subprocess
+import time
+import requests
+from statistics import mean
+
+CHECKLIST_FILE = "checklist.json"
+VERSIONS_DIR = "versions"
+REDIS_HOST = os.getenv("REDIS_HOST", "redis")
+REDIS_PORT = int(os.getenv("REDIS_PORT", 6379))
+RESULT_KEY = "best_version"
+
+WEIGHTS = {
+    "features": 0.5,
+    "performance": 0.3,
+    "stability": 0.2
+}
+
+def load_checklist():
+    with open(CHECKLIST_FILE, "r") as f:
+        return json.load(f)["features"]
+
+def evaluate_features(version_path, checklist):
+    score = 0
+    for feature in checklist:
+        keywords = feature.lower().split()
+        match_found = False
+        for root, _, files in os.walk(version_path):
+            for file in files:
+                if file.endswith((".py", ".js", ".md", ".html")):
+                    try:
+                        with open(os.path.join(root, file), "r", errors="ignore") as f:
+                            content = f.read().lower()
+                            if all(k in content for k in keywords):
+                                match_found = True
+                                break
+                    except:
+                        pass
+        if match_found:
+            score += 1
+    return score / len(checklist)  # normalized 0-1
+
+def run_docker_and_test(version):
+    container_name = f"test_{version}"
+    version_path = os.path.join(VERSIONS_DIR, version)
+    try:
+        # Build and run container
+        subprocess.run(["docker", "build", "-t", container_name, version_path], check=True)
+        subprocess.run(["docker", "run", "-d", "--name", container_name, "-p", "8085:8080", container_name], check=True)
+        time.sleep(5)  # wait for startup
+
+        # Performance: Lighthouse CLI (requires Node.js + lighthouse installed)
+        lighthouse_cmd = [
+            "lighthouse", "http://localhost:8085",
+            "--quiet", "--chrome-flags='--headless'",
+            "--output=json", "--output-path=./lh_report.json"
+        ]
+        subprocess.run(" ".join(lighthouse_cmd), shell=True, check=True)
+        with open("lh_report.json", "r") as f:
+            lh_data = json.load(f)
+        perf_score = lh_data["categories"]["performance"]["score"]
+
+        # API Response Time
+        api_times = []
+        for endpoint in ["/api/health", "/api/search?query=brakes"]:
+            start = time.time()
+            try:
+                requests.get(f"http://localhost:8085{endpoint}", timeout=5)
+                api_times.append(time.time() - start)
+            except:
+                api_times.append(5)  # timeout penalty
+        avg_api_time = mean(api_times)
+        api_score = max(0, 1 - (avg_api_time / 5))  # normalize
+
+        # Stability: check logs for errors
+        logs = subprocess.check_output(["docker", "logs", container_name], text=True)
+        error_count = logs.lower().count("error")
+        stability_score = max(0, 1 - (error_count / 10))  # penalty for many errors
+
+        return {
+            "performance": perf_score,
+            "api": api_score,
+            "stability": stability_score
+        }
+    except Exception as e:
+        print(f"❌ Test failed for {version}: {e}")
+        return {"performance": 0, "api": 0, "stability": 0}
+    finally:
+        subprocess.run(["docker", "rm", "-f", container_name], stdout=subprocess.DEVNULL, stderr=subprocess.DEVNULL)
+
+def main():
+    r = redis.Redis(host=REDIS_HOST, port=REDIS_PORT, decode_responses=True)
+    checklist = load_checklist()
+    results = {}
+
+    for version in os.listdir(VERSIONS_DIR):
+        path = os.path.join(VERSIONS_DIR, version)
+        if os.path.isdir(path):
+            feature_score = evaluate_features(path, checklist)
+            perf_data = run_docker_and_test(version)
+            combined_score = (
+                feature_score * WEIGHTS["features"] +
+                perf_data["performance"] * WEIGHTS["performance"] +
+                perf_data["stability"] * WEIGHTS["stability"]
+            )
+            results[version] = {
+                "feature_score": feature_score,
+                "performance_score": perf_data["performance"],
+                "api_score": perf_data["api"],
+                "stability_score": perf_data["stability"],
+                "combined_score": combined_score
+            }
+
+    best_version = max(results, key=lambda v: results[v]["combined_score"])
+    r.set(RESULT_KEY, best_version)
+    print(json.dumps({"results": results, "best_version": best_version}, indent=4))
+
+if __name__ == "__main__":
+    main()
+
+
+3. How This Works in Your Orchestrator
+
+Step 1: VersionEvaluator runs first in the orchestrator.
+Step 2: It spins up each version in Docker, runs Lighthouse + API tests, checks logs.
+Step 3: It calculates a combined score using your weights.
+Step 4: It stores the best version name in Redis.
+Step 5: DeploymentAgent reads that value and deploys it.
+
+
+4. Benefits
+
+Feature-aware → Still checks your Auto Repair Website checklist.
+Performance-aware → Measures real load times & API speed.
+Stability-aware → Penalizes versions with many errors.
+Self-optimizing → Always picks the best version automatically.
+Mobile-controlled → You can trigger this from your phone in CavernWolf Studio.
+
+
+5. Next Step
+If you want, I can now extend the DeploymentAgent so that after it deploys the best version, it:
+
+Runs a post-deployment health check
+Sends you a push notification to your phone saying
+"✅ Deployed version3 — Performance: 0.92, Stability: 0.95"
+
+That would make your stack fully autonomous and self-reporting.
+
+Do you want me to add that push notification + health check to the DeploymentAgent so you

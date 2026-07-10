@@ -1,0 +1,168 @@
+Alright — let’s integrate your Version Evaluator Agent directly into your UI-controlled orchestrator so it becomes part of your mobile-controlled AI workflow.
+Once we do this, your CavernWolf Studio will be able to:
+
+Run the evaluator before any deployment
+Pick the best version of your Auto Repair Website automatically
+Feed that choice into a merge/deployment agent
+Do it all from your phone without touching YAML or Docker manually
+
+
+1. Updated Orchestration Rules (UI-Editable)
+We’ll add the VersionEvaluator as priority 0 so it always runs first.
+Json[
+  {
+    "name": "VersionEvaluator",
+    "priority": 0,
+    "cooldown_seconds": 0,
+    "depends_on": [],
+    "tools": ["file_reader", "scoring_engine"]
+  },
+  {
+    "name": "ReasoningAgent",
+    "priority": 1,
+    "cooldown_seconds": 5,
+    "depends_on": ["VersionEvaluator"],
+    "model_url": "http://llama32:8080"
+  },
+  {
+    "name": "WebScraper",
+    "priority": 2,
+    "cooldown_seconds": 10,
+    "depends_on": ["ReasoningAgent"],
+    "tools": ["web_scraper", "file_read"]
+  },
+  {
+    "name": "MemoryStoreQdrant",
+    "priority": 3,
+    "cooldown_seconds": 15,
+    "depends_on": ["WebScraper"],
+    "model_url": "http://llama2_13b:8081",
+    "tools": ["memory_lookup", "file_read"]
+  },
+  {
+    "name": "DeploymentAgent",
+    "priority": 4,
+    "cooldown_seconds": 0,
+    "depends_on": ["MemoryStoreQdrant"],
+    "tools": ["file_merge", "docker_deploy"]
+  }
+]
+
+This JSON will be stored in Redis via your /api/orchestrator/rules endpoint so you can edit it from the dashboard.
+
+2. Version Evaluator Agent (Integrated)
+We’ll slightly modify the evaluator so it writes its result to Redis for the next agent to use.
+Python# services/versionevaluator/main.py
+import os
+import json
+import redis
+
+CHECKLIST_FILE = "checklist.json"
+VERSIONS_DIR = "versions"
+REDIS_HOST = os.getenv("REDIS_HOST", "redis")
+REDIS_PORT = int(os.getenv("REDIS_PORT", 6379))
+RESULT_KEY = "best_version"
+
+def load_checklist():
+    with open(CHECKLIST_FILE, "r") as f:
+        return json.load(f)["features"]
+
+def evaluate_version(version_path, checklist):
+    score = 0
+    found_features = []
+    for feature in checklist:
+        keywords = feature.lower().split()
+        match_found = False
+        for root, _, files in os.walk(version_path):
+            for file in files:
+                if file.endswith((".py", ".js", ".md", ".html")):
+                    try:
+                        with open(os.path.join(root, file), "r", errors="ignore") as f:
+                            content = f.read().lower()
+                            if all(k in content for k in keywords):
+                                match_found = True
+                                break
+                    except:
+                        pass
+        if match_found:
+            score += 1
+            found_features.append(feature)
+    return {"score": score, "features": found_features}
+
+def main():
+    r = redis.Redis(host=REDIS_HOST, port=REDIS_PORT, decode_responses=True)
+    checklist = load_checklist()
+    results = {}
+    for version in os.listdir(VERSIONS_DIR):
+        path = os.path.join(VERSIONS_DIR, version)
+        if os.path.isdir(path):
+            results[version] = evaluate_version(path, checklist)
+    best_version = max(results, key=lambda v: results[v]["score"])
+    r.set(RESULT_KEY, best_version)
+    print(json.dumps({"results": results, "best_version": best_version}, indent=4))
+
+if __name__ == "__main__":
+    main()
+
+
+3. Deployment Agent (Uses Evaluator Output)
+This agent will read the best version from Redis and deploy it.
+Python# services/deploymentagent/main.py
+import os
+import redis
+import subprocess
+
+REDIS_HOST = os.getenv("REDIS_HOST", "redis")
+REDIS_PORT = int(os.getenv("REDIS_PORT", 6379))
+RESULT_KEY = "best_version"
+
+def main():
+    r = redis.Redis(host=REDIS_HOST, port=REDIS_PORT, decode_responses=True)
+    best_version = r.get(RESULT_KEY)
+    if not best_version:
+        print("❌ No best version found. Run VersionEvaluator first.")
+        return
+    print(f"🚀 Deploying best version: {best_version}")
+    try:
+        subprocess.run(["bash", "deploy.sh", best_version], check=True)
+    except subprocess.CalledProcessError as e:
+        print(f"❌ Deployment failed: {e}")
+
+if __name__ == "__main__":
+    main()
+
+
+4. Orchestrator Flow
+When you hit “Run All” in your dashboard:
+
+VersionEvaluator runs → scores all versions → stores best in Redis.
+ReasoningAgent runs → uses best version context.
+WebScraper runs → fetches any missing data.
+MemoryStoreQdrant runs → updates long-term memory.
+DeploymentAgent runs → deploys the chosen version.
+
+
+5. Mobile Control
+Because the orchestrator rules are stored in Redis and editable via /api/orchestrator/rules:
+
+You can toggle agents on/off from your phone.
+You can drag-and-drop reorder them in the UI.
+You can manually trigger just the VersionEvaluator or DeploymentAgent.
+
+
+6. Why This is Powerful
+
+Self-Optimizing → Always deploys the best version without manual review.
+Fully Remote-Controlled → Works from your phone via CavernWolf Studio.
+Safe → If the evaluator fails, deployment won’t run.
+Extensible → You can add more scoring criteria later (e.g., performance benchmarks, security checks).
+
+
+If you want, I can now extend the VersionEvaluator so it doesn’t just check for feature keywords, but actually runs each version in a sandbox and measures:
+
+Page load speed
+API response times
+Error logs
+
+That would make it not just feature-aware, but performance-aware before deployment.
+Do you want me to add that performance benchmarking layer to the evaluator so your Auto Repair Website is always the fastest and most stable version?

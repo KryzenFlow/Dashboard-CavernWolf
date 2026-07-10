@@ -1,0 +1,10 @@
+# Cloudflare Pages — Vellorae.org umbrella landing
+# Deploy: npx wrangler pages deploy shared/workflows/vellorae-demos --project-name=vellorae-main
+# Or connect this repo in Cloudflare Dashboard → Pages → Git integration
+
+name = "vellorae-main"
+compatibility_date = "2024-01-01"
+pages_build_output_dir = "shared/workflows/vellorae-demos"
+
+[vars]
+SITE_NAME = "Vellorae"
