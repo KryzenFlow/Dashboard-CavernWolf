@@ -96,13 +96,32 @@ curl -X GET "https://api.search.brave.com/res/v1/llm/context?q=tallest+mountains
   -H "X-Subscription-Token: <YOUR_API_KEY>"
 ```
 
+Location-aware local recall (San Francisco example):
+
+```bash
+curl -X GET "http://localhost:8000/search/llm-context?q=best+coffee+shops+near+me" \
+  -H "X-Loc-Lat: 37.7749" \
+  -H "X-Loc-Long: -122.4194"
+```
+
+which forwards:
+
+```bash
+curl -X GET "https://api.search.brave.com/res/v1/llm/context" \
+  -H "X-Subscription-Token: <YOUR_API_KEY>" \
+  -H "X-Loc-Lat: 37.7749" \
+  -H "X-Loc-Long: -122.4194"
+```
+
+Brave treats `X-Loc-Lat` + `X-Loc-Long` as the location source (they override city/state text headers). Optional `enable_local=true` forces local recall even without coordinates.
+
 | Method | Path | Purpose |
 |--------|------|---------|
 | GET | `/search/status` | Whether `BRAVE_SEARCH_API_KEY` is set (never returns the key) |
-| GET | `/search/llm-context?q=...` | Fetch grounding snippets + sources |
-| POST | `/search/llm-context` | Same as GET, JSON body (`q`, optional `count`) |
+| GET | `/search/llm-context?q=...` | Fetch grounding snippets + sources. Pass `X-Loc-Lat` / `X-Loc-Long` (or `lat`/`lon` query params) for local recall |
+| POST | `/search/llm-context` | Same as GET, JSON body (`q`, optional `count`, `lat`, `lon`, `enable_local`) |
 
-In the Studio UI, open the **Search** tab. The default query is `tallest mountains in the world`. Use **Send context to chat** to pass snippets to Hermes.
+In the Studio UI, open the **Search** tab. The default query is `tallest mountains in the world`. Use **SF example** to fill `37.7749, -122.4194`, or **Use my location**. **Send context to chat** passes snippets to Hermes.
 
 ## Integrating with real Hermes Agent
 

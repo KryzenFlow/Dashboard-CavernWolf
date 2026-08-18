@@ -2,6 +2,7 @@
 
 from brave.client import (
     BRAVE_LLM_CONTEXT_URL,
+    BraveLocation,
     BraveNotConfiguredError,
     BraveSearchError,
     fetch_llm_context,
@@ -11,6 +12,7 @@ from brave.client import (
 
 __all__ = [
     "BRAVE_LLM_CONTEXT_URL",
+    "BraveLocation",
     "BraveNotConfiguredError",
     "BraveSearchError",
     "fetch_llm_context",

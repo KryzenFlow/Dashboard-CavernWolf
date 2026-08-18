@@ -38,15 +38,33 @@
           <h2>Brave LLM Context</h2>
           <p id="search-status" class="search-status">Checking Brave Search configuration…</p>
           <form id="search-form" class="search-form">
-            <input
-              id="search-query"
-              type="search"
-              value="tallest mountains in the world"
-              placeholder="Search the web for LLM context…"
-              aria-label="Brave search query"
-              required
-            >
-            <button type="submit" class="btn-primary" id="btn-search">Search</button>
+            <div class="search-query-row">
+              <input
+                id="search-query"
+                type="search"
+                value="tallest mountains in the world"
+                placeholder="Search the web for LLM context…"
+                aria-label="Brave search query"
+                required
+              >
+              <button type="submit" class="btn-primary" id="btn-search">Search</button>
+            </div>
+            <div class="search-location">
+              <label>
+                Lat
+                <input id="search-lat" type="number" step="any" min="-90" max="90" placeholder="37.7749" aria-label="Latitude">
+              </label>
+              <label>
+                Long
+                <input id="search-long" type="number" step="any" min="-180" max="180" placeholder="-122.4194" aria-label="Longitude">
+              </label>
+              <button type="button" id="btn-loc-sf" class="btn-action">SF example</button>
+              <button type="button" id="btn-loc-here" class="btn-action">Use my location</button>
+              <label class="search-local-toggle">
+                <input type="checkbox" id="search-enable-local">
+                Local recall
+              </label>
+            </div>
           </form>
           <p id="search-error" class="search-error hidden" role="alert"></p>
           <div id="search-results" class="search-results" aria-live="polite"></div>

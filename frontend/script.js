@@ -93,9 +93,10 @@ function connectWebSocket() {
 }
 
 async function api(path, options = {}) {
+  const { headers, ...rest } = options;
   const res = await fetch(`${API_BASE}${path}`, {
-    headers: { "Content-Type": "application/json", ...options.headers },
-    ...options,
+    ...rest,
+    headers: { "Content-Type": "application/json", ...headers },
   });
   if (!res.ok) throw new Error(await res.text());
   return res.json();
@@ -264,10 +265,21 @@ function hideSearchError() {
   $("search-error").textContent = "";
 }
 
+function collectGroundingItems(data) {
+  const grounding = data.grounding || {};
+  const items = [];
+  if (grounding.poi && (grounding.poi.url || grounding.poi.name || (grounding.poi.snippets || []).length)) {
+    items.push({ ...grounding.poi, kind: "poi" });
+  }
+  (grounding.map || []).forEach((place) => items.push({ ...place, kind: "map" }));
+  (grounding.generic || []).forEach((item) => items.push({ ...item, kind: "web" }));
+  return items;
+}
+
 function renderSearchResults(data) {
   const container = $("search-results");
   container.innerHTML = "";
-  const items = data.grounding?.generic || [];
+  const items = collectGroundingItems(data);
   if (!items.length) {
     container.innerHTML = '<p class="search-empty">No grounding snippets returned.</p>';
     return;
@@ -275,7 +287,10 @@ function renderSearchResults(data) {
 
   const meta = document.createElement("p");
   meta.className = "search-meta";
-  meta.textContent = `${data.result_count} source${data.result_count === 1 ? "" : "s"} from Brave LLM Context`;
+  const loc = data.location;
+  const locNote =
+    loc?.lat != null && loc?.long != null ? ` · ${loc.lat}, ${loc.long}` : loc?.city ? ` · ${loc.city}` : "";
+  meta.textContent = `${data.result_count} source${data.result_count === 1 ? "" : "s"} from Brave LLM Context${locNote}`;
   container.appendChild(meta);
 
   items.forEach((item) => {
@@ -283,11 +298,19 @@ function renderSearchResults(data) {
     article.className = "search-card";
 
     const heading = document.createElement("h3");
+    if (item.kind && item.kind !== "web") {
+      const badge = document.createElement("span");
+      badge.className = "search-badge";
+      badge.textContent = item.kind === "poi" ? "POI" : "Map";
+      heading.appendChild(badge);
+    }
     const link = document.createElement("a");
     link.href = item.url || "#";
     link.target = "_blank";
     link.rel = "noopener noreferrer";
-    link.textContent = item.title || item.url || "Untitled";
+    link.textContent = item.name && item.title && item.name !== item.title
+      ? `${item.name} — ${item.title}`
+      : item.title || item.name || item.url || "Untitled";
     heading.appendChild(link);
 
     const urlLine = document.createElement("p");
@@ -355,7 +378,17 @@ $("search-form").addEventListener("submit", async (e) => {
   $("search-results").innerHTML = '<p class="search-empty">Searching…</p>';
   try {
     const params = new URLSearchParams({ q: query, count: "20" });
-    const data = await api(`/search/llm-context?${params.toString()}`);
+    if ($("search-enable-local").checked) {
+      params.set("enable_local", "true");
+    }
+    const headers = {};
+    const lat = $("search-lat").value.trim();
+    const lon = $("search-long").value.trim();
+    if (lat && lon) {
+      headers["X-Loc-Lat"] = lat;
+      headers["X-Loc-Long"] = lon;
+    }
+    const data = await api(`/search/llm-context?${params.toString()}`, { headers });
     renderSearchResults(data);
   } catch (err) {
     $("search-results").innerHTML = "";
@@ -375,6 +408,30 @@ $("search-form").addEventListener("submit", async (e) => {
   } finally {
     btn.disabled = false;
   }
+});
+
+$("btn-loc-sf").addEventListener("click", () => {
+  $("search-lat").value = "37.7749";
+  $("search-long").value = "-122.4194";
+  $("search-enable-local").checked = true;
+  if (!$("search-query").value.trim() || $("search-query").value === "tallest mountains in the world") {
+    $("search-query").value = "best coffee shops near me";
+  }
+});
+
+$("btn-loc-here").addEventListener("click", () => {
+  if (!navigator.geolocation) {
+    showSearchError("Geolocation is not available in this browser.");
+    return;
+  }
+  navigator.geolocation.getCurrentPosition(
+    (pos) => {
+      $("search-lat").value = String(pos.coords.latitude);
+      $("search-long").value = String(pos.coords.longitude);
+      $("search-enable-local").checked = true;
+    },
+    () => showSearchError("Could not read your location.")
+  );
 });
 
 connectWebSocket();

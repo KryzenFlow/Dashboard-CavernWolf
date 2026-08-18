@@ -10,6 +10,7 @@ from fastapi.testclient import TestClient
 
 from brave.client import (
     BRAVE_LLM_CONTEXT_URL,
+    BraveLocation,
     BraveNotConfiguredError,
     BraveSearchError,
     fetch_llm_context,
@@ -143,3 +144,58 @@ def test_post_llm_context_proxies_brave(monkeypatch: pytest.MonkeyPatch) -> None
         response = client.post("/search/llm-context", json={"q": "tallest mountains in the world", "count": 5})
     assert response.status_code == 200
     assert response.json()["result_count"] == 1
+    assert response.json()["location"] is None
+
+
+@pytest.mark.asyncio
+async def test_fetch_llm_context_sends_location_headers(monkeypatch: pytest.MonkeyPatch) -> None:
+    monkeypatch.setenv("BRAVE_SEARCH_API_KEY", "test-token")
+    mock_client = AsyncMock()
+    mock_client.get.return_value = _mock_response(200, EVEREST_PAYLOAD)
+    location = BraveLocation(lat=37.7749, long=-122.4194)
+
+    await fetch_llm_context("best coffee shops near me", location=location, client=mock_client)
+
+    _args, kwargs = mock_client.get.await_args
+    assert kwargs["headers"]["X-Subscription-Token"] == "test-token"
+    assert kwargs["headers"]["X-Loc-Lat"] == "37.7749"
+    assert kwargs["headers"]["X-Loc-Long"] == "-122.4194"
+    assert "X-Loc-City" not in kwargs["headers"]
+
+
+def test_brave_location_requires_both_coordinates() -> None:
+    with pytest.raises(ValueError, match="together"):
+        BraveLocation(lat=37.7749).validate()
+
+
+def test_get_llm_context_forwards_loc_headers(monkeypatch: pytest.MonkeyPatch) -> None:
+    monkeypatch.setenv("BRAVE_SEARCH_API_KEY", "test-token")
+    client = TestClient(create_app())
+    mock = AsyncMock(return_value=EVEREST_PAYLOAD)
+    with patch("routes.search.fetch_llm_context", new=mock):
+        response = client.get(
+            "/search/llm-context",
+            params={"q": "best coffee shops near me"},
+            headers={"X-Loc-Lat": "37.7749", "X-Loc-Long": "-122.4194"},
+        )
+    assert response.status_code == 200
+    body = response.json()
+    assert body["location"]["lat"] == 37.7749
+    assert body["location"]["long"] == -122.4194
+    kwargs = mock.await_args.kwargs
+    assert kwargs["location"] == BraveLocation(lat=37.7749, long=-122.4194)
+
+
+def test_post_llm_context_accepts_lat_lon(monkeypatch: pytest.MonkeyPatch) -> None:
+    monkeypatch.setenv("BRAVE_SEARCH_API_KEY", "test-token")
+    client = TestClient(create_app())
+    mock = AsyncMock(return_value=EVEREST_PAYLOAD)
+    with patch("routes.search.fetch_llm_context", new=mock):
+        response = client.post(
+            "/search/llm-context",
+            json={"q": "best coffee shops near me", "lat": 37.7749, "lon": -122.4194, "enable_local": True},
+        )
+    assert response.status_code == 200
+    kwargs = mock.await_args.kwargs
+    assert kwargs["enable_local"] is True
+    assert kwargs["location"] == BraveLocation(lat=37.7749, long=-122.4194)
