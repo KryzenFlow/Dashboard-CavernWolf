@@ -16,6 +16,7 @@ BRAVE_LLM_CONTEXT_URL = "https://api.search.brave.com/res/v1/llm/context"
 DEFAULT_TIMEOUT_SECONDS = 30.0
 MAX_QUERY_CHARS = 400
 MAX_QUERY_WORDS = 50
+DEFAULT_LOCAL_QUERY = "near me"
 
 
 class BraveSearchError(Exception):
@@ -38,7 +39,11 @@ class BraveNotConfiguredError(BraveSearchError):
         )
 
 
-def get_api_key() -> str | None:
+def get_api_key(override: str | None = None) -> str | None:
+    if override is not None:
+        stripped = override.strip()
+        if stripped:
+            return stripped
     key = os.environ.get("BRAVE_SEARCH_API_KEY") or os.environ.get("BRAVE_API_KEY")
     if key is None:
         return None
@@ -188,12 +193,13 @@ async def fetch_llm_context(
     enable_source_metadata: bool = True,
     enable_local: bool | None = None,
     location: BraveLocation | None = None,
+    api_key: str | None = None,
     timeout: float = DEFAULT_TIMEOUT_SECONDS,
     client: httpx.AsyncClient | None = None,
 ) -> dict[str, Any]:
     """Fetch pre-extracted web context from Brave LLM Context API."""
-    api_key = get_api_key()
-    if not api_key:
+    token = get_api_key(api_key)
+    if not token:
         raise BraveNotConfiguredError()
 
     query = validate_query(q)
@@ -221,7 +227,7 @@ async def fetch_llm_context(
     headers = {
         "Accept": "application/json",
         "Accept-Encoding": "gzip",
-        "X-Subscription-Token": api_key,
+        "X-Subscription-Token": token,
     }
     if location is not None and location.has_any():
         headers.update(location.as_headers())

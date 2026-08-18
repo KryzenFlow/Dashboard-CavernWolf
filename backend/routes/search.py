@@ -9,6 +9,7 @@ from pydantic import BaseModel, Field
 
 from brave.client import (
     BRAVE_LLM_CONTEXT_URL,
+    DEFAULT_LOCAL_QUERY,
     BraveLocation,
     BraveSearchError,
     fetch_llm_context,
@@ -17,10 +18,11 @@ from brave.client import (
 )
 
 router = APIRouter(prefix="/search", tags=["search"])
+brave_compat_router = APIRouter(tags=["search"])
 
 
 class LlmContextRequest(BaseModel):
-    q: str = Field(..., min_length=1, max_length=400)
+    q: str | None = Field(None, min_length=1, max_length=400)
     count: int = Field(20, ge=1, le=50)
     country: str | None = Field(None, min_length=2, max_length=3)
     search_lang: str | None = None
@@ -76,6 +78,49 @@ def _resolve_location(
     return location if location.has_any() else None
 
 
+def _resolve_query(q: str | None, location: BraveLocation | None) -> str:
+    if q is not None and q.strip():
+        return q.strip()
+    if location is not None and location.lat is not None and location.long is not None:
+        return DEFAULT_LOCAL_QUERY
+    raise HTTPException(
+        status_code=422,
+        detail="Query q is required unless X-Loc-Lat and X-Loc-Long are set.",
+    )
+
+
+async def _execute_llm_context(
+    *,
+    q: str | None,
+    count: int,
+    country: str | None,
+    search_lang: str | None,
+    maximum_number_of_tokens: int | None,
+    enable_source_metadata: bool,
+    enable_local: bool | None,
+    location: BraveLocation | None,
+    subscription_token: str | None,
+) -> dict[str, Any]:
+    query = _resolve_query(q, location)
+    try:
+        payload = await fetch_llm_context(
+            query,
+            count=count,
+            country=country,
+            search_lang=search_lang,
+            maximum_number_of_tokens=maximum_number_of_tokens,
+            enable_source_metadata=enable_source_metadata,
+            enable_local=enable_local,
+            location=location,
+            api_key=subscription_token,
+        )
+    except BraveSearchError as exc:
+        _raise_brave(exc)
+    except ValueError as exc:
+        raise HTTPException(status_code=422, detail=str(exc)) from exc
+    return _wrap_payload(query, payload, location)
+
+
 def _result_count(payload: dict[str, Any]) -> int:
     grounding = payload.get("grounding") or {}
     generic = grounding.get("generic") or []
@@ -112,8 +157,9 @@ async def search_status() -> dict[str, Any]:
 
 
 @router.get("/llm-context")
+@brave_compat_router.get("/res/v1/llm/context")
 async def get_llm_context(
-    q: str = Query(..., min_length=1, max_length=400, description="Search query"),
+    q: str | None = Query(None, min_length=1, max_length=400, description="Search query"),
     count: int = Query(20, ge=1, le=50),
     country: str | None = Query(None, min_length=2, max_length=3),
     search_lang: str | None = Query(None),
@@ -129,8 +175,13 @@ async def get_llm_context(
     x_loc_state_name: str | None = Header(default=None),
     x_loc_country: str | None = Header(default=None),
     x_loc_postal_code: str | None = Header(default=None),
+    x_subscription_token: str | None = Header(default=None),
 ) -> dict[str, Any]:
-    """Proxy GET https://api.search.brave.com/res/v1/llm/context."""
+    """Proxy GET https://api.search.brave.com/res/v1/llm/context.
+
+    ``q`` may be omitted when ``X-Loc-Lat`` and ``X-Loc-Long`` are set; the
+    gateway then searches for ``near me``.
+    """
     location = _resolve_location(
         lat=lat,
         lon=lon,
@@ -142,25 +193,21 @@ async def get_llm_context(
         header_country=x_loc_country,
         header_postal_code=x_loc_postal_code,
     )
-    try:
-        payload = await fetch_llm_context(
-            q,
-            count=count,
-            country=country,
-            search_lang=search_lang,
-            maximum_number_of_tokens=maximum_number_of_tokens,
-            enable_source_metadata=enable_source_metadata,
-            enable_local=enable_local,
-            location=location,
-        )
-    except BraveSearchError as exc:
-        _raise_brave(exc)
-    except ValueError as exc:
-        raise HTTPException(status_code=422, detail=str(exc)) from exc
-    return _wrap_payload(q.strip(), payload, location)
+    return await _execute_llm_context(
+        q=q,
+        count=count,
+        country=country,
+        search_lang=search_lang,
+        maximum_number_of_tokens=maximum_number_of_tokens,
+        enable_source_metadata=enable_source_metadata,
+        enable_local=enable_local,
+        location=location,
+        subscription_token=x_subscription_token,
+    )
 
 
 @router.post("/llm-context")
+@brave_compat_router.post("/res/v1/llm/context")
 async def post_llm_context(
     body: LlmContextRequest,
     x_loc_lat: float | None = Header(default=None),
@@ -170,6 +217,7 @@ async def post_llm_context(
     x_loc_state_name: str | None = Header(default=None),
     x_loc_country: str | None = Header(default=None),
     x_loc_postal_code: str | None = Header(default=None),
+    x_subscription_token: str | None = Header(default=None),
 ) -> dict[str, Any]:
     """Same as GET, with a JSON body for longer or structured queries."""
     location = _resolve_location(
@@ -188,19 +236,14 @@ async def post_llm_context(
         header_country=x_loc_country,
         header_postal_code=x_loc_postal_code,
     )
-    try:
-        payload = await fetch_llm_context(
-            body.q,
-            count=body.count,
-            country=body.country,
-            search_lang=body.search_lang,
-            maximum_number_of_tokens=body.maximum_number_of_tokens,
-            enable_source_metadata=body.enable_source_metadata,
-            enable_local=body.enable_local,
-            location=location,
-        )
-    except BraveSearchError as exc:
-        _raise_brave(exc)
-    except ValueError as exc:
-        raise HTTPException(status_code=422, detail=str(exc)) from exc
-    return _wrap_payload(body.q.strip(), payload, location)
+    return await _execute_llm_context(
+        q=body.q,
+        count=body.count,
+        country=body.country,
+        search_lang=body.search_lang,
+        maximum_number_of_tokens=body.maximum_number_of_tokens,
+        enable_source_metadata=body.enable_source_metadata,
+        enable_local=body.enable_local,
+        location=location,
+        subscription_token=x_subscription_token,
+    )

@@ -10,6 +10,7 @@ from fastapi.testclient import TestClient
 
 from brave.client import (
     BRAVE_LLM_CONTEXT_URL,
+    DEFAULT_LOCAL_QUERY,
     BraveLocation,
     BraveNotConfiguredError,
     BraveSearchError,
@@ -199,3 +200,59 @@ def test_post_llm_context_accepts_lat_lon(monkeypatch: pytest.MonkeyPatch) -> No
     kwargs = mock.await_args.kwargs
     assert kwargs["enable_local"] is True
     assert kwargs["location"] == BraveLocation(lat=37.7749, long=-122.4194)
+
+
+def test_brave_native_path_location_only_defaults_query(monkeypatch: pytest.MonkeyPatch) -> None:
+    monkeypatch.setenv("BRAVE_SEARCH_API_KEY", "test-token")
+    client = TestClient(create_app())
+    mock = AsyncMock(return_value=EVEREST_PAYLOAD)
+    with patch("routes.search.fetch_llm_context", new=mock):
+        response = client.get(
+            "/res/v1/llm/context",
+            headers={"X-Loc-Lat": "37.7749", "X-Loc-Long": "-122.4194"},
+        )
+    assert response.status_code == 200
+    body = response.json()
+    assert body["query"] == DEFAULT_LOCAL_QUERY
+    assert body["location"]["lat"] == 37.7749
+    assert body["location"]["long"] == -122.4194
+    assert mock.await_args.args[0] == DEFAULT_LOCAL_QUERY
+    assert mock.await_args.kwargs["location"] == BraveLocation(lat=37.7749, long=-122.4194)
+
+
+def test_location_only_without_query_on_search_path(monkeypatch: pytest.MonkeyPatch) -> None:
+    monkeypatch.setenv("BRAVE_SEARCH_API_KEY", "test-token")
+    client = TestClient(create_app())
+    mock = AsyncMock(return_value=EVEREST_PAYLOAD)
+    with patch("routes.search.fetch_llm_context", new=mock):
+        response = client.get(
+            "/search/llm-context",
+            headers={"X-Loc-Lat": "37.7749", "X-Loc-Long": "-122.4194"},
+        )
+    assert response.status_code == 200
+    assert response.json()["query"] == DEFAULT_LOCAL_QUERY
+
+
+def test_missing_query_without_location_returns_422(monkeypatch: pytest.MonkeyPatch) -> None:
+    monkeypatch.setenv("BRAVE_SEARCH_API_KEY", "test-token")
+    client = TestClient(create_app())
+    response = client.get("/res/v1/llm/context")
+    assert response.status_code == 422
+
+
+def test_subscription_token_header_used_when_env_missing(monkeypatch: pytest.MonkeyPatch) -> None:
+    monkeypatch.delenv("BRAVE_SEARCH_API_KEY", raising=False)
+    monkeypatch.delenv("BRAVE_API_KEY", raising=False)
+    client = TestClient(create_app())
+    mock = AsyncMock(return_value=EVEREST_PAYLOAD)
+    with patch("routes.search.fetch_llm_context", new=mock):
+        response = client.get(
+            "/res/v1/llm/context",
+            headers={
+                "X-Subscription-Token": "header-token",
+                "X-Loc-Lat": "37.7749",
+                "X-Loc-Long": "-122.4194",
+            },
+        )
+    assert response.status_code == 200
+    assert mock.await_args.kwargs["api_key"] == "header-token"

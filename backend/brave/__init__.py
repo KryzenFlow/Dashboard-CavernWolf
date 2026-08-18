@@ -2,6 +2,7 @@
 
 from brave.client import (
     BRAVE_LLM_CONTEXT_URL,
+    DEFAULT_LOCAL_QUERY,
     BraveLocation,
     BraveNotConfiguredError,
     BraveSearchError,
@@ -12,6 +13,7 @@ from brave.client import (
 
 __all__ = [
     "BRAVE_LLM_CONTEXT_URL",
+    "DEFAULT_LOCAL_QUERY",
     "BraveLocation",
     "BraveNotConfiguredError",
     "BraveSearchError",
