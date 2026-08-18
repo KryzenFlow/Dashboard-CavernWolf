@@ -7,6 +7,7 @@ RUN pip install --no-cache-dir -r requirements.txt
 
 COPY web_gateway ./web_gateway
 COPY routes ./routes
+COPY brave ./brave
 
 ENV PYTHONPATH=/app
 ENV PORT=8000

@@ -79,6 +79,30 @@ Set API URLs when backend is on a different host:
 | `HERMES_MOCK` | `1` | Mock RPC when full hermes-agent not installed |
 | `HERMES_HOME` | `~/.hermes` | Skills/memory directory |
 | `CORS_ORIGINS` | `*` | Comma-separated allowed origins |
+| `BRAVE_SEARCH_API_KEY` | _(unset)_ | Brave Search API key for LLM Context (`X-Subscription-Token`). Alias: `BRAVE_API_KEY`. Get a key at [api.search.brave.com](https://api.search.brave.com). |
+
+## Brave Search LLM Context
+
+The backend proxies Brave's LLM Context API so the dashboard can ground answers in extracted web content without exposing the API key to the browser.
+
+```bash
+curl -X GET "http://localhost:8000/search/llm-context?q=tallest+mountains+in+the+world"
+```
+
+That call maps to:
+
+```bash
+curl -X GET "https://api.search.brave.com/res/v1/llm/context?q=tallest+mountains+in+the+world" \
+  -H "X-Subscription-Token: <YOUR_API_KEY>"
+```
+
+| Method | Path | Purpose |
+|--------|------|---------|
+| GET | `/search/status` | Whether `BRAVE_SEARCH_API_KEY` is set (never returns the key) |
+| GET | `/search/llm-context?q=...` | Fetch grounding snippets + sources |
+| POST | `/search/llm-context` | Same as GET, JSON body (`q`, optional `count`) |
+
+In the Studio UI, open the **Search** tab. The default query is `tallest mountains in the world`. Use **Send context to chat** to pass snippets to Hermes.
 
 ## Integrating with real Hermes Agent
 
