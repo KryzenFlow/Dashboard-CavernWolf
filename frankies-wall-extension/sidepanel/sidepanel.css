@@ -560,7 +560,34 @@ button {
   margin-bottom: 12px;
 }
 
-.instrument-filter button,
+/* Instrument bar — Frankie's Wall black & white (matches tuning fork button) */
+.instrument-filter button {
+  background: #0e0e0e;
+  border: 1px solid #333;
+  color: var(--muted);
+  font-family: var(--hand);
+  font-size: 12px;
+  font-weight: normal;
+  letter-spacing: 0.02em;
+  padding: 6px 11px;
+  cursor: pointer;
+  transition: background 0.2s ease, color 0.2s ease, border-color 0.2s ease;
+}
+
+.instrument-filter button:hover:not(.is-active) {
+  background: #000;
+  border-color: #000;
+  color: #fff;
+}
+
+.instrument-filter button.is-active {
+  background: #fff;
+  color: #000;
+  border: 2px solid #000;
+  font-weight: bold;
+  padding: 5px 10px;
+}
+
 .story-filter button {
   border: 1px solid #333;
   background: #0e0e0e;
@@ -572,13 +599,11 @@ button {
   transition: background 0.2s ease, color 0.2s ease, border-color 0.2s ease;
 }
 
-.instrument-filter button:hover,
 .story-filter button:hover {
   border-color: #666;
   color: var(--ink);
 }
 
-.instrument-filter button.is-active,
 .story-filter button.is-active {
   background: #fff;
   color: #000;

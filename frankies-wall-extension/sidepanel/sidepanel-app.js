@@ -91,7 +91,12 @@
   let activeFilter = null;
 
   /** @type {string} */
+  let instrumentFilter = "all";
+
+  /** @type {string} */
   let storyFilter = "all";
+
+  const INSTRUMENT_FILTER_IDS = new Set(["all", "electric", "bass", "sax", "mixed"]);
 
   /** @type {'library' | 'wall' | 'moms-smile'} */
   let currentView = "library";
@@ -146,6 +151,7 @@
     libraryEmpty: document.getElementById("library-empty"),
     libraryHeading: document.getElementById("library-heading"),
     btnClearFilter: document.getElementById("btn-clear-filter"),
+    instrumentFilter: document.getElementById("instrumentFilter"),
     storyFilter: document.getElementById("storyFilter"),
     viewLibrary: document.getElementById("view-library"),
     viewWall: document.getElementById("view-wall"),
@@ -424,6 +430,18 @@
     el.nowNote.textContent = `Imported ${audioFiles.length} local track${audioFiles.length === 1 ? "" : "s"}. Tag them on the wall.`;
   }
 
+  function setInstrumentFilter(value) {
+    if (!INSTRUMENT_FILTER_IDS.has(value)) return;
+    instrumentFilter = value;
+    if (el.instrumentFilter) {
+      el.instrumentFilter.querySelectorAll("button[data-instrument]").forEach((btn) => {
+        const match = btn.getAttribute("data-instrument") === value;
+        btn.classList.toggle("is-active", match);
+        btn.setAttribute("aria-pressed", match ? "true" : "false");
+      });
+    }
+  }
+
   function setStoryFilter(value) {
     if (!STORY_FILTERS.some((f) => f.id === value)) return;
     storyFilter = value;
@@ -439,7 +457,10 @@
   function renderStoryFilterBar() {
     if (!el.storyFilter) return;
     el.storyFilter.innerHTML = "";
-    for (const def of STORY_FILTERS) {
+    const storyOnly = STORY_FILTERS.filter(
+      (def) => !INSTRUMENT_FILTER_IDS.has(def.id)
+    );
+    for (const def of storyOnly) {
       const btn = document.createElement("button");
       btn.type = "button";
       btn.dataset.storyFilter = def.id;
@@ -459,6 +480,10 @@
 
     if (currentView === "moms-smile") {
       tracks = tracks.filter((t) => matchStoryFilter(t, "mom_mode"));
+    }
+
+    if (instrumentFilter !== "all") {
+      tracks = tracks.filter((t) => matchStoryFilter(t, instrumentFilter));
     }
 
     if (storyFilter !== "all") {
@@ -510,15 +535,30 @@
         btn.dataset.kind = kind;
         btn.dataset.value = name;
         const mappedStory = storyFilterIdForTag(kind, name);
+        const mappedInstrument =
+          kind === "instruments" && INSTRUMENT_FILTER_IDS.has(name) ? name : null;
         if (activeFilter?.kind === kind && activeFilter.value === name) {
+          btn.classList.add("is-active");
+        } else if (mappedInstrument && instrumentFilter === mappedInstrument) {
           btn.classList.add("is-active");
         } else if (mappedStory && storyFilter === mappedStory) {
           btn.classList.add("is-active");
         }
         btn.style.setProperty("--tilt", `${((i % 5) - 2) * 0.8}deg`);
         btn.addEventListener("click", () => {
+          if (kind === "instruments" && INSTRUMENT_FILTER_IDS.has(name) && name !== "all") {
+            if (instrumentFilter === name) {
+              setInstrumentFilter("all");
+            } else {
+              activeFilter = null;
+              setInstrumentFilter(name);
+            }
+            if (currentView === "wall") setView("library");
+            else renderAll();
+            return;
+          }
           const storyId = storyFilterIdForTag(kind, name);
-          if (storyId) {
+          if (storyId && !INSTRUMENT_FILTER_IDS.has(storyId)) {
             if (storyFilter === storyId) {
               setStoryFilter("all");
             } else {
@@ -562,6 +602,9 @@
         activeFilter.kind === "modes"
           ? formatModeLabel(activeFilter.value)
           : activeFilter.value;
+    } else if (instrumentFilter !== "all") {
+      const def = STORY_FILTERS.find((f) => f.id === instrumentFilter);
+      el.libraryHeading.textContent = def?.label || instrumentFilter;
     } else if (storyFilter !== "all") {
       const def = STORY_FILTERS.find((f) => f.id === storyFilter);
       el.libraryHeading.textContent = def?.label || "Library";
@@ -851,6 +894,17 @@
   });
 
   renderStoryFilterBar();
+
+  if (el.instrumentFilter) {
+    el.instrumentFilter.querySelectorAll("button[data-instrument]").forEach((btn) => {
+      btn.addEventListener("click", () => {
+        const value = btn.getAttribute("data-instrument") || "all";
+        setInstrumentFilter(value);
+        renderAll();
+      });
+    });
+    setInstrumentFilter(instrumentFilter);
+  }
 
   el.btnImportFiles.addEventListener("click", async () => {
     if (window.showOpenFilePicker) {
