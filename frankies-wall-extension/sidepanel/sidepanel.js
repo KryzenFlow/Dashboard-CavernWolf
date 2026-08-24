@@ -1,70 +1,77 @@
 /**
- * ES module export — import { playTuningFork } from "./sidepanel.js";
- * Same A440 synthesis as components/playTuningFork.js (no dependencies).
+ * Frankie's Wall — 6-layer sidepanel orchestrator.
  *
- * @param {number} [duration=2]
+ * UI · State · Audio · Metadata · Rendering · Utilities
+ * Pure JS + CSS + HTML. No framework.
  */
-const A440_HZ = 440;
-const PEAK_GAIN = 0.42;
-const ATTACK_SECONDS = 0.012;
+(function bootFrankiesWall() {
+  "use strict";
 
-/** @type {AudioContext | null} */
-let sharedContext = null;
+  const FW = window.FrankiesWall;
 
-function getAudioContext() {
-  const Ctx = globalThis.AudioContext || globalThis.webkitAudioContext;
-  if (!Ctx) return null;
-  if (!sharedContext || sharedContext.state === "closed") {
-    sharedContext = new Ctx();
-  }
-  return sharedContext;
-}
-
-export function playTuningFork(duration = 2) {
-  const audioContext = getAudioContext();
-  if (!audioContext) return;
-
-  const safeDuration = Math.max(0.25, Number(duration) || 2);
-  const startTime = audioContext.currentTime;
-  const stopTime = startTime + safeDuration;
-
-  if (audioContext.state === "suspended") {
-    void audioContext.resume();
-  }
-
-  const fundamental = audioContext.createOscillator();
-  fundamental.type = "sine";
-  fundamental.frequency.value = A440_HZ;
-
-  const overtone = audioContext.createOscillator();
-  overtone.type = "sine";
-  overtone.frequency.value = A440_HZ * 2;
-
-  const forkGain = audioContext.createGain();
-  const overtoneGain = audioContext.createGain();
-
-  forkGain.gain.setValueAtTime(0.0001, startTime);
-  forkGain.gain.linearRampToValueAtTime(PEAK_GAIN, startTime + ATTACK_SECONDS);
-  forkGain.gain.exponentialRampToValueAtTime(0.0001, stopTime);
-
-  overtoneGain.gain.setValueAtTime(0.0001, startTime);
-  overtoneGain.gain.linearRampToValueAtTime(PEAK_GAIN * 0.06, startTime + ATTACK_SECONDS);
-  overtoneGain.gain.exponentialRampToValueAtTime(0.0001, stopTime);
-
-  fundamental.connect(forkGain);
-  overtone.connect(overtoneGain);
-  forkGain.connect(audioContext.destination);
-  overtoneGain.connect(audioContext.destination);
-
-  fundamental.start(startTime);
-  overtone.start(startTime);
-  fundamental.stop(stopTime);
-  overtone.stop(stopTime);
-
-  fundamental.onended = () => {
-    fundamental.disconnect();
-    overtone.disconnect();
-    forkGain.disconnect();
-    overtoneGain.disconnect();
+  FW.el = {
+    bandTags: document.getElementById("band-tags"),
+    placeTags: document.getElementById("place-tags"),
+    peopleTags: document.getElementById("people-tags"),
+    instrumentTags: document.getElementById("instrument-tags"),
+    modeTags: document.getElementById("mode-tags"),
+    vibeTags: document.getElementById("vibe-tags"),
+    btnImportFiles: document.getElementById("btn-import-files"),
+    btnImportFolder: document.getElementById("btn-import-folder"),
+    fileInput: document.getElementById("file-input"),
+    folderInput: document.getElementById("folder-input"),
+    trackList: document.getElementById("trackList"),
+    libraryEmpty: document.getElementById("library-empty"),
+    libraryHeading: document.getElementById("library-heading"),
+    btnClearFilter: document.getElementById("btn-clear-filter"),
+    instrumentFilter: document.getElementById("instrumentFilter"),
+    storyFilter: document.getElementById("storyFilter"),
+    viewLibrary: document.getElementById("view-library"),
+    viewWall: document.getElementById("view-wall"),
+    graffitiGrid: document.getElementById("graffiti-grid"),
+    viewEdit: document.getElementById("view-edit"),
+    tagForm: document.getElementById("tag-form"),
+    editId: document.getElementById("edit-id"),
+    editTitle: document.getElementById("edit-title"),
+    editNotes: document.getElementById("edit-notes"),
+    editBands: document.getElementById("edit-bands"),
+    editPlaces: document.getElementById("edit-places"),
+    editPeople: document.getElementById("edit-people"),
+    editInstruments: document.getElementById("edit-instruments"),
+    editModes: document.getElementById("edit-modes"),
+    editVibes: document.getElementById("edit-vibes"),
+    editCover: document.getElementById("edit-cover"),
+    btnCloseEdit: document.getElementById("btn-close-edit"),
+    btnRemoveTrack: document.getElementById("btn-remove-track"),
+    coverArt: document.getElementById("cover-art"),
+    coverFallback: document.getElementById("cover-fallback"),
+    nowTitle: document.getElementById("now-title"),
+    nowNote: document.getElementById("now-note"),
+    nowTags: document.getElementById("now-tags"),
+    btnPrev: document.getElementById("btn-prev"),
+    btnPlay: document.getElementById("btn-play"),
+    btnNext: document.getElementById("btn-next"),
+    seek: document.getElementById("seek"),
+    timeCurrent: document.getElementById("time-current"),
+    timeDuration: document.getElementById("time-duration"),
+    audio: document.getElementById("audio"),
   };
-}
+
+  FW.renderStoryFilterBar();
+  FW.bindInstrumentFilter();
+  FW.bindUi();
+  FW.bindTransport();
+  FW.initTuningFork();
+
+  FW.loadLibrary().then(async () => {
+    const catalogAdded = FW.mergeCatalogIntoLibrary();
+    if (catalogAdded) await FW.saveLibrary();
+    FW.renderAll();
+    if (FW.state.library.tracks.length) {
+      const hasBundled = FW.state.library.tracks.some((t) => t.file);
+      FW.el.nowNote.textContent = hasBundled
+        ? "Catalog loaded. Bundled tracks play from music/ — imports override for this session."
+        : "Tags restored. Re-import audio files to play — metadata stayed local.";
+    }
+  });
+})();

@@ -1,10 +1,7 @@
 /**
- * A440 tuning fork — pure Web Audio, no samples, no dependencies.
- * Musicians use this pitch to calibrate before playing.
- *
- * @param {number} [duration=2] Ring length in seconds (smooth exponential fade-out).
+ * Audio — A440 tuning fork (pure Web Audio).
  */
-(function initPlayTuningFork(global) {
+(function initTuningForkAudio(global) {
   const A440_HZ = 440;
   const PEAK_GAIN = 0.42;
   const ATTACK_SECONDS = 0.012;
@@ -37,7 +34,6 @@
     fundamental.type = "sine";
     fundamental.frequency.value = A440_HZ;
 
-    // Tuning forks ring nearly pure; a whisper of the octave adds realism.
     const overtone = audioContext.createOscillator();
     overtone.type = "sine";
     overtone.frequency.value = A440_HZ * 2;

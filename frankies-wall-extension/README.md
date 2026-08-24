@@ -52,11 +52,49 @@ Drop matching MP3s under `music/` (see `music/README.md`) and reload the extensi
 
 Left **wall of names** tags also filter the library (Bush, Toledo, Frankies, Mom, sax, live, studio, etc.).
 
+## Architecture (6 layers)
+
+Pure JS + CSS + HTML — no framework.
+
+| Layer | Role | Location |
+|-------|------|----------|
+| **UI** | Markup + Frankie's Wall styling | `index.html`, `sidepanel.css` |
+| **State** | Library, filters, current track | `sidepanel.js` → `FrankiesWall.state` |
+| **Audio** | Playback + A440 tuning fork | `audio/player.js`, `audio/tuningForkAudio.js` |
+| **Metadata** | Catalog, tags, vibes | `data/tracks.js`, `data/tags.js`, `data/vibes.js` |
+| **Rendering** | Track list, wall, now playing | `components/` |
+| **Utilities** | DOM, storage, filters | `utils/dom.js`, `utils/storage.js`, `utils/filters.js` |
+
+```
+sidepanel/
+  index.html
+  sidepanel.css
+  sidepanel.js          ← orchestrator (State + boot)
+
+  components/
+    tuningFork.js
+    trackList.js
+    nowPlaying.js
+    frankiesWall.js
+
+  data/
+    tracks.js
+    tags.js
+    vibes.js
+
+  audio/
+    player.js
+    tuningForkAudio.js
+
+  utils/
+    dom.js
+    storage.js
+    filters.js
+```
+
 ## Story filters (expand anytime)
 
-Library filter chips and sidebar **Story** tags are driven by `sidepanel/data/storyFilters.js`. Add entries like **live**, **studio**, **mom_mode**, or anything that fits your wall — reload the extension to pick them up.
-
-Tag tracks under **Story** in the tag editor (`live`, `studio`, `mixed`, `mom_mode`, …).
+Edit `sidepanel/data/tags.js` — add filter chips like **live**, **studio**, **mom_mode**, or anything that fits your wall. Reload the extension to pick them up.
 
 ## UI map
 

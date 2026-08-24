@@ -632,7 +632,9 @@ button {
   transition: background 0.15s ease, color 0.15s ease;
 }
 
-.trackItem:hover {
+.trackItem:hover,
+.trackItem.is-playing {
+  color: var(--accent-soft);
   background: #151515;
 }
 

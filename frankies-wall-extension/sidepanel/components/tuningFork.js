@@ -176,4 +176,54 @@
     create,
     mountAll,
   };
+
+  const FrankiesWall = (global.FrankiesWall = global.FrankiesWall || {});
+  let forkStopTimer = null;
+
+  FrankiesWall.setTuningForkPlaying = function setTuningForkPlaying(playing) {
+    document.querySelectorAll("[data-tuning-fork]").forEach((node) => {
+      node.classList.toggle("is-playing", playing);
+    });
+  };
+
+  FrankiesWall.pulseTuningForkIcons = function pulseTuningForkIcons(durationMs = 2000) {
+    const pulseTargets = document.querySelectorAll("[data-tuning-fork], #tuningForkBtn");
+    pulseTargets.forEach((node) => node.classList.add("is-forking"));
+    if (forkStopTimer) clearTimeout(forkStopTimer);
+    forkStopTimer = setTimeout(() => {
+      pulseTargets.forEach((node) => node.classList.remove("is-forking"));
+    }, durationMs);
+  };
+
+  FrankiesWall.initTuningFork = function initTuningFork() {
+    const playDropIn = global.playTuningFork;
+    global.playTuningFork = function playTuningForkWrapped(duration = 2) {
+      if (typeof playDropIn === "function") playDropIn(duration);
+      FrankiesWall.pulseTuningForkIcons(duration * 1000);
+    };
+
+    const meta = global.TuningFork.META;
+    global.TuningFork.mountAll((placement) => {
+      const sizeByPlacement = { logo: 28, art: 32, rail: 22 };
+      return {
+        size: sizeByPlacement[placement] ?? global.TuningFork.DEFAULT_PROPS.size,
+        stroke: global.TuningFork.DEFAULT_PROPS.stroke,
+        strokeWidth: global.TuningFork.DEFAULT_PROPS.strokeWidth,
+        interactive: true,
+        onClick: "playTuningFork",
+        durationSeconds: 2,
+        meaning: meta.meaning,
+        origin: meta.origin,
+      };
+    });
+
+    const forkBtn = document.getElementById("tuningForkBtn");
+    if (forkBtn && forkBtn.dataset.listenerBound !== "1") {
+      forkBtn.dataset.listenerBound = "1";
+      forkBtn.addEventListener("click", () => global.playTuningFork(2));
+    }
+
+    const logoMeaning = document.querySelector(".tuning-fork-meaning--logo");
+    if (logoMeaning) logoMeaning.textContent = meta.meaning;
+  };
 })(window);
