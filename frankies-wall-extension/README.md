@@ -76,7 +76,15 @@ export const tracks = [
 ];
 ```
 
-`vibes.js` maps vibe ids → UI labels. `tags.js` holds wall presets, story filters, and instrument ids:
+`vibes.js` — my soul encoded into data:
+
+```js
+export const vibes = ["river_breeze", "fight_focus", "build_repair", "mom_smile"];
+```
+
+Ids map to wall labels (e.g. `mom_smile` → Mom's Smile). Tracks store vibe ids; UI shows labels.
+
+`tags.js` holds wall presets, story filters, and instrument ids:
 
 ```js
 export const instruments = ["electric", "bass", "sax", "mixed"];

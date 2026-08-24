@@ -7,7 +7,7 @@
   FrankiesWall.getPresets = function getPresets() {
     return {
       ...FrankiesWall.TAG_PRESETS,
-      vibes: FrankiesWall.VIBES || [],
+      vibes: FrankiesWall.VIBE_IDS || [],
     };
   };
 
@@ -87,7 +87,7 @@
         state.instrumentFilter.charAt(0).toUpperCase() + state.instrumentFilter.slice(1);
       el.libraryHeading.textContent = label;
     } else if (state.vibeFilter !== "all") {
-      el.libraryHeading.textContent = state.vibeFilter;
+      el.libraryHeading.textContent = FrankiesWall.resolveVibeLabel(state.vibeFilter);
     } else if (state.storyFilter !== "all") {
       const def = FrankiesWall.STORY_FILTERS.find((f) => f.id === state.storyFilter);
       el.libraryHeading.textContent = def?.label || "Library";
@@ -177,7 +177,7 @@
     fill(el.peopleTags, PRESETS.people, "people");
     fill(el.instrumentTags, PRESETS.instruments, "instruments");
     fill(el.modeTags, PRESETS.modes, "modes", formatModeLabel);
-    fill(el.vibeTags, PRESETS.vibes, "vibes");
+    fill(el.vibeTags, PRESETS.vibes, "vibes", (id) => FrankiesWall.resolveVibeLabel(id));
   };
 
   FrankiesWall.renderGraffiti = function renderGraffiti() {
@@ -224,7 +224,9 @@
     fillCheckGrid(el.editPeople, PRESETS.people, track.people);
     fillCheckGrid(el.editInstruments, PRESETS.instruments, track.instruments);
     fillCheckGrid(el.editModes, PRESETS.modes, track.modes, formatModeLabel);
-    fillCheckGrid(el.editVibes, PRESETS.vibes, track.vibes);
+    fillCheckGrid(el.editVibes, PRESETS.vibes, track.vibes, (id) =>
+      FrankiesWall.resolveVibeLabel(id)
+    );
     el.editCover.value = "";
     el.viewEdit.hidden = false;
   };
@@ -288,7 +290,7 @@
         instrument: catalogMatch?.instrument || "",
         modes: [],
         vibes: catalogMatch?.vibe
-          ? FrankiesWall.catalogVibesToLabels(catalogMatch)
+          ? [catalogMatch.vibe]
           : catalogMatch?.vibes || [],
         notes: "",
         coverDataUrl: null,

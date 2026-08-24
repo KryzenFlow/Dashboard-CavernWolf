@@ -64,8 +64,6 @@
     { id: "mom_mode", label: "Mom Mode", momMode: true, modes: ["mom_mode"] },
   ];
 
-  FrankiesWall.INSTRUMENT_FILTER_IDS = ["all", "electric", "bass", "sax", "mixed"];
-
   FrankiesWall.trackMatchesStoryFilter = function trackMatchesStoryFilter(track, filterId) {
     if (!filterId || filterId === "all") return true;
     const def = FrankiesWall.STORY_FILTERS.find((f) => f.id === filterId);
@@ -79,7 +77,7 @@
     if (def.momMode) {
       return (
         modes.includes("mom_mode") ||
-        vibes.includes("Mom's Smile") ||
+        vibes.includes("mom_smile") ||
         people.includes("Mom") ||
         instruments.includes("sax")
       );

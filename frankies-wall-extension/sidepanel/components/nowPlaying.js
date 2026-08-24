@@ -25,7 +25,10 @@
       ...track.bands.map((v) => ({ v, accent: false })),
       ...track.instruments.map((v) => ({ v, accent: false })),
       ...track.modes.map((v) => ({ v: formatModeLabel(v), accent: v === "mom_mode" })),
-      ...track.vibes.map((v) => ({ v, accent: v === "Mom's Smile" })),
+      ...track.vibes.map((v) => ({
+        v: FrankiesWall.resolveVibeLabel(v),
+        accent: v === "mom_smile",
+      })),
       ...track.people.filter((p) => p === "Mom").map((v) => ({ v, accent: true })),
     ];
     for (const chip of chips.slice(0, 8)) {

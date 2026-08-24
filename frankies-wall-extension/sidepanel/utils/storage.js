@@ -76,8 +76,8 @@
     const fileName = FrankiesWall.basenameFromPath(catalog.file);
     const artist = catalog.artist?.trim() || "";
     const instrument = catalog.instrument?.trim() || "";
-    const vibes = FrankiesWall.catalogVibesToLabels
-      ? FrankiesWall.catalogVibesToLabels(catalog)
+    const vibes = FrankiesWall.catalogVibesToTrackVibes
+      ? FrankiesWall.catalogVibesToTrackVibes(catalog)
       : catalog.vibe
         ? [catalog.vibe]
         : catalog.vibes || [];
