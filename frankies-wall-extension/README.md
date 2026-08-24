@@ -54,12 +54,44 @@ Left **wall of names** tags also filter the library (Bush, Toledo, Frankies, Mom
 
 ## Architecture (6 layers)
 
-Pure JS + CSS + HTML — no framework.
+Pure JS + CSS + HTML — no framework. No TypeScript required. No cloud dependencies.
 
 | Layer | Role | Location |
 |-------|------|----------|
 | **UI** | Markup + Frankie's Wall styling | `index.html`, `sidepanel.css` |
-| **State** | Current track, filters, playback, fork | `sidepanel.js` → `FrankiesWall.state` |
+| **State** | Current track, filters, playback, fork | `sidepanel.js` |
+| **Audio** | Play, pause, scrub, volume, A440 fork | `audio/` |
+| **Metadata** | Catalog, tags, vibes | `data/` |
+| **Rendering** | Each component owns its UI | `components/` |
+| **Utilities** | Filters, DOM, storage | `utils/` |
+
+```
+sidepanel/
+  index.html              UI
+  sidepanel.css           UI
+  sidepanel.js            State + boot
+
+  components/             Rendering
+    trackList.js          filtered tracks
+    nowPlaying.js         art + metadata + grind bar
+    frankiesWall.js       wall of names + memories
+    tuningFork.js         fork icon + click bind
+
+  data/                   Metadata
+    tracks.js
+    tags.js
+    vibes.js
+
+  audio/
+    player.js
+    tuningForkAudio.js
+    waveform.js
+
+  utils/                  Utilities
+    filters.js
+    dom.js
+    storage.js
+```
 
 ### State layer (`sidepanel.js`)
 
@@ -73,95 +105,64 @@ const state = {
 };
 ```
 
-Helpers: `setCurrentTrack`, `getCurrentTrack`, `setIsPlaying`, `setTuningForkActive`.
-| **Audio** | Play, pause, scrub, volume, A440 fork, optional waveform | `audio/player.js`, `audio/tuningForkAudio.js`, `audio/waveform.js` |
-| **Metadata** | Catalog, tags, vibes | `data/tracks.js`, `data/tags.js`, `data/vibes.js` |
+### Rendering layer (`components/`)
+
+Each component handles its own UI:
+
+| Component | UI responsibility |
+|-----------|-------------------|
+| `trackList.js` | Renders filtered tracks into `#trackList` |
+| `nowPlaying.js` | Album art, metadata, chips; BMX grind bar animation |
+| `frankiesWall.js` | Band names, places, people, memories — sidebar + graffiti |
+| `tuningFork.js` | Tuning fork SVG mounts + click → `playTuningFork` |
+
+### Utility layer (`utils/`)
+
+| Module | Role |
+|--------|------|
+| `filters.js` | Instrument + vibe filtering engine |
+| `dom.js` | DOM creation helpers |
+| `storage.js` | Saving user preferences + library metadata |
 
 ### Metadata layer (`data/`)
 
-Seed catalog in `tracks.js` — each entry: `id`, `title`, `artist`, `file`, `instrument`, `vibe` (snake_case id).
-
 ```js
-export const tracks = [
-  { id: "bush_glycerine", title: "Glycerine", artist: "Bush",
-    file: "/music/bush/glycerine.mp3", instrument: "electric", vibe: "river_breeze" },
-  { id: "drew_sax_live_01", title: "Sax Live Recording", artist: "Drew",
-    file: "/music/drew/sax_live_01.mp3", instrument: "sax", vibe: "mom_smile" },
-];
-```
+// tracks.js
+export const tracks = [ /* id, title, artist, file, instrument, vibe */ ];
 
-`vibes.js` — my soul encoded into data:
+// tags.js
+export const instruments = ["electric", "bass", "sax", "mixed"];
 
-```js
+// vibes.js — soul encoded into data
 export const vibes = ["river_breeze", "fight_focus", "build_repair", "mom_smile"];
 ```
 
-Ids map to wall labels (e.g. `mom_smile` → Mom's Smile). Tracks store vibe ids; UI shows labels.
+## How everything connects
 
-`tags.js` holds wall presets, story filters, and instrument ids:
+**Instrument tags → filters → track list → now playing**
 
-```js
-export const instruments = ["electric", "bass", "sax", "mixed"];
-```
-| **Rendering** | Track list, wall, now playing | `components/` |
-| **Utilities** | DOM, storage, filters | `utils/dom.js`, `utils/storage.js`, `utils/filters.js` |
+Click **Sax** → `filters.js` sets `instrumentFilter` → `trackList.js` re-renders → click a track → `nowPlaying.js` shows metadata.
 
-```
-sidepanel/
-  index.html
-  sidepanel.css
-  sidepanel.js          ← orchestrator (State + boot)
+**Tuning fork → audio → icon → now playing**
 
-  components/
-    tuningFork.js
-    trackList.js
-    nowPlaying.js
-    frankiesWall.js
+Click fork → `tuningForkAudio.js` plays A440 → `tuningFork.js` pulses icon + `tuningForkActive` → Now Playing stays centered.
 
-  data/
-    tracks.js
-    tags.js
-    vibes.js
+**Frankie's wall → tags → vibes**
 
-  audio/
-    player.js
-    tuningForkAudio.js
-    waveform.js
+Sidebar/graffiti in `frankiesWall.js` reads `tags.js` + `vibes.js` — memories become clickable filters.
 
-  utils/
-    dom.js
-    storage.js
-    filters.js
-```
+**Scrubbing → grind bar**
 
-## Story filters (expand anytime)
-
-Edit `sidepanel/data/tags.js` — add filter chips like **live**, **studio**, **mom_mode**, or anything that fits your wall. Reload the extension to pick them up.
+Drag `#seek` → `nowPlaying.js` animates the BMX rail → `player.js` seeks audio.
 
 ## UI map (`index.html` + `sidepanel.css`)
 
-Everything visible lives in the UI layer — black-and-white wall aesthetic, marker buttons, gritty textures.
-
 | Region | Elements |
 |--------|----------|
-| **Sidebar** | Brand + tuning fork logo mount, wall-of-names tags (bands, places, people, instruments, story, vibes), import buttons |
-| **Now Playing** | Cover art cluster + art fork mount, title/note/chips, transport, `#tuningForkBtn` (A440) |
-| **Library** | `#instrumentFilter` (Courier marker B&W), `#vibeFilter` (hand-drawn chips, Mom's Smile accent), `#storyFilter` (expandable from `tags.js`), `#trackList` |
-| **BMX rail** | `#seek` progress bar, rail fork mount, elapsed/total times, Music Outro |
-
-Tuning fork SVG mounts: `[data-tuning-fork-mount="logo|art|rail"]` plus the Now Playing button.
-
-## Audio layer (`audio/`)
-
-| Capability | Module | Notes |
-|------------|--------|-------|
-| **Play / pause** | `player.js` | `playTrack`, `togglePlay`, prev/next queue |
-| **Scrub** | `player.js` | `#seek` BMX rail → `seekToRatio` |
-| **Volume** | `player.js` | `#volume` slider, persisted locally |
-| **Tuning fork** | `tuningForkAudio.js` | A440 sine + overtone, 2s fade |
-| **Waveform** | `waveform.js` | Optional — click **Wave** in transport |
-
-Transport binds in `player.js`; progress UI updates via `components/nowPlaying.js`.
+| **Sidebar** | Brand + fork logo, wall-of-names tags, import |
+| **Now Playing** | Cover art, metadata, transport, `#tuningForkBtn` |
+| **Library** | Instrument + vibe + story filters, `#trackList` |
+| **BMX rail** | `#seek` grind bar, fork mount, times |
 
 ## Permissions
 
@@ -172,4 +173,6 @@ No host permissions. No network calls for music.
 
 ## Tech
 
-Vanilla HTML / CSS / JS (Manifest V3). All modules attach to `window.FrankiesWall`. Handwritten notes use a **bundled** Patrick Hand font (`fonts/PatrickHand-Regular.ttf`) — no CDN at runtime.
+Vanilla HTML / CSS / JS (Manifest V3). All modules attach to `window.FrankiesWall`. Handwritten notes use a **bundled** Patrick Hand font — no CDN at runtime.
+
+Just my story, my music, my architecture.

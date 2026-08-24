@@ -1,5 +1,10 @@
 /**
- * Rendering — Frankie's Wall tag selector, graffiti, library chrome.
+ * Rendering layer — Frankie's Wall UI.
+ *
+ * Band names · places · people · memories on the wall.
+ * Sidebar tags, graffiti grid, filter bars, import + tag editor.
+ *
+ * Frankies wall → frankiesWall.js → tags.js → vibes.js
  */
 (function initFrankiesWall(global) {
   const FrankiesWall = (global.FrankiesWall = global.FrankiesWall || {});
@@ -29,13 +34,6 @@
       btn.classList.toggle("is-active", match);
       btn.setAttribute("aria-pressed", match ? "true" : "false");
     });
-  };
-
-  FrankiesWall.filterByVibe = function filterByVibe(vibe) {
-    FrankiesWall.state.vibeFilter = vibe || "all";
-    FrankiesWall.setVibeFilterUi(FrankiesWall.state.vibeFilter);
-    FrankiesWall.renderLibrary();
-    FrankiesWall.renderSidebarTags();
   };
 
   FrankiesWall.setStoryFilter = function setStoryFilter(value) {

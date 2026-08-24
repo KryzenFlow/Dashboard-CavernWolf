@@ -1,5 +1,7 @@
 /**
- * Rendering — dynamic track list.
+ * Rendering layer — track list UI.
+ *
+ * Renders filtered tracks from filters.js into #trackList.
  */
 (function initTrackList(global) {
   const FrankiesWall = (global.FrankiesWall = global.FrankiesWall || {});
@@ -28,7 +30,7 @@
   };
 
   FrankiesWall.renderLibrary = function renderLibrary() {
-    FrankiesWall.updateLibraryHeading();
+    FrankiesWall.updateLibraryHeading?.();
     FrankiesWall.renderTrackList(FrankiesWall.filteredTracks());
   };
 

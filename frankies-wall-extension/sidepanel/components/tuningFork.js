@@ -1,5 +1,8 @@
 /**
- * TuningFork — resonance / center / alignment (phronesis in code)
+ * Rendering layer — tuning fork icon UI.
+ *
+ * Renders SVG fork mounts and binds click → playTuningFork.
+ * Tuning fork → tuningForkAudio.js → tuningFork.js → nowPlaying.js
  *
  * Geometry:
  * <svg viewBox="0 0 64 64">

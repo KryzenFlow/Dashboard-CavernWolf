@@ -114,6 +114,7 @@
   FW.bindInstrumentFilter();
   FW.bindVibeFilter();
   FW.bindTransport();
+  FW.bindGrindBar();
   FW.bindWaveform();
   FW.bindUi();
   FW.initTuningFork();

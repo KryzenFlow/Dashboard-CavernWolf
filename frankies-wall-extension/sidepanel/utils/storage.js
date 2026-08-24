@@ -1,5 +1,7 @@
 /**
- * Metadata — library persistence + track normalization.
+ * Utility layer — saving user preferences + library metadata.
+ *
+ * chrome.storage.local for tags; session blobs for imported audio.
  */
 (function initStorage(global) {
   const FrankiesWall = (global.FrankiesWall = global.FrankiesWall || {});

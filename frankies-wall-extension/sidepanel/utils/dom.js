@@ -1,5 +1,5 @@
 /**
- * Utilities — DOM helpers.
+ * Utility layer — DOM creation helpers.
  */
 (function initDom(global) {
   const FrankiesWall = (global.FrankiesWall = global.FrankiesWall || {});

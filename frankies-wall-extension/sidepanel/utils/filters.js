@@ -1,5 +1,7 @@
 /**
- * Utilities — filtering engine.
+ * Utility layer — instrument + vibe filtering.
+ *
+ * Instrument tags → filters.js → trackList.js → nowPlaying.js
  */
 (function initFilters(global) {
   const FrankiesWall = (global.FrankiesWall = global.FrankiesWall || {});
@@ -38,8 +40,11 @@
             return t.modes.includes(value);
           case "vibes":
             return t.vibes.includes(value);
-          default:
+          default: {
+            const _exhaustive = kind;
+            void _exhaustive;
             return true;
+          }
         }
       });
     }
@@ -58,21 +63,19 @@
     if (!ids.has(instrument)) return;
 
     FrankiesWall.state.instrumentFilter = instrument;
-    FrankiesWall.setInstrumentFilterUi(instrument);
+    FrankiesWall.setInstrumentFilterUi?.(instrument);
+    FrankiesWall.renderLibrary?.();
+    FrankiesWall.renderSidebarTags?.();
+  };
 
-    const tracks = FrankiesWall.getTracksBeforeInstrumentFilter();
-    let filtered;
-    if (instrument === "all") {
-      filtered = tracks;
-    } else {
-      filtered = tracks.filter((track) => track.instrument === instrument);
-    }
-
-    FrankiesWall.renderTrackList(filtered);
-    FrankiesWall.updateLibraryHeading();
-    FrankiesWall.renderSidebarTags();
+  FrankiesWall.filterByVibe = function filterByVibe(vibe) {
+    FrankiesWall.state.vibeFilter = vibe || "all";
+    FrankiesWall.setVibeFilterUi?.(FrankiesWall.state.vibeFilter);
+    FrankiesWall.renderLibrary?.();
+    FrankiesWall.renderSidebarTags?.();
   };
 
   global.filterTracksByInstrument = FrankiesWall.filterTracksByInstrument;
   global.filterByInstrument = FrankiesWall.filterByInstrument;
+  global.filterByVibe = FrankiesWall.filterByVibe;
 })(typeof window !== "undefined" ? window : globalThis);

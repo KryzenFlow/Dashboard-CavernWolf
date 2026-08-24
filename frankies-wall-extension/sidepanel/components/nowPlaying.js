@@ -1,6 +1,10 @@
 /**
- * Rendering — now playing display + BMX rail progress UI.
- * Audio transport lives in audio/player.js.
+ * Rendering layer — now playing UI.
+ *
+ * Album art · metadata · chips · BMX grind bar animation.
+ * Tuning fork icon mounts live here (via tuningFork.js).
+ *
+ * Scrubbing animates the grind bar; audio seek logic is in audio/player.js.
  */
 (function initNowPlaying(global) {
   const FrankiesWall = (global.FrankiesWall = global.FrankiesWall || {});
@@ -62,5 +66,29 @@
       el.seek.value = String(Math.round(pct));
       el.seek.style.setProperty("--progress", `${(cur / dur) * 100}%`);
     }
+  };
+
+  /** BMX grind bar — scrub preview + progress animation. */
+  FrankiesWall.bindGrindBar = function bindGrindBar() {
+    const el = FrankiesWall.el;
+    const { formatTime } = FrankiesWall.dom;
+    if (!el?.seek) return;
+
+    el.seek.addEventListener("pointerdown", () => {
+      FrankiesWall.state.seeking = true;
+    });
+    el.seek.addEventListener("pointerup", () => {
+      FrankiesWall.state.seeking = false;
+    });
+    el.seek.addEventListener("input", () => {
+      const dur = el.audio.duration || 0;
+      const pct = Number(el.seek.value) / 1000;
+      el.seek.style.setProperty("--progress", `${pct * 100}%`);
+      if (dur > 0) el.timeCurrent.textContent = formatTime(dur * pct);
+    });
+    el.seek.addEventListener("change", () => {
+      FrankiesWall.seekToRatio?.(Number(el.seek.value) / 1000);
+      FrankiesWall.state.seeking = false;
+    });
   };
 })(typeof window !== "undefined" ? window : globalThis);

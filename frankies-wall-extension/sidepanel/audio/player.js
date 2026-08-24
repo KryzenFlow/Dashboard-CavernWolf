@@ -167,7 +167,6 @@
 
   FrankiesWall.bindTransport = function bindTransport() {
     const el = FrankiesWall.el;
-    const { formatTime } = FrankiesWall.dom;
 
     el.btnPlay.addEventListener("click", () => {
       void FrankiesWall.togglePlay();
@@ -193,23 +192,6 @@
     el.audio.addEventListener("pause", () => {
       FrankiesWall.setIsPlaying?.(false);
       FrankiesWall.stopWaveform?.();
-    });
-
-    el.seek.addEventListener("pointerdown", () => {
-      FrankiesWall.state.seeking = true;
-    });
-    el.seek.addEventListener("pointerup", () => {
-      FrankiesWall.state.seeking = false;
-    });
-    el.seek.addEventListener("input", () => {
-      const dur = el.audio.duration || 0;
-      const pct = Number(el.seek.value) / 1000;
-      el.seek.style.setProperty("--progress", `${pct * 100}%`);
-      if (dur > 0) el.timeCurrent.textContent = formatTime(dur * pct);
-    });
-    el.seek.addEventListener("change", () => {
-      FrankiesWall.seekToRatio(Number(el.seek.value) / 1000);
-      FrankiesWall.state.seeking = false;
     });
 
     if (el.volume) {
