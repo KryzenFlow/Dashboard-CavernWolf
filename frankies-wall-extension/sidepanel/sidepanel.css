@@ -466,12 +466,43 @@ button {
   letter-spacing: 0.02em;
   color: #000;
   cursor: pointer;
-  transition: 0.2s;
+  transition: background 0.2s ease, color 0.2s ease, box-shadow 0.2s ease;
 }
 
-#tuningForkBtn:hover {
+#tuningForkBtn:hover,
+#tuningForkBtn.is-forking {
   background: #000;
   color: #fff;
+}
+
+#tuningForkBtn:focus-visible {
+  outline: 2px solid #000;
+  outline-offset: 2px;
+}
+
+#tuningForkBtn:active {
+  transform: scale(0.98);
+}
+
+#tuningForkBtn.is-forking {
+  box-shadow: 0 0 12px var(--accent-glow);
+  animation: tuning-fork-btn-pulse 1.1s ease-in-out infinite;
+}
+
+@keyframes tuning-fork-btn-pulse {
+  0%,
+  100% {
+    opacity: 1;
+  }
+  50% {
+    opacity: 0.82;
+  }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  #tuningForkBtn.is-forking {
+    animation: none;
+  }
 }
 
 .transport-btn {

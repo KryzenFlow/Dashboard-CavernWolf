@@ -759,12 +759,15 @@
   let forkStopTimer = null;
 
   function pulseTuningForkIcons(durationMs = 2000) {
-    document.querySelectorAll("[data-tuning-fork]").forEach((node) => {
+    const pulseTargets = document.querySelectorAll(
+      "[data-tuning-fork], #tuningForkBtn"
+    );
+    pulseTargets.forEach((node) => {
       node.classList.add("is-forking");
     });
     if (forkStopTimer) clearTimeout(forkStopTimer);
     forkStopTimer = setTimeout(() => {
-      document.querySelectorAll("[data-tuning-fork]").forEach((node) => {
+      pulseTargets.forEach((node) => {
         node.classList.remove("is-forking");
       });
     }, durationMs);
