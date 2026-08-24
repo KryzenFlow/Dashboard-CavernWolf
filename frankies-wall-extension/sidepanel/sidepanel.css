@@ -453,6 +453,23 @@ button {
   align-items: center;
 }
 
+.tuning-fork-btn {
+  grid-column: 1 / -1;
+  width: 100%;
+  margin-top: 2px;
+  font-family: var(--hand);
+  font-size: 14px;
+  letter-spacing: 0.02em;
+  border-color: var(--accent-soft);
+  color: var(--accent-soft);
+}
+
+.tuning-fork-btn:hover {
+  border-color: var(--accent);
+  color: var(--accent);
+  background: rgba(196, 92, 38, 0.08);
+}
+
 .transport-btn {
   width: 32px;
   height: 28px;

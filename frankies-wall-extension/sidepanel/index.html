@@ -90,6 +90,9 @@
             <button type="button" id="btn-play" class="transport-btn play" aria-label="Play">▶</button>
             <button type="button" id="btn-next" class="transport-btn" aria-label="Next">›</button>
           </div>
+          <button type="button" id="tuningForkBtn" class="btn tuning-fork-btn ghost">
+            Tuning Fork (A440)
+          </button>
         </section>
 
         <section id="view-library" class="content-panel is-active" aria-label="Library">
@@ -181,6 +184,7 @@
     </div>
 
     <audio id="audio" preload="metadata"></audio>
+    <script src="components/playTuningFork.js"></script>
     <script src="components/TuningFork.js"></script>
     <script src="sidepanel.js"></script>
   </body>
