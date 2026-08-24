@@ -1,0 +1,174 @@
+<!DOCTYPE html>
+<html lang="en">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1" />
+    <title>Frankie's Wall</title>
+    <link rel="stylesheet" href="sidepanel.css" />
+  </head>
+  <body>
+    <div class="app">
+      <aside class="wall-sidebar" aria-label="Wall of names">
+        <header class="brand-block">
+          <p class="brand">Frankie's Wall</p>
+          <p class="brand-sub">local files · your recordings</p>
+        </header>
+
+        <nav class="view-nav" aria-label="Views">
+          <button type="button" class="view-btn is-active" data-view="library">Library</button>
+          <button type="button" class="view-btn" data-view="wall">Frankie's Wall</button>
+          <button type="button" class="view-btn moms" data-view="moms-smile">Mom's Smile</button>
+        </nav>
+
+        <section class="tag-section">
+          <h2>Bands</h2>
+          <ul id="band-tags" class="name-wall"></ul>
+        </section>
+        <section class="tag-section">
+          <h2>Places</h2>
+          <ul id="place-tags" class="name-wall"></ul>
+        </section>
+        <section class="tag-section">
+          <h2>People</h2>
+          <ul id="people-tags" class="name-wall"></ul>
+        </section>
+        <section class="tag-section">
+          <h2>Instruments</h2>
+          <ul id="instrument-tags" class="name-wall"></ul>
+        </section>
+        <section class="tag-section">
+          <h2>Vibes</h2>
+          <ul id="vibe-tags" class="name-wall"></ul>
+        </section>
+
+        <div class="import-actions">
+          <button type="button" id="btn-import-files" class="btn solid">Import files</button>
+          <button type="button" id="btn-import-folder" class="btn ghost">Import folder</button>
+          <input
+            id="file-input"
+            type="file"
+            accept="audio/*,image/*"
+            multiple
+            hidden
+          />
+          <input
+            id="folder-input"
+            type="file"
+            accept="audio/*,image/*"
+            webkitdirectory
+            multiple
+            hidden
+          />
+        </div>
+        <p class="local-disclaimer">Personal local playback only. No streaming. No cloud.</p>
+      </aside>
+
+      <main class="stage">
+        <section id="view-now" class="now-playing" aria-label="Now playing">
+          <div class="art-wrap">
+            <img id="cover-art" class="cover-art" alt="" hidden />
+            <div id="cover-fallback" class="cover-fallback" aria-hidden="true">
+              <span>FW</span>
+            </div>
+          </div>
+          <div class="now-meta">
+            <p id="now-title" class="now-title">Nothing queued</p>
+            <p id="now-note" class="hand-note">Import your recordings to start the wall.</p>
+            <div id="now-tags" class="chip-row"></div>
+          </div>
+          <div class="transport">
+            <button type="button" id="btn-prev" class="transport-btn" aria-label="Previous">‹</button>
+            <button type="button" id="btn-play" class="transport-btn play" aria-label="Play">▶</button>
+            <button type="button" id="btn-next" class="transport-btn" aria-label="Next">›</button>
+          </div>
+        </section>
+
+        <section id="view-library" class="content-panel is-active" aria-label="Library">
+          <div class="panel-head">
+            <h2 id="library-heading">Library</h2>
+            <button type="button" id="btn-clear-filter" class="btn tiny ghost" hidden>Clear filter</button>
+          </div>
+          <ul id="track-list" class="track-list"></ul>
+          <p id="library-empty" class="empty-hint">
+            Drop in local audio — sax takes, covers, late-night sessions. Tag them on the wall.
+          </p>
+        </section>
+
+        <section id="view-wall" class="content-panel" aria-label="Frankie's Wall graffiti" hidden>
+          <div class="panel-head">
+            <h2>Frankie's Wall</h2>
+            <p class="panel-sub">Names on the brick — click to filter your tagged tracks.</p>
+          </div>
+          <div id="graffiti-grid" class="graffiti-grid"></div>
+        </section>
+
+        <section id="view-edit" class="edit-drawer" hidden aria-label="Tag track">
+          <div class="panel-head">
+            <h2>Tag track</h2>
+            <button type="button" id="btn-close-edit" class="btn tiny ghost">Close</button>
+          </div>
+          <form id="tag-form" class="tag-form">
+            <input type="hidden" id="edit-id" />
+            <label>
+              Title
+              <input id="edit-title" type="text" autocomplete="off" />
+            </label>
+            <label>
+              Handwritten note
+              <textarea id="edit-notes" rows="2" placeholder="Playing: … (Frankies wall, late night)"></textarea>
+            </label>
+            <fieldset>
+              <legend>Bands</legend>
+              <div id="edit-bands" class="check-grid"></div>
+            </fieldset>
+            <fieldset>
+              <legend>Places</legend>
+              <div id="edit-places" class="check-grid"></div>
+            </fieldset>
+            <fieldset>
+              <legend>People</legend>
+              <div id="edit-people" class="check-grid"></div>
+            </fieldset>
+            <fieldset>
+              <legend>Instruments</legend>
+              <div id="edit-instruments" class="check-grid"></div>
+            </fieldset>
+            <fieldset>
+              <legend>Vibes</legend>
+              <div id="edit-vibes" class="check-grid"></div>
+            </fieldset>
+            <label class="file-label">
+              Cover image (local)
+              <input id="edit-cover" type="file" accept="image/*" />
+            </label>
+            <div class="form-actions">
+              <button type="submit" class="btn solid">Save tags</button>
+              <button type="button" id="btn-remove-track" class="btn danger ghost">Remove</button>
+            </div>
+          </form>
+        </section>
+      </main>
+
+      <footer class="bmx-rail" aria-label="Playback progress">
+        <div class="rail-metal">
+          <input
+            id="seek"
+            type="range"
+            min="0"
+            max="1000"
+            value="0"
+            step="1"
+            aria-label="Seek"
+          />
+        </div>
+        <div class="rail-times">
+          <span id="time-current">0:00</span>
+          <span id="time-duration">0:00</span>
+        </div>
+      </footer>
+    </div>
+
+    <audio id="audio" preload="metadata"></audio>
+    <script src="sidepanel.js"></script>
+  </body>
+</html>
