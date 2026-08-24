@@ -42,7 +42,7 @@
     const path = document.createElementNS("http://www.w3.org/2000/svg", "path");
     path.setAttribute("d", "M20 10 v25 a12 12 0 0 0 24 0 v-25");
     path.setAttribute("fill", "none");
-    path.setAttribute("stroke", props.stroke);
+    path.setAttribute("stroke", strokeColor);
     path.setAttribute("stroke-width", String(props.strokeWidth));
     path.setAttribute("stroke-linecap", "round");
     path.setAttribute("stroke-linejoin", "round");
@@ -52,7 +52,7 @@
     line.setAttribute("y1", "35");
     line.setAttribute("x2", "32");
     line.setAttribute("y2", "54");
-    line.setAttribute("stroke", props.stroke);
+    line.setAttribute("stroke", strokeColor);
     line.setAttribute("stroke-width", String(props.strokeWidth));
     line.setAttribute("stroke-linecap", "round");
 
@@ -69,7 +69,9 @@
     const placementClass = PLACEMENT_CLASS[merged.placement] || PLACEMENT_CLASS.default;
 
     const root = document.createElement(merged.interactive ? "button" : "div");
-    root.type = merged.interactive ? "button" : undefined;
+    if (merged.interactive) {
+      root.type = "button";
+    }
     root.className = ["tuning-fork-icon", placementClass].filter(Boolean).join(" ");
     root.dataset.component = "TuningFork";
     root.dataset.tuningFork = "true";
