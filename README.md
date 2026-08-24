@@ -114,3 +114,4 @@ stacks; this README only describes what this repo runs.
 
 - [`examples.md`](examples.md) — Practical code examples for tools, hooks, events, and complete extensions
 - [`agent-author.md`](agent-author.md) — Step-by-step workflow for agents authoring extensions programmatically
+- [`SOUL.md`](SOUL.md) — Claw Opus values, voice, and bright lines
