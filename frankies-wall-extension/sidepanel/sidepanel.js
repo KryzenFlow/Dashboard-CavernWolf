@@ -793,7 +793,7 @@
     }, 2000);
   }
 
-  document.querySelectorAll("[data-tuning-fork]").forEach((node) => {
+  document.querySelectorAll('[data-onclick="playTuningFork"]').forEach((node) => {
     node.addEventListener("click", () => {
       playTuningFork().catch(() => {});
     });
