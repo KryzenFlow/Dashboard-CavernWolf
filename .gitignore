@@ -24,3 +24,6 @@ melotunez-frontend/dist/
 melotunez-backend/node_modules/
 melotunez-backend/.env
 melotunez-backend/.env.local
+
+# Optional local upstream clones (do not commit)
+vendor/
