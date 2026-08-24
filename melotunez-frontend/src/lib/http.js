@@ -45,7 +45,11 @@ export async function apiRequest(path, options = {}) {
       (data && typeof data === 'object' && (data.error || data.message)) ||
       response.statusText ||
       'Request failed';
-    throw new ApiError(String(message), response.status);
+    const error = new ApiError(String(message), response.status);
+    if (data && typeof data === 'object' && data.code) {
+      error.code = data.code;
+    }
+    throw error;
   }
 
   return data;

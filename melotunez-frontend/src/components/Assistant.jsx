@@ -1,8 +1,41 @@
 import { useState } from 'react';
 import { assistantChat } from '../api/assistant.js';
 
+function formatAssistantReply(result) {
+  if (typeof result === 'string' && result) return result;
+  return (
+    result?.reply ||
+    result?.message ||
+    result?.response ||
+    result?.data?.reply ||
+    result?.data?.message ||
+    (result ? JSON.stringify(result, null, 2) : 'No reply')
+  );
+}
+
+function friendlyAssistantError(err) {
+  const raw = String(err?.message || 'Assistant request failed');
+  const lower = raw.toLowerCase();
+  if (
+    err?.status === 503 ||
+    lower.includes('not yet available') ||
+    lower.includes('not configured') ||
+    lower.includes('pluggable')
+  ) {
+    return {
+      title: 'Assistant unavailable',
+      detail:
+        raw ||
+        'Base44 assistantChat is not available. Configure AI_API_KEY (OpenRouter) or AI_PROVIDER=ollama on melotunez-backend, then restart the API.',
+    };
+  }
+  return { title: 'Request failed', detail: raw };
+}
+
 /**
- * Simple chat UI for Base44 functions.assistantChat via Express.
+ * Chat UI → Express POST /api/assistant[/chat].
+ * Prefers pluggable OpenRouter/Ollama when the backend has AI_* env set;
+ * otherwise Base44 assistantChat, with a clear error if neither works.
  */
 export default function Assistant() {
   const [input, setInput] = useState('');
@@ -26,21 +59,18 @@ export default function Assistant() {
         message: text,
         messages: nextMessages,
       });
-      const reply =
-        (typeof result === 'string' && result) ||
-        result?.reply ||
-        result?.message ||
-        result?.response ||
-        result?.data?.reply ||
-        result?.data?.message ||
-        JSON.stringify(result, null, 2);
+      const reply = formatAssistantReply(result);
+      const providerNote =
+        result?.source === 'pluggable' && result?.provider
+          ? `\n\n— via ${result.provider}${result.model ? ` · ${result.model}` : ''}`
+          : '';
 
       setMessages((prev) => [
         ...prev,
-        { role: 'assistant', content: String(reply) },
+        { role: 'assistant', content: String(reply) + providerNote },
       ]);
     } catch (err) {
-      setError(err?.message || 'Assistant request failed');
+      setError(friendlyAssistantError(err));
     } finally {
       setLoading(false);
     }
@@ -51,13 +81,16 @@ export default function Assistant() {
       <div>
         <h2 className="font-display text-3xl font-semibold tracking-tight">Assistant</h2>
         <p className="mt-1 text-sm text-[var(--color-muted)]">
-          Chat with the Base44 <code className="text-[var(--color-accent)]">assistantChat</code> function.
+          Chat via Express <code className="text-[var(--color-accent)]">/api/assistant</code>
+          {' '}(pluggable OpenRouter/Ollama when configured, else Base44{' '}
+          <code className="text-[var(--color-accent)]">assistantChat</code>).
         </p>
       </div>
 
       {error && (
         <div className="rounded-xl border border-[var(--color-danger)]/40 bg-[var(--color-danger)]/10 px-4 py-3 text-sm text-[var(--color-danger)]">
-          {error}
+          <div className="font-semibold">{error.title}</div>
+          <p className="mt-1 whitespace-pre-wrap opacity-90">{error.detail}</p>
         </div>
       )}
 

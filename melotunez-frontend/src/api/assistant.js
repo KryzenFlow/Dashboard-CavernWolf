@@ -1,6 +1,6 @@
 import { apiRequest } from '../lib/http.js';
 
-/** POST /api/assistant/chat → Base44 functions.assistantChat */
+/** POST /api/assistant/chat → pluggable AI or Base44 assistantChat */
 export async function sendAssistantMessage(payload) {
   return apiRequest('/api/assistant/chat', {
     method: 'POST',

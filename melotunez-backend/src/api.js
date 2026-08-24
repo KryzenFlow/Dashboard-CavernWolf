@@ -5,6 +5,11 @@
  * Option 2's getAll*(query, limit, skip, sort) maps onto that and applies
  * client-side text filtering for `query` when provided.
  */
+import {
+  isBase44AssistantUnavailable,
+  isPluggableAiConfigured,
+  pluggableChat,
+} from './aiChat.js';
 import { base44 } from './base44Client.js';
 
 function matchesQuery(record, query, fields) {
@@ -165,14 +170,44 @@ export async function deleteUser(id) {
 // ─── Assistant ────────────────────────────────────────────────────────────────
 
 /**
- * Invoke the Base44 assistantChat backend function.
- * SDK surface is functions.invoke(name, data); exposed here as assistantChat(payload).
+ * Dashboard assistant: prefer pluggable OpenRouter/Ollama when configured;
+ * otherwise try Base44 functions.assistantChat. If Base44 says "not yet
+ * available" and pluggable AI is configured, fall through to that provider.
  */
 export async function assistantChat(payload) {
-  if (typeof base44.functions.assistantChat === 'function') {
-    return base44.functions.assistantChat(payload);
+  const preferPluggable =
+    process.env.AI_PREFER_PLUGGABLE !== '0' && isPluggableAiConfigured();
+
+  if (preferPluggable) {
+    return pluggableChat(payload || {});
   }
-  const result = await base44.functions.invoke('assistantChat', payload || {});
-  // axios-style responses nest data; unwrap when present
-  return result?.data ?? result;
+
+  try {
+    let result;
+    if (typeof base44.functions.assistantChat === 'function') {
+      result = await base44.functions.assistantChat(payload || {});
+    } else {
+      result = await base44.functions.invoke('assistantChat', payload || {});
+    }
+    // axios-style responses nest data; unwrap when present
+    return result?.data ?? result;
+  } catch (err) {
+    if (isPluggableAiConfigured() && isBase44AssistantUnavailable(err)) {
+      return pluggableChat(payload || {});
+    }
+
+    const unavailable = isBase44AssistantUnavailable(err);
+    const message = unavailable
+      ? 'Base44 assistantChat is not yet available. Set AI_API_KEY (OpenRouter) or AI_PROVIDER=ollama on melotunez-backend for pluggable chat, or deploy the Base44 assistant function.'
+      : err?.response?.data?.message ||
+        err?.response?.data?.error ||
+        err?.message ||
+        'Assistant request failed';
+
+    const wrapped = new Error(String(message));
+    wrapped.status = unavailable ? 503 : err?.response?.status || err?.status || 502;
+    wrapped.code = unavailable ? 'assistant_unavailable' : 'assistant_error';
+    wrapped.cause = err;
+    throw wrapped;
+  }
 }

@@ -4,6 +4,7 @@
  */
 import cors from 'cors';
 import express from 'express';
+import { getAiConfig, isPluggableAiConfigured } from './aiChat.js';
 import * as api from './api.js';
 import { base44Config } from './base44Client.js';
 
@@ -41,11 +42,17 @@ app.get('/health', (_req, res) => {
 });
 
 app.get('/api/health', (_req, res) => {
+  const ai = getAiConfig();
   res.json({
     ok: true,
     service: 'melotunez-backend',
     appId: base44Config.appId,
     mode: 'api_key',
+    assistant: {
+      pluggableConfigured: isPluggableAiConfigured(),
+      provider: ai.provider,
+      model: ai.model,
+    },
   });
 });
 
@@ -189,6 +196,14 @@ app.delete(
 // ─── Assistant ────────────────────────────────────────────────────────────────
 
 app.post(
+  '/api/assistant',
+  asyncHandler(async (req, res) => {
+    const result = await api.assistantChat(req.body || {});
+    res.json(result);
+  }),
+);
+
+app.post(
   '/api/assistant/chat',
   asyncHandler(async (req, res) => {
     const result = await api.assistantChat(req.body || {});
@@ -201,15 +216,18 @@ app.post(
 app.use((err, _req, res, _next) => {
   console.error('[melotunez-backend]', err?.message || err);
   const status =
-    err?.response?.status ||
     err?.status ||
+    err?.response?.status ||
     (err?.message?.includes('not found') ? 404 : 500);
   const message =
+    err?.message ||
     err?.response?.data?.message ||
     err?.response?.data?.error ||
-    err?.message ||
     'Internal server error';
-  res.status(Number(status) || 500).json({ error: message });
+  res.status(Number(status) || 500).json({
+    error: message,
+    code: err?.code || undefined,
+  });
 });
 
 app.listen(PORT, HOST, () => {

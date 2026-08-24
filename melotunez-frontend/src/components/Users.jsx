@@ -9,7 +9,7 @@ const EMPTY_FORM = {
 
 /**
  * User management via Express → Base44 (server holds api_key).
- * Create/delete are always available in this dashboard mode.
+ * Create/delete use admin-capable server credentials (inviteUser / entity create).
  */
 export default function Users() {
   const [users, setUsers] = useState([]);

@@ -33,6 +33,11 @@ Default URL: http://localhost:3001
 | `HOST` | `0.0.0.0` |
 | `BASE44_APP_ID` | `6a8bbac67d8d3dfc43538a00` |
 | `BASE44_API_KEY` | (bundled default; override in production) |
+| `AI_PROVIDER` | `openrouter` (`ollama`, `groq`, `together`, `openai`, …) |
+| `AI_BASE_URL` | provider default (e.g. OpenRouter / `http://127.0.0.1:11434/v1`) |
+| `AI_API_KEY` | (required except Ollama) |
+| `AI_MODEL` | provider default |
+| `AI_PREFER_PLUGGABLE` | `1` when key/Ollama configured — set `0` to force Base44 first |
 
 ## Endpoints
 
@@ -54,14 +59,16 @@ Default URL: http://localhost:3001
 | GET | `/api/users` | |
 | POST | `/api/users` | invite / create |
 | DELETE | `/api/users/:id` | |
-| POST | `/api/assistant/chat` | Base44 `assistantChat` function |
+| POST | `/api/assistant` | same as `/chat` |
+| POST | `/api/assistant/chat` | pluggable AI when `AI_*` set; else Base44 `assistantChat` |
 
 ## Layout
 
 ```
 src/
   base44Client.js   # SDK createClient + api_key
-  api.js            # getAllTracks, createPlaylist, …
+  api.js            # getAllTracks, createPlaylist, assistantChat, …
+  aiChat.js         # OpenRouter / Ollama OpenAI-compatible adapter
   server.js         # Express routes
 ```
 

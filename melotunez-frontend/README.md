@@ -43,11 +43,32 @@ VITE_API_BASE=https://melotunez-api.onrender.com npm run build
 
 - Sidebar / mobile nav: Tracks, Playlists, Users, Assistant
 - Track CRUD + search
-- Playlist CRUD + add/remove tracks
-- User invite / delete
-- Assistant chat (Base44 `assistantChat` — migrate to pluggable AI per direction doc)
+- **Playlist detail** — click a playlist → track list, add/remove tracks, create playlist
+- **User admin** — Create user (invite) / Delete via Express `/api/users` (server `api_key`)
+- **Assistant chat** — wired to Express `POST /api/assistant` (+ `/chat`); prefers pluggable OpenRouter/Ollama when `AI_*` is set on the backend; otherwise Base44 `assistantChat`, with a clear “unavailable” error if neither works
 - Persistent bottom audio player for `track.audio_url`
 - Loading and error states
+
+### Try in the UI
+
+| Feature | Where |
+| --- | --- |
+| Playlist detail | **Playlists** → click a card → add/remove tracks; **Create playlist** on the list view |
+| User create/delete | **Users** → **Create user** / **Delete** on a row |
+| Assistant | **Assistant** → type a message → **Send** |
+
+Optional for Assistant (backend env): `AI_API_KEY` + `AI_PROVIDER=openrouter`, or `AI_PROVIDER=ollama` with a local Ollama server.
+
+## What landed in this dashboard pass
+
+Already present from earlier Option 2 work: nav + components for Tracks / Playlists / Users / Assistant, Express API clients, playlist detail with membership, user invite/delete.
+
+Newly hardened / wired here:
+
+- Backend pluggable AI adapter (`melotunez-backend/src/aiChat.js`) and assistant preference for OpenRouter/Ollama when configured
+- Alias route `POST /api/assistant` (same handler as `/api/assistant/chat`)
+- Assistant UI graceful “unavailable” messaging + provider footnote on pluggable replies
+- Option 3 SDK helpers under `src/sdk/` (reference only; production stays on Express)
 
 ## Layout
 
@@ -60,9 +81,11 @@ src/
   api/assistant.js
   sdk/                 # Option 3 — direct Base44 SDK (optional; not wired to App)
     lib/base44.js
-    api/tracks.js      # list(sort, limit, skip); q filtered client-side
-    api/playlists.js   # (next)
-    api/users.js       # (next)
+    api/tracks.js
+    api/playlists.js
+    api/users.js
+    api/assistant.js
+    App.Truetunes.jsx  # reference monolith only
   components/Tracks.jsx
   components/Playlists.jsx
   components/Users.jsx
