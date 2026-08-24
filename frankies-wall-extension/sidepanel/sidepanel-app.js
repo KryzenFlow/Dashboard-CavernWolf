@@ -958,16 +958,8 @@
 
   renderStoryFilterBar();
 
-  if (el.instrumentFilter) {
-    el.instrumentFilter.querySelectorAll("button[data-instrument]").forEach((btn) => {
-      btn.addEventListener("click", () => {
-        filterByInstrument(btn.getAttribute("data-instrument") || "all");
-      });
-    });
-    setInstrumentFilter(instrumentFilter);
-  }
-
   window.filterByInstrument = filterByInstrument;
+  setInstrumentFilter(instrumentFilter);
 
   el.btnImportFiles.addEventListener("click", async () => {
     if (window.showOpenFilePicker) {
