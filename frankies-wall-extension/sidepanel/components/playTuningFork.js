@@ -25,3 +25,6 @@ function playTuningFork(duration = 2) {
 }
 
 window.playTuningFork = playTuningFork;
+
+// ES module export (import { playTuningFork } from "./components/playTuningFork.js")
+export { playTuningFork };
