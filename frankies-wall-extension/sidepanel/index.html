@@ -10,8 +10,42 @@
     <div class="app">
       <aside class="wall-sidebar" aria-label="Wall of names">
         <header class="brand-block">
-          <p class="brand">Frankie's Wall</p>
-          <p class="brand-sub">local files · your recordings</p>
+          <button
+            type="button"
+            class="tuning-fork-icon tuning-fork--logo"
+            data-tuning-fork
+            data-onclick="playTuningFork"
+            data-meaning="Mom's Center — Find Your Tone"
+            aria-label="Mom's Center — Find Your Tone. Play A440 tuning fork."
+            title="Mom's Center — Find Your Tone"
+          >
+            <svg class="tuning-fork-svg" viewBox="0 0 64 64" fill="none" aria-hidden="true">
+              <path
+                d="M20 10 v25 a12 12 0 0 0 24 0 v-25"
+                fill="none"
+                stroke="currentColor"
+                stroke-width="4"
+                stroke-linecap="round"
+                stroke-linejoin="round"
+              />
+              <line
+                x1="32"
+                y1="35"
+                x2="32"
+                y2="54"
+                stroke="currentColor"
+                stroke-width="4"
+                stroke-linecap="round"
+              />
+            </svg>
+          </button>
+          <div class="brand-copy">
+            <p class="brand">Frankie's Wall</p>
+            <p class="brand-sub">local files · your recordings</p>
+            <p class="tuning-fork-meaning tuning-fork-meaning--logo hand-note">
+              Mom's Center — Find Your Tone
+            </p>
+          </div>
         </header>
 
         <nav class="view-nav" aria-label="Views">
@@ -65,26 +99,17 @@
 
       <main class="stage">
         <section id="view-now" class="now-playing" aria-label="Now playing">
-          <div class="tuning-fork-cluster tuning-fork-cluster--now">
+          <div class="art-cluster">
             <button
               type="button"
-              class="tuning-fork-icon tuning-fork--now"
+              class="tuning-fork-icon tuning-fork--art"
               data-tuning-fork
               data-onclick="playTuningFork"
               data-meaning="Mom's Center — Find Your Tone"
               aria-label="Mom's Center — Find Your Tone. Play A440 tuning fork."
               title="Mom's Center — Find Your Tone"
             >
-              <!-- TuningForkIcon: resonance / center / alignment -->
-              <svg
-                class="tuning-fork-svg"
-                width="32"
-                height="32"
-                viewBox="0 0 64 64"
-                fill="none"
-                xmlns="http://www.w3.org/2000/svg"
-                aria-hidden="true"
-              >
+              <svg class="tuning-fork-svg" viewBox="0 0 64 64" fill="none" aria-hidden="true">
                 <path
                   d="M20 10 v25 a12 12 0 0 0 24 0 v-25"
                   fill="none"
@@ -104,12 +129,11 @@
                 />
               </svg>
             </button>
-            <p class="tuning-fork-meaning hand-note">Mom's Center — Find Your Tone</p>
-          </div>
-          <div class="art-wrap">
-            <img id="cover-art" class="cover-art" alt="" hidden />
-            <div id="cover-fallback" class="cover-fallback" aria-hidden="true">
-              <span>FW</span>
+            <div class="art-wrap">
+              <img id="cover-art" class="cover-art" alt="" hidden />
+              <div id="cover-fallback" class="cover-fallback" aria-hidden="true">
+                <span>FW</span>
+              </div>
             </div>
           </div>
           <div class="now-meta">
@@ -136,43 +160,6 @@
         </section>
 
         <section id="view-wall" class="content-panel wall-stage" aria-label="Frankie's Wall graffiti" hidden>
-          <button
-            type="button"
-            class="tuning-fork-icon tuning-fork--wall"
-            data-tuning-fork
-            data-onclick="playTuningFork"
-            data-meaning="Mom's Center — Find Your Tone"
-            aria-label="Mom's Center — Find Your Tone. Play A440 tuning fork."
-            title="Mom's Center — Find Your Tone"
-          >
-            <svg
-              class="tuning-fork-svg"
-              width="32"
-              height="32"
-              viewBox="0 0 64 64"
-              fill="none"
-              xmlns="http://www.w3.org/2000/svg"
-              aria-hidden="true"
-            >
-              <path
-                d="M20 10 v25 a12 12 0 0 0 24 0 v-25"
-                fill="none"
-                stroke="currentColor"
-                stroke-width="4"
-                stroke-linecap="round"
-                stroke-linejoin="round"
-              />
-              <line
-                x1="32"
-                y1="35"
-                x2="32"
-                y2="54"
-                stroke="currentColor"
-                stroke-width="4"
-                stroke-linecap="round"
-              />
-            </svg>
-          </button>
           <div class="panel-head">
             <h2>Frankie's Wall</h2>
             <p class="panel-sub">Names on the brick — click to filter your tagged tracks.</p>
@@ -228,16 +215,47 @@
       </main>
 
       <footer class="bmx-rail" aria-label="Playback progress">
-        <div class="rail-metal">
-          <input
-            id="seek"
-            type="range"
-            min="0"
-            max="1000"
-            value="0"
-            step="1"
-            aria-label="Seek"
-          />
+        <div class="rail-row">
+          <button
+            type="button"
+            class="tuning-fork-icon tuning-fork--rail"
+            data-tuning-fork
+            data-onclick="playTuningFork"
+            data-meaning="Mom's Center — Find Your Tone"
+            aria-label="Mom's Center — Find Your Tone. Play A440 tuning fork."
+            title="Mom's Center — Find Your Tone"
+          >
+            <svg class="tuning-fork-svg" viewBox="0 0 64 64" fill="none" aria-hidden="true">
+              <path
+                d="M20 10 v25 a12 12 0 0 0 24 0 v-25"
+                fill="none"
+                stroke="currentColor"
+                stroke-width="4"
+                stroke-linecap="round"
+                stroke-linejoin="round"
+              />
+              <line
+                x1="32"
+                y1="35"
+                x2="32"
+                y2="54"
+                stroke="currentColor"
+                stroke-width="4"
+                stroke-linecap="round"
+              />
+            </svg>
+          </button>
+          <div class="rail-metal">
+            <input
+              id="seek"
+              type="range"
+              min="0"
+              max="1000"
+              value="0"
+              step="1"
+              aria-label="Seek"
+            />
+          </div>
         </div>
         <div class="rail-times">
           <span id="time-current">0:00</span>

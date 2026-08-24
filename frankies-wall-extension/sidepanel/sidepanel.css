@@ -81,7 +81,15 @@ button {
 }
 
 .brand-block {
+  display: flex;
+  align-items: flex-start;
+  gap: 10px;
   margin-bottom: 14px;
+}
+
+.brand-copy {
+  min-width: 0;
+  flex: 1;
 }
 
 .brand {
@@ -101,6 +109,14 @@ button {
   color: var(--muted);
   font-size: 10px;
   letter-spacing: 0.04em;
+}
+
+.tuning-fork-meaning--logo {
+  margin: 6px 0 0;
+  font-size: 12px;
+  line-height: 1.2;
+  color: var(--accent-soft);
+  opacity: 0.9;
 }
 
 .view-nav {
@@ -256,7 +272,7 @@ button {
   padding: 16px 16px 10px;
   border-bottom: 1px solid var(--line);
   display: grid;
-  grid-template-columns: 96px 1fr;
+  grid-template-columns: auto 1fr;
   grid-template-rows: auto auto;
   gap: 10px 14px;
   background:
@@ -264,37 +280,15 @@ button {
     linear-gradient(180deg, #121212, #0c0c0c);
 }
 
-/* TuningForkIcon — visual tuning fork (Ig 1)
-   meaning: Mom's Center — Find Your Tone */
-.tuning-fork-cluster {
-  position: absolute;
-  top: 8px;
-  right: 10px;
-  z-index: 2;
+.art-cluster {
+  grid-row: 1 / 3;
   display: flex;
-  flex-direction: column;
-  align-items: flex-end;
-  gap: 2px;
-  max-width: 46%;
+  align-items: flex-start;
+  gap: 8px;
 }
 
-.tuning-fork-cluster--now .tuning-fork--now {
-  position: static;
-}
-
-.tuning-fork-meaning {
-  margin: 0;
-  font-size: 13px;
-  line-height: 1.15;
-  text-align: right;
-  color: var(--accent-soft);
-  opacity: 0.85;
-  text-shadow: 0 1px 0 #000;
-}
-
+/* TuningForkIcon — phronesis in code: center / alignment / resonance */
 .tuning-fork-icon {
-  width: 32px;
-  height: 32px;
   padding: 0;
   border: none;
   background: transparent;
@@ -303,6 +297,7 @@ button {
   place-items: center;
   cursor: pointer;
   opacity: 0.55;
+  flex-shrink: 0;
   transition: opacity 0.25s ease, color 0.25s ease, filter 0.25s ease;
 }
 
@@ -314,29 +309,33 @@ button {
 }
 
 .tuning-fork-svg {
-  width: 32px;
-  height: 32px;
+  width: 100%;
+  height: 100%;
   display: block;
   overflow: visible;
 }
 
-.tuning-fork--now {
-  position: absolute;
-  top: 10px;
-  right: 12px;
-  z-index: 2;
+/* 1. Top-left shop logo */
+.tuning-fork--logo {
+  width: 28px;
+  height: 28px;
+  margin-top: 4px;
+  opacity: 0.75;
 }
 
-.wall-stage {
-  position: relative;
+/* 2. Next to Now Playing album art */
+.tuning-fork--art {
+  width: 30px;
+  height: 30px;
+  margin-top: 4px;
 }
 
-.tuning-fork--wall {
-  position: absolute;
-  top: 8px;
-  right: 10px;
-  z-index: 2;
-  opacity: 0.4;
+/* 3. Pulse on the BMX grind rail */
+.tuning-fork--rail {
+  width: 22px;
+  height: 22px;
+  opacity: 0.65;
+  align-self: center;
 }
 
 .tuning-fork-icon.is-playing,
@@ -367,13 +366,13 @@ button {
 }
 
 .art-wrap {
-  grid-row: 1 / 3;
   width: 96px;
   height: 96px;
   position: relative;
   border: 1px solid #333;
   background: #050505;
   overflow: hidden;
+  flex-shrink: 0;
 }
 
 .cover-art {
@@ -714,8 +713,15 @@ button {
   padding: 10px 14px 12px;
 }
 
+.rail-row {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+}
+
 .rail-metal {
   position: relative;
+  flex: 1;
   height: 18px;
   border-radius: 2px;
   background:
