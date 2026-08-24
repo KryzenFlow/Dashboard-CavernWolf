@@ -315,7 +315,12 @@ button {
   overflow: visible;
 }
 
-/* 1. Top-left shop logo */
+.tuning-fork-svg path,
+.tuning-fork-svg line {
+  vector-effect: non-scaling-stroke;
+}
+
+/* Placement sizing overrides (default spec: size 32) */
 .tuning-fork--logo {
   width: 28px;
   height: 28px;
@@ -323,14 +328,12 @@ button {
   opacity: 0.75;
 }
 
-/* 2. Next to Now Playing album art */
 .tuning-fork--art {
-  width: 30px;
-  height: 30px;
+  width: 32px;
+  height: 32px;
   margin-top: 4px;
 }
 
-/* 3. Pulse on the BMX grind rail */
 .tuning-fork--rail {
   width: 22px;
   height: 22px;

@@ -796,6 +796,19 @@
     }, 2000);
   }
 
+  if (window.TuningFork) {
+    window.TuningFork.mountAll((placement) => {
+      const sizeByPlacement = { logo: 28, art: 32, rail: 22 };
+      return {
+        size: sizeByPlacement[placement] ?? window.TuningFork.DEFAULT_PROPS.size,
+        stroke: window.TuningFork.DEFAULT_PROPS.stroke,
+        strokeWidth: window.TuningFork.DEFAULT_PROPS.strokeWidth,
+        interactive: window.TuningFork.DEFAULT_PROPS.interactive,
+        meaning: TUNING_FORK_MEANING,
+      };
+    });
+  }
+
   document.querySelectorAll('[data-onclick="playTuningFork"]').forEach((node) => {
     node.setAttribute("data-meaning", TUNING_FORK_MEANING);
     node.setAttribute("title", TUNING_FORK_MEANING);
