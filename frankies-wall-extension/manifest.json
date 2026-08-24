@@ -1,0 +1,26 @@
+{
+  "manifest_version": 3,
+  "name": "Frankie's Wall",
+  "version": "0.1.0",
+  "description": "Local-only personal music library — play your own recordings and albums. No streaming, no cloud upload.",
+  "permissions": ["storage", "unlimitedStorage", "sidePanel"],
+  "background": {
+    "service_worker": "background/service-worker.js"
+  },
+  "action": {
+    "default_title": "Open Frankie's Wall",
+    "default_icon": {
+      "16": "icons/icon16.png",
+      "48": "icons/icon48.png",
+      "128": "icons/icon128.png"
+    }
+  },
+  "side_panel": {
+    "default_path": "sidepanel/index.html"
+  },
+  "icons": {
+    "16": "icons/icon16.png",
+    "48": "icons/icon48.png",
+    "128": "icons/icon128.png"
+  }
+}
