@@ -3,14 +3,24 @@
  * Connects to backend WebSocket + REST API (see backend/web_gateway)
  */
 
-const API_BASE = window.HERMES_API_BASE || "http://localhost:8000";
-const WS_URL = window.HERMES_WS_URL || "ws://localhost:8000/ws";
+const API_BASE = window.HERMES_API_BASE || (location.port === "3000" ? "http://127.0.0.1:8000" : "");
+const WS_URL =
+  window.HERMES_WS_URL ||
+  (API_BASE
+    ? API_BASE.replace(/^http/, "ws") + "/ws"
+    : `${location.protocol === "https:" ? "wss" : "ws"}://${location.host}/ws`);
 
 let ws = null;
 let requestId = 0;
 let sessionId = "web-1";
+let lifecycleToken = null;
+let didInitAfterAuth = false;
+let loadFilesIntervalId = null;
 let streaming = false;
 let selectedFile = null;
+let agents = [];
+let selectedAgentId = "hermes";
+let statusPollId = null;
 
 const $ = (id) => document.getElementById(id);
 
@@ -39,7 +49,7 @@ function connectWebSocket() {
 
   ws.onopen = () => {
     setStatus("Connected", "connected");
-    appendMessage("system", "Connected to Hermes gateway.");
+    appendMessage("system", "Connected to Hermes. Agent: Claw Opus.");
     rpc("session.create", { session_key: sessionId });
   };
 
@@ -66,6 +76,12 @@ function connectWebSocket() {
           $("chat-transcript").appendChild(div);
         }
       }
+      if (type === "error" && payload?.text) {
+        appendMessage("system", payload.text);
+        streaming = false;
+        setStatus("Connected", "connected");
+        return;
+      }
       if (type === "message.complete") {
         streaming = false;
         setStatus("Connected", "connected");
@@ -75,8 +91,15 @@ function connectWebSocket() {
       return;
     }
 
-    if (msg.result?.session_id) {
-      sessionId = msg.result.session_id;
+    if (msg.result?.session_id) sessionId = msg.result.session_id;
+    if (msg.result?.lifecycle_token && !didInitAfterAuth) {
+      lifecycleToken = msg.result.lifecycle_token;
+      didInitAfterAuth = true;
+      loadFiles();
+      loadGitStatus();
+      // Polling skills list makes the editor feel alive.
+      if (loadFilesIntervalId) clearInterval(loadFilesIntervalId);
+      loadFilesIntervalId = setInterval(loadFiles, 5000);
     }
     if (msg.result?.text) {
       appendMessage("assistant", msg.result.text);
@@ -86,6 +109,10 @@ function connectWebSocket() {
   ws.onclose = () => {
     setStatus("Disconnected");
     appendMessage("system", "Disconnected. Retrying in 3s…");
+    lifecycleToken = null;
+    didInitAfterAuth = false;
+    if (loadFilesIntervalId) clearInterval(loadFilesIntervalId);
+    loadFilesIntervalId = null;
     setTimeout(connectWebSocket, 3000);
   };
 
@@ -93,8 +120,10 @@ function connectWebSocket() {
 }
 
 async function api(path, options = {}) {
+  const headers = { "Content-Type": "application/json", ...options.headers };
+  if (lifecycleToken) headers["X-Lifecycle-Token"] = JSON.stringify(lifecycleToken);
   const res = await fetch(`${API_BASE}${path}`, {
-    headers: { "Content-Type": "application/json", ...options.headers },
+    headers,
     ...options,
   });
   if (!res.ok) throw new Error(await res.text());
@@ -159,7 +188,7 @@ async function loadGitStatus() {
       warn.classList.add("hidden");
     }
   } catch {
-    $("git-status").textContent = "Git status unavailable (mock mode?)";
+    $("git-status").textContent = "Git status unavailable";
   }
 }
 
@@ -167,13 +196,29 @@ document.querySelectorAll(".tab").forEach((btn) => {
   btn.addEventListener("click", () => switchTab(btn.dataset.tab));
 });
 
-$("chat-form").addEventListener("submit", (e) => {
+$("chat-form").addEventListener("submit", async (e) => {
   e.preventDefault();
   const input = $("chat-input");
   const text = input.value.trim();
-  if (!text || !ws || ws.readyState !== WebSocket.OPEN) return;
+  if (!text) return;
+  const selected = agents.find((agent) => agent.id === selectedAgentId);
+  if (selected && selected.role !== "hermes" && selected.role !== "claw_opus") {
+    appendMessage("user", text);
+    input.value = "";
+    try {
+      const result = await api(`/agents/${encodeURIComponent(selected.id)}/route`, {
+        method: "POST",
+        body: JSON.stringify({ task: text, message: text }),
+      });
+      appendMessage("system", JSON.stringify(result.result || result.plan || result, null, 2));
+    } catch (err) {
+      appendMessage("system", `Route failed: ${err.message}`);
+    }
+    return;
+  }
+  if (!ws || ws.readyState !== WebSocket.OPEN || !lifecycleToken) return;
   appendMessage("user", text);
-  rpc("message.send", { session_id: sessionId, text });
+  rpc("message.send", { session_id: sessionId, text, lifecycle_token: lifecycleToken });
   input.value = "";
 });
 
@@ -219,6 +264,7 @@ $("btn-improve-skill").addEventListener("click", () => {
   rpc("message.send", {
     session_id: sessionId,
     text: `Please review and improve this skill:\n\n\`\`\`python\n${code}\n\`\`\``,
+    lifecycle_token: lifecycleToken,
   });
   switchTab("chat");
 });
@@ -233,26 +279,94 @@ $("btn-new-skill").addEventListener("click", () => {
   });
 });
 
-$("btn-git-commit").addEventListener("click", async () => {
+function renderAgentSelect() {
+  const select = $("agent-select");
+  if (!select) return;
+  select.innerHTML = "";
+  agents.forEach((agent) => {
+    const option = document.createElement("option");
+    option.value = agent.id;
+    option.textContent = `${agent.name} (${agent.role})`;
+    if (agent.id === selectedAgentId) option.selected = true;
+    select.appendChild(option);
+  });
+}
+
+async function loadAgents() {
   try {
-    const result = await api("/git/commit", { method: "POST", body: JSON.stringify({ message: "Studio update" }) });
-    appendMessage("system", result.success ? "Committed" : result.error);
-    loadGitStatus();
+    const data = await api("/agents");
+    agents = data.agents || [];
+    if (!agents.some((agent) => agent.id === selectedAgentId) && agents[0]) {
+      selectedAgentId = agents[0].id;
+    }
+    renderAgentSelect();
   } catch (err) {
-    appendMessage("system", err.message);
+    console.error("loadAgents:", err);
+  }
+}
+
+async function loadSystemStatus() {
+  const bar = {
+    claw: $("status-claw"),
+    agents: $("status-agents"),
+    ports: $("status-ports"),
+    containers: $("status-containers"),
+    tailscale: $("status-tailscale"),
+  };
+  if (!bar.claw) return;
+  try {
+    const data = await api("/system/status");
+    const listening = data.claw?.listening;
+    bar.claw.textContent = listening ? "claw listening" : "claw halted/unknown";
+    bar.agents.textContent = `agents ${data.agents_count ?? (data.agents || []).length}`;
+    bar.agents.title = (data.agents || [])
+      .map((agent) => `${agent.name}:${agent.status}`)
+      .join(" · ");
+    bar.ports.textContent = `ports hermes:${data.ports?.hermes ?? "?"} claw:${data.ports?.claw ?? "?"}`;
+    bar.containers.textContent = data.containers?.length
+      ? `containers ${data.containers.join(", ")}`
+      : "containers none reported";
+    bar.tailscale.textContent = data.tailscale_ip
+      ? `tailscale ${data.tailscale_ip}`
+      : "tailscale ip unknown";
+  } catch {
+    bar.claw.textContent = "claw status unavailable";
+  }
+}
+
+$("agent-select")?.addEventListener("change", (event) => {
+  selectedAgentId = event.target.value;
+});
+
+$("btn-delete-agent")?.addEventListener("click", async () => {
+  const selected = agents.find((agent) => agent.id === selectedAgentId);
+  if (!selected) return;
+  const hermesCount = agents.filter((agent) => agent.role === "hermes").length;
+  const clawCount = agents.filter((agent) => agent.role === "claw_opus").length;
+  if (selected.role === "hermes" && hermesCount <= 1) {
+    appendMessage("system", "Cannot delete the last Hermes supervisor.");
+    return;
+  }
+  if (selected.role === "claw_opus" && clawCount <= 1) {
+    appendMessage("system", "Cannot delete the last Claw Opus worker.");
+    return;
+  }
+  if (!window.confirm(`Delete agent ${selected.name}?`)) return;
+  try {
+    await api(`/agents/${encodeURIComponent(selected.id)}`, { method: "DELETE" });
+    selectedAgentId = "hermes";
+    await loadAgents();
+    await loadSystemStatus();
+  } catch (err) {
+    appendMessage("system", `Delete failed: ${err.message}`);
   }
 });
 
-$("btn-git-push").addEventListener("click", async () => {
-  try {
-    const result = await api("/git/push", { method: "POST", body: "{}" });
-    appendMessage("system", result.success ? "Pushed to remote" : result.error);
-  } catch (err) {
-    appendMessage("system", err.message);
-  }
-});
+loadAgents();
+loadSystemStatus();
+statusPollId = setInterval(() => {
+  loadAgents();
+  loadSystemStatus();
+}, 5000);
 
 connectWebSocket();
-loadFiles();
-loadGitStatus();
-setInterval(loadFiles, 5000);

@@ -2,16 +2,18 @@ FROM python:3.11-slim
 
 WORKDIR /app
 
-COPY requirements.txt .
+COPY backend/requirements.txt .
 RUN pip install --no-cache-dir -r requirements.txt
 
-COPY web_gateway ./web_gateway
-COPY routes ./routes
+COPY backend/web_gateway ./web_gateway
+COPY backend/routes ./routes
+COPY wsl_backend ./wsl_backend
+COPY plugins ./plugins
+COPY frontend ./frontend
 
 ENV PYTHONPATH=/app
 ENV PORT=8000
-ENV HERMES_MOCK=1
-
-EXPOSE 8000
+ENV HOST=0.0.0.0
+ENV FRONTEND_DIR=/app/frontend
 
 CMD ["python", "-m", "web_gateway.entry"]

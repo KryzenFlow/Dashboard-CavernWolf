@@ -1,0 +1,270 @@
+:root {
+  --bg: #0b1020;
+  --panel: #121a2f;
+  --line: #243047;
+  --text: #e8eefc;
+  --muted: #9db0d0;
+  --accent: #5eead4;
+  --warn: #fbbf24;
+  --danger: #f87171;
+  --ok: #4ade80;
+  font-family: "IBM Plex Sans", "Segoe UI", sans-serif;
+}
+
+* {
+  box-sizing: border-box;
+}
+
+body {
+  margin: 0;
+  background: radial-gradient(1200px 600px at 10% -10%, #1a2744, var(--bg));
+  color: var(--text);
+  min-height: 100vh;
+}
+
+button,
+select,
+input,
+textarea {
+  font: inherit;
+}
+
+.app-shell {
+  display: grid;
+  grid-template-rows: auto 1fr auto;
+  min-height: 100vh;
+}
+
+.top-bar,
+.status-bar {
+  display: flex;
+  gap: 1rem;
+  align-items: center;
+  padding: 0.75rem 1rem;
+  border-bottom: 1px solid var(--line);
+  background: rgba(10, 14, 28, 0.85);
+}
+
+.status-bar,
+.system-status-bar {
+  border-bottom: none;
+  border-top: 1px solid var(--line);
+  font-size: 0.85rem;
+  color: var(--muted);
+  flex-wrap: wrap;
+}
+
+.agent-pulldown {
+  display: flex;
+  gap: 0.5rem;
+  align-items: center;
+}
+
+.agent-pulldown select {
+  border: 1px solid var(--line);
+  background: #0a1222;
+  color: var(--text);
+  border-radius: 8px;
+  padding: 0.4rem 0.65rem;
+  min-width: 16rem;
+}
+
+.agent-delete:disabled {
+  opacity: 0.55;
+  cursor: not-allowed;
+}
+
+.status-error {
+  color: var(--danger);
+}
+
+.brand {
+  font-weight: 700;
+  letter-spacing: 0.04em;
+  color: var(--accent);
+}
+
+.main-grid {
+  display: grid;
+  grid-template-columns: 280px 1fr 320px;
+  gap: 0;
+  min-height: 0;
+}
+
+.side,
+.workspace,
+.scorecard {
+  border-right: 1px solid var(--line);
+  padding: 1rem;
+  overflow: auto;
+}
+
+.scorecard {
+  border-right: none;
+}
+
+.panel-title {
+  margin: 0 0 0.75rem;
+  font-size: 0.95rem;
+  text-transform: uppercase;
+  letter-spacing: 0.08em;
+  color: var(--muted);
+}
+
+.agent-list {
+  list-style: none;
+  margin: 0;
+  padding: 0;
+  display: grid;
+  gap: 0.5rem;
+}
+
+.agent-item {
+  display: grid;
+  gap: 0.25rem;
+  padding: 0.65rem 0.75rem;
+  background: var(--panel);
+  border: 1px solid var(--line);
+  border-radius: 8px;
+  cursor: pointer;
+}
+
+.agent-item.active {
+  border-color: var(--accent);
+}
+
+.agent-item .name {
+  font-weight: 600;
+}
+
+.agent-item .meta {
+  color: var(--muted);
+  font-size: 0.8rem;
+}
+
+.row {
+  display: flex;
+  gap: 0.5rem;
+  align-items: center;
+  flex-wrap: wrap;
+}
+
+.btn {
+  border: 1px solid var(--line);
+  background: #18233a;
+  color: var(--text);
+  border-radius: 8px;
+  padding: 0.45rem 0.75rem;
+  cursor: pointer;
+}
+
+.btn.danger {
+  border-color: #7f1d1d;
+  color: #fecaca;
+}
+
+.btn.primary {
+  border-color: #0f766e;
+  background: #134e4a;
+}
+
+.chat-log {
+  display: grid;
+  gap: 0.75rem;
+  margin-bottom: 1rem;
+  min-height: 280px;
+}
+
+.bubble {
+  padding: 0.75rem;
+  border-radius: 10px;
+  border: 1px solid var(--line);
+  background: var(--panel);
+  white-space: pre-wrap;
+}
+
+.bubble.user {
+  border-color: #334155;
+}
+
+.bubble.system {
+  border-color: #0f766e;
+}
+
+.composer {
+  display: grid;
+  gap: 0.5rem;
+}
+
+.composer textarea {
+  width: 100%;
+  min-height: 90px;
+  border-radius: 8px;
+  border: 1px solid var(--line);
+  background: #0a1222;
+  color: var(--text);
+  padding: 0.75rem;
+}
+
+.field {
+  display: grid;
+  gap: 0.35rem;
+  margin-bottom: 0.75rem;
+}
+
+.field input,
+.field select,
+.field textarea {
+  border-radius: 8px;
+  border: 1px solid var(--line);
+  background: #0a1222;
+  color: var(--text);
+  padding: 0.5rem 0.65rem;
+}
+
+.pill {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.35rem;
+  padding: 0.2rem 0.55rem;
+  border-radius: 999px;
+  border: 1px solid var(--line);
+  font-size: 0.78rem;
+}
+
+.pill.ok {
+  color: var(--ok);
+}
+
+.pill.warn {
+  color: var(--warn);
+}
+
+.pill.bad {
+  color: var(--danger);
+}
+
+.term {
+  font-family: "IBM Plex Mono", ui-monospace, monospace;
+  font-size: 0.8rem;
+  background: #070b14;
+  border: 1px solid var(--line);
+  border-radius: 8px;
+  padding: 0.75rem;
+  min-height: 360px;
+  white-space: pre-wrap;
+}
+
+.plugin-card {
+  border: 1px solid var(--line);
+  border-radius: 8px;
+  padding: 0.65rem;
+  margin-bottom: 0.5rem;
+  background: var(--panel);
+}
+
+@media (max-width: 1100px) {
+  .main-grid {
+    grid-template-columns: 1fr;
+  }
+}

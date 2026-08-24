@@ -3,13 +3,20 @@
 <head>
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
-  <title>Hermes Studio — CavernWolf Dashboard</title>
+  <title>Hermes Studio Dash</title>
   <link rel="stylesheet" href="styles.css">
 </head>
 <body>
   <div class="studio-dashboard">
     <header class="studio-header">
-      <h1>⚙️ Hermes Studio</h1>
+      <h1>Hermes Studio Dash</h1>
+      <label class="agent-pulldown">
+        <span>Talk to</span>
+        <select id="agent-select" aria-label="Agent selector">
+          <option value="">Loading agents…</option>
+        </select>
+      </label>
+      <button type="button" id="btn-delete-agent" class="btn-action">Delete agent</button>
       <div class="header-status">
         <span id="connection-status" class="status">Connecting…</span>
         <span id="git-warning" class="git-warning hidden"></span>
@@ -28,7 +35,7 @@
         <section id="panel-chat" class="panel active">
           <div id="chat-transcript" class="chat-transcript" aria-live="polite"></div>
           <form id="chat-form" class="chat-form">
-            <textarea id="chat-input" rows="2" placeholder="Message Hermes…" aria-label="Chat message"></textarea>
+            <textarea id="chat-input" rows="2" placeholder="Message Claw Opus…" aria-label="Chat message"></textarea>
             <button type="submit" class="btn-primary">Send</button>
           </form>
         </section>
@@ -42,8 +49,7 @@
           <h2>Git Status</h2>
           <pre id="git-status" class="git-status">Loading…</pre>
           <div class="git-actions">
-            <button id="btn-git-commit" class="btn-action">Commit</button>
-            <button id="btn-git-push" class="btn-action">Push</button>
+            <p class="status">Commit and push are supervisor-only. This UI is read-only for git.</p>
           </div>
         </section>
       </aside>
@@ -60,7 +66,7 @@
             <div class="editor-actions">
               <button id="btn-save-skill" class="btn-action">💾 Save</button>
               <button id="btn-test-skill" class="btn-action">✅ Test</button>
-              <button id="btn-improve-skill" class="btn-action">🤖 Ask Hermes</button>
+              <button id="btn-improve-skill" class="btn-action">Ask Claw</button>
             </div>
           </div>
           <textarea id="code-editor" class="code-editor" spellcheck="false" aria-label="Skill code editor"></textarea>
@@ -69,6 +75,13 @@
       </main>
     </div>
   </div>
+  <footer id="system-status-bar" class="system-status-bar" role="status" aria-live="polite">
+    <span id="status-claw">claw …</span>
+    <span id="status-agents">agents —</span>
+    <span id="status-ports">ports —</span>
+    <span id="status-containers">containers —</span>
+    <span id="status-tailscale">tailscale —</span>
+  </footer>
   <script src="script.js" defer></script>
 </body>
 </html>

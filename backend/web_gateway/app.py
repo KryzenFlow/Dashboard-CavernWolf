@@ -1,4 +1,4 @@
-"""FastAPI application for Hermes web gateway."""
+"""Hermes orchestrator — parent first, Claw Opus only, no mock replies."""
 
 from __future__ import annotations
 
@@ -6,55 +6,159 @@ import asyncio
 import json
 import logging
 import os
+import sys
+import time
 import uuid
 from pathlib import Path
 from typing import Any
 
 from fastapi import FastAPI, WebSocket, WebSocketDisconnect
 from fastapi.middleware.cors import CORSMiddleware
+from fastapi.staticfiles import StaticFiles
 
 from routes.api import router as api_router
+from web_gateway.security.claw_client import ClawUnavailable, claw_chat
+from web_gateway.security.control_plane import current_root, ensure_bootstrapped, register_token
+from web_gateway.security.cycle import after_use, daily_rebuild_loop
+from web_gateway.security.supervisor_gates import gate_and_ledger_block_if_needed
+from web_gateway.security.token import issue_token, is_revoked, revoke_tree, validate_token
 
 _log = logging.getLogger(__name__)
 
 HERMES_HOME = Path(os.environ.get("HERMES_HOME", Path.home() / ".hermes"))
-SKILLS_DIR = HERMES_HOME / "skills"
-MOCK_MODE = os.environ.get("HERMES_MOCK", "1") == "1"
+
+
+def _ensure_repo_root_on_path() -> None:
+    """wsl_backend lives at the repo root; Docker and `python -m web_gateway` both need it."""
+    root = Path(__file__).resolve().parents[2]
+    backend = Path(__file__).resolve().parents[1]
+    for path in (str(root), str(backend)):
+        if path not in sys.path:
+            sys.path.insert(0, path)
+
+
+_ensure_repo_root_on_path()
+
+from wsl_backend.agents.registry import REGISTRY
+from wsl_backend.routes_agents import router as agents_router
+from wsl_backend.routes_agents import status_router
+from wsl_backend.tailscale_net import detect_tailscale_ipv4
 
 active_connections: set[WebSocket] = set()
 sessions: dict[str, dict[str, Any]] = {}
 
+PARENT_CAPABILITIES = {
+    "ws:message.send",
+    "rest:files:read",
+    "rest:skill.save",
+    "rest:skill.test",
+    "rest:git.status:read",
+    "orch:ask_hermes",
+    "tool:grant_child",
+}
+
+
+async def _close_websocket_safely(websocket: WebSocket) -> None:
+    try:
+        await websocket.close(code=4001)
+    except Exception:
+        pass
+
+
+async def _dual_watcher_side_behavior(
+    *, tree_id: str, websocket: WebSocket, expires_at: int, session_id: str
+) -> None:
+    max_inactivity_seconds = int(os.environ.get("HERMES_TOKEN_MAX_INACTIVITY_SECONDS", "600"))
+    while True:
+        await asyncio.sleep(0.5)
+        if is_revoked(tree_id):
+            await _close_websocket_safely(websocket)
+            return
+        now = int(time.time())
+        if now > expires_at:
+            revoke_tree(tree_id, reason="token expired (watcher-side behavior)")
+            await _close_websocket_safely(websocket)
+            return
+        meta = sessions.get(session_id)
+        last_activity = int(meta.get("last_activity_ts", now)) if meta else now
+        if now - last_activity > max_inactivity_seconds:
+            revoke_tree(tree_id, reason="token revoked due to inactivity (watcher-side behavior)")
+            await _close_websocket_safely(websocket)
+            return
+
+
+async def _dual_watcher_side_capability(*, tree_id: str, websocket: WebSocket, session_id: str) -> None:
+    while True:
+        await asyncio.sleep(0.5)
+        if is_revoked(tree_id):
+            await _close_websocket_safely(websocket)
+            return
+        meta = sessions.get(session_id)
+        if not meta:
+            return
+        token = meta.get("lifecycle_token")
+        ok, _ = validate_token(token)
+        if not ok:
+            revoke_tree(tree_id, reason="token invalid (watcher-side capability)")
+            await _close_websocket_safely(websocket)
+            return
+
 
 def create_app() -> FastAPI:
-    app = FastAPI(title="Hermes Web Gateway", version="0.1.0")
-
+    _ensure_repo_root_on_path()
+    ensure_bootstrapped()
+    origins = [
+        o.strip()
+        for o in os.environ.get(
+            "CORS_ORIGINS",
+            "http://localhost:3000,http://127.0.0.1:3000,http://localhost:1420,http://127.0.0.1:1420",
+        ).split(",")
+        if o.strip()
+    ]
+    app = FastAPI(title="Hermes Orchestrator", version="0.2.0")
     app.add_middleware(
         CORSMiddleware,
-        allow_origins=os.environ.get("CORS_ORIGINS", "*").split(","),
+        allow_origins=origins,
         allow_credentials=True,
-        allow_methods=["*"],
+        allow_methods=["GET", "POST", "DELETE"],
         allow_headers=["*"],
     )
-
     app.include_router(api_router)
+    app.include_router(agents_router)
+    app.include_router(status_router)
+
+    @app.get("/studio/health")
+    def studio_health() -> dict[str, Any]:
+        return {
+            "status": "ok",
+            "gateway": "hermes-studio",
+            "agent_worker": "claw-opus",
+            "agents": len(REGISTRY.list_public()),
+            "merkle_root": current_root(),
+            "tailscale_ip": detect_tailscale_ipv4(),
+        }
+
+    @app.on_event("startup")
+    async def _startup() -> None:
+        asyncio.create_task(daily_rebuild_loop())
 
     @app.get("/health")
     async def health() -> dict[str, Any]:
         return {
             "status": "ok",
-            "gateway": "hermes-web",
-            "mock_mode": MOCK_MODE,
+            "gateway": "hermes-orchestrator",
+            "agent": "claw-opus",
+            "merkle_root": current_root(),
             "active_connections": len(active_connections),
         }
 
     @app.get("/info")
     async def info() -> dict[str, Any]:
         return {
-            "gateway": "hermes-web",
-            "version": "0.1.0",
-            "mock_mode": MOCK_MODE,
+            "gateway": "hermes-orchestrator",
+            "agent": "claw-opus",
+            "merkle_root": current_root(),
             "hermes_home": str(HERMES_HOME),
-            "active_connections": len(active_connections),
             "sessions": len(sessions),
         }
 
@@ -66,7 +170,8 @@ def create_app() -> FastAPI:
                     "session_id": sid,
                     "session_key": meta.get("session_key"),
                     "running": meta.get("running", False),
-                    "model": meta.get("model", "mock"),
+                    "agent": "claw-opus",
+                    "role": "parent",
                 }
                 for sid, meta in sessions.items()
             ]
@@ -89,6 +194,20 @@ def create_app() -> FastAPI:
             pass
         finally:
             active_connections.discard(websocket)
+            for sid, meta in list(sessions.items()):
+                if meta.get("websocket") is websocket:
+                    watchers = meta.get("watchers") or {}
+                    for task in watchers.values():
+                        try:
+                            task.cancel()
+                        except Exception:
+                            pass
+                    await after_use(sid)
+                    sessions.pop(sid, None)
+
+    frontend = Path(os.environ.get("FRONTEND_DIR", str(Path(__file__).resolve().parents[2] / "frontend")))
+    if frontend.is_dir():
+        app.mount("/", StaticFiles(directory=str(frontend), html=True), name="ui")
 
     return app
 
@@ -100,45 +219,122 @@ async def handle_rpc(msg: dict[str, Any], websocket: WebSocket) -> dict[str, Any
 
     if method == "session.create":
         sid = str(uuid.uuid4())
+        agent_id = str(uuid.uuid4())
+        ttl_seconds = int(os.environ.get("HERMES_TOKEN_TTL_SECONDS", "120"))
+        token = issue_token(
+            tree_id=sid,
+            agent_id=agent_id,
+            capabilities=PARENT_CAPABILITIES,
+            ttl_seconds=ttl_seconds,
+            merkle_root=current_root(),
+            parent_id=None,
+            role="parent",
+        )
+        register_token(token)
+
         sessions[sid] = {
             "session_key": params.get("session_key", sid),
             "running": False,
-            "model": "mock:gpt-4",
+            "agent": "claw-opus",
+            "lifecycle_token": token,
+            "agent_id": agent_id,
+            "tree_id": sid,
+            "created_at_ts": int(time.time()),
+            "last_activity_ts": int(time.time()),
+            "websocket": websocket,
         }
-        return {"jsonrpc": "2.0", "id": req_id, "result": {"session_id": sid, "status": "ready"}}
+        expires_at = int(token.get("expires_at", 0))
+        sessions[sid]["watchers"] = {
+            "behavior": asyncio.create_task(
+                _dual_watcher_side_behavior(
+                    tree_id=sid, websocket=websocket, expires_at=expires_at, session_id=sid
+                )
+            ),
+            "capability": asyncio.create_task(
+                _dual_watcher_side_capability(tree_id=sid, websocket=websocket, session_id=sid)
+            ),
+        }
+        return {
+            "jsonrpc": "2.0",
+            "id": req_id,
+            "result": {
+                "session_id": sid,
+                "status": "ready",
+                "agent": "claw-opus",
+                "lifecycle_token": token,
+                "merkle_root": current_root(),
+            },
+        }
 
     if method == "message.send":
-        sid = params.get("session_id", "web-1")
+        sid = params.get("session_id", "")
         text = params.get("text", "")
-        sessions.setdefault(sid, {"session_key": sid, "running": True})
+        if sid not in sessions:
+            return {
+                "jsonrpc": "2.0",
+                "id": req_id,
+                "error": {"code": -32000, "message": "unknown session"},
+            }
+        sessions[sid]["last_activity_ts"] = int(time.time())
+        sessions[sid]["running"] = True
+        lifecycle_token = params.get("lifecycle_token") or sessions[sid].get("lifecycle_token")
+        payload = {"session_id": sid, "text": text, "merkle_root": current_root()}
+        verdict, reason = gate_and_ledger_block_if_needed(
+            payload=payload,
+            token=lifecycle_token,
+            action="ws:message.send",
+            agent_name=str(sessions[sid].get("agent_id", "")),
+            session_id=sid,
+        )
+        if verdict != "PASS":
+            revoke_tree(str(sessions[sid].get("tree_id", sid)), reason=reason)
+            sessions[sid]["running"] = False
+            return {
+                "jsonrpc": "2.0",
+                "id": req_id,
+                "error": {"code": -32000, "message": "BLOCKED by supervisor", "reason": reason},
+            }
 
         await websocket.send_text(
             json.dumps(
                 {
                     "jsonrpc": "2.0",
                     "method": "event",
-                    "params": {"type": "message.start", "payload": {"session_id": sid}},
+                    "params": {"type": "message.start", "payload": {"session_id": sid, "agent": "claw-opus"}},
                 }
             )
         )
-
-        reply = (
-            f"[Mock Hermes] Received: {text[:200]}"
-            if MOCK_MODE
-            else "Message queued for Hermes agent."
-        )
-        for chunk in _chunk_text(reply, 24):
-            await asyncio.sleep(0.05)
+        try:
+            reply = claw_chat(
+                text=text,
+                session_id=sid,
+                merkle_root=current_root(),
+                token=lifecycle_token if isinstance(lifecycle_token, dict) else sessions[sid]["lifecycle_token"],
+            )
+        except ClawUnavailable as exc:
             await websocket.send_text(
                 json.dumps(
                     {
                         "jsonrpc": "2.0",
                         "method": "event",
-                        "params": {"type": "message.delta", "payload": {"text": chunk}},
+                        "params": {
+                            "type": "error",
+                            "payload": {"text": f"Claw Opus unavailable: {exc}"},
+                        },
                     }
                 )
             )
-
+            reply = ""
+        if reply:
+            await websocket.send_text(
+                json.dumps(
+                    {
+                        "jsonrpc": "2.0",
+                        "method": "event",
+                        "params": {"type": "message.delta", "payload": {"text": reply}},
+                    }
+                )
+            )
         await websocket.send_text(
             json.dumps(
                 {
@@ -149,7 +345,8 @@ async def handle_rpc(msg: dict[str, Any], websocket: WebSocket) -> dict[str, Any
             )
         )
         sessions[sid]["running"] = False
-        return {"jsonrpc": "2.0", "id": req_id, "result": {"status": "queued"}}
+        await after_use(sid)
+        return {"jsonrpc": "2.0", "id": req_id, "result": {"status": "complete", "agent": "claw-opus"}}
 
     if req_id is not None:
         return {
@@ -158,7 +355,3 @@ async def handle_rpc(msg: dict[str, Any], websocket: WebSocket) -> dict[str, Any
             "error": {"code": -32601, "message": f"Unknown method: {method}"},
         }
     return None
-
-
-def _chunk_text(text: str, size: int) -> list[str]:
-    return [text[i : i + size] for i in range(0, len(text), size)]

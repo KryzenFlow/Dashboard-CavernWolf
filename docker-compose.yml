@@ -1,29 +1,39 @@
-version: "3.8"
+# Optional memory backends for Hermes Studio (WSL). Not Claw's brain.
+# Claw Opus still uses OPENCLAW_GATEWAY_URL via Hermes.
+#
+#   docker compose up -d
+#
+# Set on WSL Hermes:
+#   REDIS_URL=redis://default:${REDIS_PASSWORD}@127.0.0.1:6379
+#   VECTOR_DB_URL=http://127.0.0.1:6333
 
 services:
-  backend:
-    build:
-      context: ./backend
-      dockerfile: Dockerfile
-    ports:
-      - "8000:8000"
-    environment:
-      - HERMES_MOCK=1
-      - HERMES_HOME=/data/hermes
-      - CORS_ORIGINS=http://localhost:3000,http://127.0.0.1:3000
+  redis:
+    image: redis:7
+    command: ["redis-server", "--requirepass", "${REDIS_PASSWORD:?set REDIS_PASSWORD}"]
     volumes:
-      - hermes-data:/data/hermes
+      - redis_data:/data
+    # Localhost only — for WSL Hermes memory connectors (not public ingress).
+    ports:
+      - "127.0.0.1:6379:6379"
+    networks:
+      - memory_net
+    restart: unless-stopped
 
-  frontend:
-    image: node:20-alpine
-    working_dir: /app
+  qdrant:
+    image: qdrant/qdrant:latest
     volumes:
-      - ./frontend:/app
+      - qdrant_data:/qdrant/storage
     ports:
-      - "3000:3000"
-    command: sh -c "npm run dev"
-    depends_on:
-      - backend
+      - "127.0.0.1:6333:6333"
+    networks:
+      - memory_net
+    restart: unless-stopped
+
+networks:
+  memory_net:
+    driver: bridge
 
 volumes:
-  hermes-data:
+  redis_data:
+  qdrant_data:

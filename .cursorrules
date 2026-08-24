@@ -1,0 +1,73 @@
+# HERMES STUDIO DASH — CURSOR GLOBAL INSTRUCTIONS
+When operating in this repository, adhere strictly to the following.
+Read SOUL.md and DOCTOR.md.
+
+## 1. SYSTEM ARCHITECTURE & ROLES
+
+- **Supervisor:** Hermes — routes via bash (argument lists only) and RESTful
+  CLI / FastAPI. Parent sessions ask Hermes.
+- **Worker:** Claw Opus — the primary (and only) execution worker for
+  finalized plans. Talks to `OPENCLAW_GATEWAY_URL` only.
+- **Backend stack:** Tauri (Rust) desktop shell target under `src/` +
+  FastAPI (Python) in WSL2 (`wsl_backend/`, `backend/`). Secured via Tailscale.
+- **Legacy restriction:** Do NOT use Ollama as Claw's brain, LangGraph, or
+  numbered `01_`–`08_` agent folders. Build in this unified workspace.
+  `Doberman.ps1` may guard optional local IDE Ollama — not Claw Opus.
+
+## 2. AGENT MATRIX (dynamic roster)
+
+Expose agents via UI and `/agents` API. Do not bury all logic in one file.
+Roster roles (base classes live in `wsl_backend/agents/`):
+
+| Role | Purpose |
+|------|---------|
+| Hermes | Supervisor — routes tasks; never impersonates Claw |
+| Reasoning (analytical) | Structured analysis; returns plans, not fake answers |
+| Reasoning (rapid) | Fast prototype plans for Hermes → Claw |
+| Memory (ephemeral) | Short-lived state (Redis when configured) |
+| Memory (semantic) | Long-term semantic store (vector DB when configured) |
+| Codex | Tool-using coding specialist (proposes; Claw executes) |
+| Grok | Research / extraction specialist (proposes; Claw executes) |
+| DeepSeek Architect | Architecture review, fail reports, security hardening |
+| Claw Opus | Executes finalized plans only |
+
+Children ask parents. Only Hermes may call Claw. No child inherits
+`orch:ask_hermes`, `claw:invoke`, or `ws:message.send`.
+
+## 3. UI / UX — HERMES STUDIO DASH
+
+Scaffold / evolve toward:
+
+- Main workspace chat with **Agent Pull-Down** (talk to one agent)
+- **Agent Delete** + **Agent Builder** (tools/plugins assignment)
+- Plugins area
+- Bottom **System Status Bar** (agents, ports, containers)
+- Scorecard terminal (logs / metrics)
+
+Static `frontend/` remains the live Studio; `src/` holds React components
+for the Tauri shell.
+
+## 4. SECURITY & CODING (STRICT)
+
+- **SECRETS:** Never hardcode. Prefer Bitwarden at WSL startup
+  (`wsl_backend` + `BW_SESSION`). Non-secret config via `os.environ` /
+  compose. Reject `mock` / `dev-change-me` / empty production secrets.
+- **SUBPROCESS:** Never `shell=True`. Argument lists only.
+- **QUERIES:** Parameterized SQL only.
+- **WSL2:** Python/FastAPI agent routing runs in WSL2 Ubuntu.
+- **NETWORK:** Tailscale for node traffic. Do not publish FastAPI/Claw
+  ports on the public host. Bind WSL Hermes to Tailscale IP when required.
+- **MERKLE / MEMORY:** Live Merkle root for Claw; halt-after-use; daily rebuild.
+
+## Bug tags
+
+`[SYN]` `[DEP]` `[LOG]` `[SEC]` `[MEM]` — tag before fixing.
+
+## Source of truth
+
+- `wsl_backend/` — WSL FastAPI, agent matrix, Bitwarden, Tailscale bind
+- `backend/web_gateway/` — gates, Merkle, Claw client
+- `claw/` — Claw Opus worker
+- `src/` — Studio Dash React scaffolds (Tauri-bound)
+- `frontend/` — current static Studio
+- `.cursorrules`, `SOUL.md`, `DOCTOR.md`, `README.md`
