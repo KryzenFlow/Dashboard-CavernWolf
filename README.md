@@ -109,3 +109,8 @@ Not in this repository (do not expect them on `docker compose up`): Tauri
 Studio, Ignite precache, MCP server, Ollama/OpenAI/Anthropic/Groq router,
 Docker-in-Docker worker pool, STM/LTM stores. Those belong to other
 stacks; this README only describes what this repo runs.
+
+## Further Reading
+
+- [`examples.md`](examples.md) — Practical code examples for tools, hooks, events, and complete extensions
+- [`agent-author.md`](agent-author.md) — Step-by-step workflow for agents authoring extensions programmatically
