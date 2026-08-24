@@ -149,16 +149,40 @@ export async function createUser(data) {
   const role = data.role || 'user';
   const full_name = data.full_name || '';
 
+  if (!email) {
+    const err = new Error('email is required');
+    err.status = 400;
+    throw err;
+  }
+
   try {
     return await base44.entities.User.create({ email, full_name, role });
-  } catch {
-    await base44.auth.inviteUser(email, role);
-    const users = await base44.entities.User.filter({ email });
-    const created = users?.[0];
-    if (created?.id && full_name) {
-      return base44.entities.User.update(created.id, { full_name });
+  } catch (createErr) {
+    try {
+      await base44.auth.inviteUser(email, role);
+      const users = await base44.entities.User.filter({ email });
+      const created = users?.[0];
+      if (created?.id && full_name) {
+        return base44.entities.User.update(created.id, { full_name });
+      }
+      return created ?? { email, role, full_name };
+    } catch (inviteErr) {
+      const message =
+        inviteErr?.response?.data?.message ||
+        createErr?.response?.data?.message ||
+        inviteErr?.message ||
+        createErr?.message ||
+        'Failed to create user';
+      const err = new Error(
+        typeof message === 'string' ? message : JSON.stringify(message),
+      );
+      err.status =
+        inviteErr?.response?.status ||
+        createErr?.response?.status ||
+        inviteErr?.status ||
+        502;
+      throw err;
     }
-    return created ?? { email, role, full_name };
   }
 }
 

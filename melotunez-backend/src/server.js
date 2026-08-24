@@ -219,13 +219,16 @@ app.use((err, _req, res, _next) => {
     err?.status ||
     err?.response?.status ||
     (err?.message?.includes('not found') ? 404 : 500);
-  const message =
+  let message =
     err?.message ||
     err?.response?.data?.message ||
     err?.response?.data?.error ||
     'Internal server error';
+  if (message && typeof message === 'object') {
+    message = message.message || JSON.stringify(message);
+  }
   res.status(Number(status) || 500).json({
-    error: message,
+    error: String(message),
     code: err?.code || undefined,
   });
 });
