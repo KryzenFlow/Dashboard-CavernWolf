@@ -96,7 +96,29 @@
             <button type="button" id="btn-prev" class="transport-btn" aria-label="Previous">‹</button>
             <button type="button" id="btn-play" class="transport-btn play" aria-label="Play">▶</button>
             <button type="button" id="btn-next" class="transport-btn" aria-label="Next">›</button>
+            <label class="volume-control" aria-label="Volume">
+              <span class="volume-icon" aria-hidden="true">♪</span>
+              <input
+                id="volume"
+                type="range"
+                min="0"
+                max="100"
+                value="85"
+                step="1"
+                aria-label="Volume"
+              />
+            </label>
+            <button
+              type="button"
+              id="btn-waveform"
+              class="btn tiny ghost waveform-toggle"
+              aria-pressed="false"
+              aria-label="Toggle waveform visualizer"
+            >
+              Wave
+            </button>
           </div>
+          <canvas id="waveform" class="waveform-canvas" hidden aria-hidden="true"></canvas>
           <button
             type="button"
             id="tuningForkBtn"
@@ -226,6 +248,7 @@
     </div>
 
     <audio id="audio" preload="metadata"></audio>
+    <!-- AUDIO LAYER — play · pause · scrub · volume · fork · optional waveform -->
     <!-- Metadata -->
     <script src="data/tracks.js"></script>
     <script src="data/vibes.js"></script>
@@ -237,6 +260,7 @@
     <!-- Audio -->
     <script src="audio/tuningForkAudio.js"></script>
     <script src="audio/player.js"></script>
+    <script src="audio/waveform.js"></script>
     <!-- Rendering -->
     <script src="components/trackList.js"></script>
     <script src="components/nowPlaying.js"></script>

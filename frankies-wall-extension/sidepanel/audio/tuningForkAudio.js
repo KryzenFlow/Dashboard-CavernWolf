@@ -68,4 +68,7 @@
   }
 
   global.playTuningFork = playTuningFork;
+
+  const FrankiesWall = (global.FrankiesWall = global.FrankiesWall || {});
+  FrankiesWall.playTuningFork = playTuningFork;
 })(typeof window !== "undefined" ? window : globalThis);

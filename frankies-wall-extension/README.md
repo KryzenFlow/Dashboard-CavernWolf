@@ -60,7 +60,7 @@ Pure JS + CSS + HTML — no framework.
 |-------|------|----------|
 | **UI** | Markup + Frankie's Wall styling | `index.html`, `sidepanel.css` |
 | **State** | Library, filters, current track | `sidepanel.js` → `FrankiesWall.state` |
-| **Audio** | Playback + A440 tuning fork | `audio/player.js`, `audio/tuningForkAudio.js` |
+| **Audio** | Play, pause, scrub, volume, A440 fork, optional waveform | `audio/player.js`, `audio/tuningForkAudio.js`, `audio/waveform.js` |
 | **Metadata** | Catalog, tags, vibes | `data/tracks.js`, `data/tags.js`, `data/vibes.js` |
 | **Rendering** | Track list, wall, now playing | `components/` |
 | **Utilities** | DOM, storage, filters | `utils/dom.js`, `utils/storage.js`, `utils/filters.js` |
@@ -85,6 +85,7 @@ sidepanel/
   audio/
     player.js
     tuningForkAudio.js
+    waveform.js
 
   utils/
     dom.js
@@ -108,6 +109,18 @@ Everything visible lives in the UI layer — black-and-white wall aesthetic, mar
 | **BMX rail** | `#seek` progress bar, rail fork mount, elapsed/total times, Music Outro |
 
 Tuning fork SVG mounts: `[data-tuning-fork-mount="logo|art|rail"]` plus the Now Playing button.
+
+## Audio layer (`audio/`)
+
+| Capability | Module | Notes |
+|------------|--------|-------|
+| **Play / pause** | `player.js` | `playTrack`, `togglePlay`, prev/next queue |
+| **Scrub** | `player.js` | `#seek` BMX rail → `seekToRatio` |
+| **Volume** | `player.js` | `#volume` slider, persisted locally |
+| **Tuning fork** | `tuningForkAudio.js` | A440 sine + overtone, 2s fade |
+| **Waveform** | `waveform.js` | Optional — click **Wave** in transport |
+
+Transport binds in `player.js`; progress UI updates via `components/nowPlaying.js`.
 
 ## Permissions
 

@@ -52,6 +52,9 @@
     btnPrev: document.getElementById("btn-prev"),
     btnPlay: document.getElementById("btn-play"),
     btnNext: document.getElementById("btn-next"),
+    volume: document.getElementById("volume"),
+    waveform: document.getElementById("waveform"),
+    btnWaveform: document.getElementById("btn-waveform"),
     seek: document.getElementById("seek"),
     timeCurrent: document.getElementById("time-current"),
     timeDuration: document.getElementById("time-duration"),
@@ -61,19 +64,22 @@
   FW.renderStoryFilterBar();
   FW.bindInstrumentFilter();
   FW.bindVibeFilter();
-  FW.bindUi();
   FW.bindTransport();
+  FW.bindWaveform();
+  FW.bindUi();
   FW.initTuningFork();
 
-  FW.loadLibrary().then(async () => {
-    const catalogAdded = FW.mergeCatalogIntoLibrary();
-    if (catalogAdded) await FW.saveLibrary();
-    FW.renderAll();
-    if (FW.state.library.tracks.length) {
-      const hasBundled = FW.state.library.tracks.some((t) => t.file);
-      FW.el.nowNote.textContent = hasBundled
-        ? "Catalog loaded. Bundled tracks play from music/ — imports override for this session."
-        : "Tags restored. Re-import audio files to play — metadata stayed local.";
-    }
-  });
+  void FW.loadVolume().then(() =>
+    FW.loadLibrary().then(async () => {
+      const catalogAdded = FW.mergeCatalogIntoLibrary();
+      if (catalogAdded) await FW.saveLibrary();
+      FW.renderAll();
+      if (FW.state.library.tracks.length) {
+        const hasBundled = FW.state.library.tracks.some((t) => t.file);
+        FW.el.nowNote.textContent = hasBundled
+          ? "Catalog loaded. Bundled tracks play from music/ — imports override for this session."
+          : "Tags restored. Re-import audio files to play — metadata stayed local.";
+      }
+    })
+  );
 })();

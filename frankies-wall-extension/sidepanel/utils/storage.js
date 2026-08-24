@@ -15,6 +15,8 @@
     storyFilter: "all",
     currentView: "library",
     seeking: false,
+    volume: 0.85,
+    waveformEnabled: false,
   };
 
   FrankiesWall.session = FrankiesWall.session || {

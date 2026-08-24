@@ -469,8 +469,92 @@ button {
 .transport {
   grid-column: 2;
   display: flex;
+  flex-wrap: wrap;
   gap: 6px;
   align-items: center;
+}
+
+.volume-control {
+  display: flex;
+  align-items: center;
+  gap: 4px;
+  margin-left: 4px;
+  min-width: 72px;
+  flex: 1;
+  max-width: 120px;
+}
+
+.volume-icon {
+  font-size: 11px;
+  color: var(--muted);
+  flex-shrink: 0;
+}
+
+#volume {
+  -webkit-appearance: none;
+  appearance: none;
+  width: 100%;
+  height: 4px;
+  background: transparent;
+  margin: 0;
+}
+
+#volume::-webkit-slider-runnable-track {
+  height: 4px;
+  background: linear-gradient(90deg, var(--ink) var(--volume, 85%), #2a2a2a var(--volume, 85%));
+  border-radius: 1px;
+}
+
+#volume::-webkit-slider-thumb {
+  -webkit-appearance: none;
+  appearance: none;
+  width: 10px;
+  height: 10px;
+  margin-top: -3px;
+  background: #f2f2f2;
+  border: 1px solid #111;
+  border-radius: 50%;
+  cursor: grab;
+}
+
+#volume::-moz-range-track {
+  height: 4px;
+  background: #2a2a2a;
+  border-radius: 1px;
+}
+
+#volume::-moz-range-progress {
+  height: 4px;
+  background: var(--ink);
+  border-radius: 1px;
+}
+
+#volume::-moz-range-thumb {
+  width: 10px;
+  height: 10px;
+  background: #f2f2f2;
+  border: 1px solid #111;
+  border-radius: 50%;
+  cursor: grab;
+}
+
+.waveform-toggle.is-active {
+  border-color: var(--accent);
+  color: var(--accent-soft);
+}
+
+.waveform-canvas {
+  grid-column: 1 / -1;
+  width: 100%;
+  height: 36px;
+  margin-top: 4px;
+  border: 1px solid #222;
+  background: #050505;
+  display: block;
+}
+
+.waveform-canvas[hidden] {
+  display: none !important;
 }
 
 #tuningForkBtn {
