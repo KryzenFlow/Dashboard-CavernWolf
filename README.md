@@ -79,53 +79,6 @@ Set API URLs when backend is on a different host:
 | `HERMES_MOCK` | `1` | Mock RPC when full hermes-agent not installed |
 | `HERMES_HOME` | `~/.hermes` | Skills/memory directory |
 | `CORS_ORIGINS` | `*` | Comma-separated allowed origins |
-| `BRAVE_SEARCH_API_KEY` | _(unset)_ | Brave Search API key for LLM Context (`X-Subscription-Token`). Alias: `BRAVE_API_KEY`. Get a key at [api.search.brave.com](https://api.search.brave.com). |
-
-## Brave Search LLM Context
-
-The backend proxies Brave's LLM Context API so the dashboard can ground answers in extracted web content without exposing the API key to the browser.
-
-```bash
-curl -X GET "http://localhost:8000/search/llm-context?q=tallest+mountains+in+the+world"
-```
-
-That call maps to:
-
-```bash
-curl -X GET "https://api.search.brave.com/res/v1/llm/context?q=tallest+mountains+in+the+world" \
-  -H "X-Subscription-Token: <YOUR_API_KEY>"
-```
-
-Location-aware local recall (San Francisco example). This curl matches Brave’s own example; `q` may be omitted when coordinates are present (the gateway searches for `near me`):
-
-```bash
-curl -X GET "http://localhost:8000/res/v1/llm/context" \
-  -H "X-Subscription-Token: <YOUR_API_KEY>" \
-  -H "X-Loc-Lat: 37.7749" \
-  -H "X-Loc-Long: -122.4194"
-```
-
-which forwards:
-
-```bash
-curl -X GET "https://api.search.brave.com/res/v1/llm/context" \
-  -H "X-Subscription-Token: <YOUR_API_KEY>" \
-  -H "X-Loc-Lat: 37.7749" \
-  -H "X-Loc-Long: -122.4194"
-```
-
-`/search/llm-context` is an alias of `/res/v1/llm/context`. Brave treats `X-Loc-Lat` + `X-Loc-Long` as the location source (they override city/state text headers). Optional `enable_local=true` forces local recall even without coordinates.
-
-Or run `scripts/brave-llm-context-sf.sh` against the local gateway.
-
-| Method | Path | Purpose |
-|--------|------|---------|
-| GET | `/search/status` | Whether `BRAVE_SEARCH_API_KEY` is set (never returns the key) |
-| GET | `/res/v1/llm/context` | Brave-compatible path. `q` optional when `X-Loc-Lat` / `X-Loc-Long` are set |
-| GET | `/search/llm-context?q=...` | Same handler. Pass `X-Loc-Lat` / `X-Loc-Long` (or `lat`/`lon` query params) for local recall |
-| POST | `/search/llm-context` or `/res/v1/llm/context` | JSON body (`q`, optional `count`, `lat`, `lon`, `enable_local`) |
-
-In the Studio UI, open the **Search** tab. The default query is `tallest mountains in the world`. Use **SF example** to fill `37.7749, -122.4194`, or **Use my location**. **Send context to chat** passes snippets to Hermes.
 
 ## Integrating with real Hermes Agent
 

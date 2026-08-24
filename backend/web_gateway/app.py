@@ -14,7 +14,6 @@ from fastapi import FastAPI, WebSocket, WebSocketDisconnect
 from fastapi.middleware.cors import CORSMiddleware
 
 from routes.api import router as api_router
-from routes.search import brave_compat_router, router as search_router
 
 _log = logging.getLogger(__name__)
 
@@ -38,8 +37,6 @@ def create_app() -> FastAPI:
     )
 
     app.include_router(api_router)
-    app.include_router(search_router)
-    app.include_router(brave_compat_router)
 
     @app.get("/health")
     async def health() -> dict[str, Any]:

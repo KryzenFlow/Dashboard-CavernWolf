@@ -93,10 +93,9 @@ function connectWebSocket() {
 }
 
 async function api(path, options = {}) {
-  const { headers, ...rest } = options;
   const res = await fetch(`${API_BASE}${path}`, {
-    ...rest,
-    headers: { "Content-Type": "application/json", ...headers },
+    headers: { "Content-Type": "application/json", ...options.headers },
+    ...options,
   });
   if (!res.ok) throw new Error(await res.text());
   return res.json();
@@ -143,7 +142,6 @@ function switchTab(name) {
   });
 
   $("panel-chat").classList.toggle("hidden", name !== "chat");
-  $("panel-search").classList.toggle("hidden", name !== "search");
   $("panel-memory").classList.toggle("hidden", name !== "memory");
   $("panel-git").classList.toggle("hidden", name !== "git");
   $("panel-skills").classList.toggle("hidden", name !== "skills");
@@ -254,188 +252,7 @@ $("btn-git-push").addEventListener("click", async () => {
   }
 });
 
-function showSearchError(message) {
-  const el = $("search-error");
-  el.textContent = message;
-  el.classList.remove("hidden");
-}
-
-function hideSearchError() {
-  $("search-error").classList.add("hidden");
-  $("search-error").textContent = "";
-}
-
-function collectGroundingItems(data) {
-  const grounding = data.grounding || {};
-  const items = [];
-  if (grounding.poi && (grounding.poi.url || grounding.poi.name || (grounding.poi.snippets || []).length)) {
-    items.push({ ...grounding.poi, kind: "poi" });
-  }
-  (grounding.map || []).forEach((place) => items.push({ ...place, kind: "map" }));
-  (grounding.generic || []).forEach((item) => items.push({ ...item, kind: "web" }));
-  return items;
-}
-
-function renderSearchResults(data) {
-  const container = $("search-results");
-  container.innerHTML = "";
-  const items = collectGroundingItems(data);
-  if (!items.length) {
-    container.innerHTML = '<p class="search-empty">No grounding snippets returned.</p>';
-    return;
-  }
-
-  const meta = document.createElement("p");
-  meta.className = "search-meta";
-  const loc = data.location;
-  const locNote =
-    loc?.lat != null && loc?.long != null ? ` · ${loc.lat}, ${loc.long}` : loc?.city ? ` · ${loc.city}` : "";
-  meta.textContent = `${data.result_count} source${data.result_count === 1 ? "" : "s"} from Brave LLM Context${locNote}`;
-  container.appendChild(meta);
-
-  items.forEach((item) => {
-    const article = document.createElement("article");
-    article.className = "search-card";
-
-    const heading = document.createElement("h3");
-    if (item.kind && item.kind !== "web") {
-      const badge = document.createElement("span");
-      badge.className = "search-badge";
-      badge.textContent = item.kind === "poi" ? "POI" : "Map";
-      heading.appendChild(badge);
-    }
-    const link = document.createElement("a");
-    link.href = item.url || "#";
-    link.target = "_blank";
-    link.rel = "noopener noreferrer";
-    link.textContent = item.name && item.title && item.name !== item.title
-      ? `${item.name} — ${item.title}`
-      : item.title || item.name || item.url || "Untitled";
-    heading.appendChild(link);
-
-    const urlLine = document.createElement("p");
-    urlLine.className = "search-url";
-    urlLine.textContent = item.url || "";
-
-    const snippets = document.createElement("div");
-    snippets.className = "search-snippets";
-    (item.snippets || []).forEach((snippet) => {
-      const p = document.createElement("p");
-      p.textContent = snippet;
-      snippets.appendChild(p);
-    });
-
-    article.appendChild(heading);
-    article.appendChild(urlLine);
-    article.appendChild(snippets);
-    container.appendChild(article);
-  });
-
-  if (data.context) {
-    const actions = document.createElement("div");
-    actions.className = "search-actions";
-    const sendBtn = document.createElement("button");
-    sendBtn.type = "button";
-    sendBtn.className = "btn-action";
-    sendBtn.textContent = "Send context to chat";
-    sendBtn.addEventListener("click", () => {
-      const query = $("search-query").value.trim();
-      const text = `Use this Brave Search LLM context to answer: ${query}\n\n${data.context}`;
-      appendMessage("user", `Grounded search: ${query}`);
-      rpc("message.send", { session_id: sessionId, text });
-      switchTab("chat");
-    });
-    actions.appendChild(sendBtn);
-    container.appendChild(actions);
-  }
-}
-
-async function loadSearchStatus() {
-  const el = $("search-status");
-  try {
-    const data = await api("/search/status");
-    if (data.configured) {
-      el.textContent = "Brave Search is configured. Queries use /res/v1/llm/context.";
-      el.classList.remove("warning");
-    } else {
-      el.textContent =
-        "Set BRAVE_SEARCH_API_KEY on the backend to enable Brave LLM Context search.";
-      el.classList.add("warning");
-    }
-  } catch {
-    el.textContent = "Search API unavailable. Is the backend running?";
-    el.classList.add("warning");
-  }
-}
-
-$("search-form").addEventListener("submit", async (e) => {
-  e.preventDefault();
-  const query = $("search-query").value.trim();
-  if (!query) return;
-  hideSearchError();
-  const btn = $("btn-search");
-  btn.disabled = true;
-  $("search-results").innerHTML = '<p class="search-empty">Searching…</p>';
-  try {
-    const params = new URLSearchParams({ q: query, count: "20" });
-    if ($("search-enable-local").checked) {
-      params.set("enable_local", "true");
-    }
-    const headers = {};
-    const lat = $("search-lat").value.trim();
-    const lon = $("search-long").value.trim();
-    if (lat && lon) {
-      headers["X-Loc-Lat"] = lat;
-      headers["X-Loc-Long"] = lon;
-    }
-    const data = await api(`/search/llm-context?${params.toString()}`, { headers });
-    renderSearchResults(data);
-  } catch (err) {
-    $("search-results").innerHTML = "";
-    let message = err.message || "Search failed";
-    try {
-      const parsed = JSON.parse(message);
-      if (typeof parsed.detail === "string") {
-        message = parsed.detail;
-      } else if (parsed.detail?.error) {
-        message = parsed.detail.error;
-      }
-    } catch {
-      const match = message.match(/"error"\s*:\s*"([^"]+)"/);
-      if (match) message = match[1];
-    }
-    showSearchError(message);
-  } finally {
-    btn.disabled = false;
-  }
-});
-
-$("btn-loc-sf").addEventListener("click", () => {
-  $("search-lat").value = "37.7749";
-  $("search-long").value = "-122.4194";
-  $("search-enable-local").checked = true;
-  if (!$("search-query").value.trim() || $("search-query").value === "tallest mountains in the world") {
-    $("search-query").value = "best coffee shops near me";
-  }
-});
-
-$("btn-loc-here").addEventListener("click", () => {
-  if (!navigator.geolocation) {
-    showSearchError("Geolocation is not available in this browser.");
-    return;
-  }
-  navigator.geolocation.getCurrentPosition(
-    (pos) => {
-      $("search-lat").value = String(pos.coords.latitude);
-      $("search-long").value = String(pos.coords.longitude);
-      $("search-enable-local").checked = true;
-    },
-    () => showSearchError("Could not read your location.")
-  );
-});
-
 connectWebSocket();
 loadFiles();
 loadGitStatus();
-loadSearchStatus();
 setInterval(loadFiles, 5000);
