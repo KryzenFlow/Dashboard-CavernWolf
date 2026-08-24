@@ -1,38 +1,37 @@
-import { base44 } from '../lib/base44.js';
+import { apiRequest, buildQuery } from '../lib/http.js';
 
-function matchesQuery(record, q, fields) {
-  if (!q) return true;
-  const term = String(q).toLowerCase().trim();
-  if (!term) return true;
-  return fields.some((field) =>
-    String(record?.[field] ?? '').toLowerCase().includes(term)
-  );
-}
-
+/**
+ * Frontend track helpers — call Express `/api/tracks` (server holds Base44 key).
+ */
 export async function getAllTracks(options = {}) {
-  const { q, limit = 50, skip = 0, sort_by = '-created_date' } = options;
-  const records = await base44.entities.Track.list(sort_by, limit, skip);
-  return (records || []).filter((track) =>
-    matchesQuery(track, q, ['title', 'artist', 'album', 'genre'])
+  const { q, query, limit = 50, skip = 0, sort, sort_by } = options;
+  return apiRequest(
+    `/api/tracks${buildQuery({
+      q: q ?? query,
+      limit,
+      skip,
+      sort: sort ?? sort_by,
+    })}`,
   );
 }
 
 export async function getTrackById(id) {
-  return await base44.entities.Track.get(id);
+  return apiRequest(`/api/tracks/${encodeURIComponent(id)}`);
 }
 
 export async function createTrack(data) {
-  return await base44.entities.Track.create(data);
+  return apiRequest('/api/tracks', { method: 'POST', body: data });
 }
 
 export async function updateTrack(id, data) {
-  return await base44.entities.Track.update(id, data);
+  return apiRequest(`/api/tracks/${encodeURIComponent(id)}`, {
+    method: 'PUT',
+    body: data,
+  });
 }
 
 export async function deleteTrack(id) {
-  await base44.entities.Track.delete(id);
-}
-
-export async function bulkCreateTracks(records) {
-  return await base44.entities.Track.bulkCreate(records);
+  return apiRequest(`/api/tracks/${encodeURIComponent(id)}`, {
+    method: 'DELETE',
+  });
 }

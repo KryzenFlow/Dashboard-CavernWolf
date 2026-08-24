@@ -1,20 +1,22 @@
 import { useEffect, useState } from 'react'
 import AudioPlayer from './components/AudioPlayer.jsx'
+import Assistant from './components/Assistant.jsx'
 import Playlists from './components/Playlists.jsx'
 import Tracks from './components/Tracks.jsx'
 import Users from './components/Users.jsx'
-import { base44 } from './lib/base44.js'
+import { apiRequest } from './lib/http.js'
 
 const NAV = [
   { id: 'tracks', label: 'Tracks' },
   { id: 'playlists', label: 'Playlists' },
   { id: 'users', label: 'Users' },
+  { id: 'assistant', label: 'Assistant' },
 ]
 
 export default function App() {
   const [view, setView] = useState('tracks')
   const [currentTrack, setCurrentTrack] = useState(null)
-  const [currentUser, setCurrentUser] = useState(null)
+  const [apiStatus, setApiStatus] = useState(null)
   const [bootError, setBootError] = useState(null)
   const [bootLoading, setBootLoading] = useState(true)
 
@@ -24,12 +26,15 @@ export default function App() {
       setBootLoading(true)
       setBootError(null)
       try {
-        const me = await base44.auth.me()
-        if (!cancelled) setCurrentUser(me)
+        const health = await apiRequest('/api/health')
+        if (!cancelled) setApiStatus(health)
       } catch (err) {
         if (!cancelled) {
-          setCurrentUser(null)
-          setBootError(err?.message || 'Could not reach Base44 API')
+          setApiStatus(null)
+          setBootError(
+            err?.message ||
+              'Could not reach MeloTunez API. Start melotunez-backend on port 3001.',
+          )
         }
       } finally {
         if (!cancelled) setBootLoading(false)
@@ -48,7 +53,9 @@ export default function App() {
       case 'playlists':
         return <Playlists onPlayTrack={setCurrentTrack} />
       case 'users':
-        return <Users currentUser={currentUser} />
+        return <Users />
+      case 'assistant':
+        return <Assistant />
       default: {
         const _exhaustive = view
         return (
@@ -94,15 +101,13 @@ export default function App() {
           <div className="mt-auto rounded-xl border border-[var(--color-line)] bg-[var(--color-panel-2)]/80 p-3 text-xs text-[var(--color-muted)]">
             {bootLoading ? (
               <div className="animate-pulse-soft">Connecting…</div>
-            ) : currentUser ? (
+            ) : apiStatus?.ok ? (
               <>
-                <div className="font-medium text-[var(--color-cream)]">
-                  {currentUser.full_name || currentUser.email}
-                </div>
-                <div className="mt-0.5 capitalize">{currentUser.role || 'user'}</div>
+                <div className="font-medium text-[var(--color-cream)]">API connected</div>
+                <div className="mt-0.5">via Express → Base44</div>
               </>
             ) : (
-              <div>API connected (no user session)</div>
+              <div>API offline</div>
             )}
           </div>
         </aside>
@@ -110,13 +115,13 @@ export default function App() {
         <main className={`min-w-0 flex-1 px-4 py-6 sm:px-8 sm:py-8 ${currentTrack ? 'pb-32' : 'pb-8'}`}>
           <div className="mb-6 flex items-center justify-between gap-3 md:hidden">
             <p className="font-display text-xl font-bold text-[var(--color-accent)]">MeloTunez</p>
-            <div className="flex gap-1 rounded-xl border border-[var(--color-line)] bg-[var(--color-panel)] p-1">
+            <div className="flex gap-1 overflow-x-auto rounded-xl border border-[var(--color-line)] bg-[var(--color-panel)] p-1">
               {NAV.map((item) => (
                 <button
                   key={item.id}
                   type="button"
                   onClick={() => setView(item.id)}
-                  className={`rounded-lg px-2.5 py-1.5 text-xs font-medium ${
+                  className={`shrink-0 rounded-lg px-2.5 py-1.5 text-xs font-medium ${
                     view === item.id
                       ? 'bg-[var(--color-accent)] text-ink'
                       : 'text-[var(--color-muted)]'

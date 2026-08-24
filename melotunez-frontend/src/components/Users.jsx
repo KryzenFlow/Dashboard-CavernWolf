@@ -7,16 +7,17 @@ const EMPTY_FORM = {
   role: 'user',
 };
 
-export default function Users({ currentUser }) {
+/**
+ * User management via Express → Base44 (server holds api_key).
+ * Create/delete are always available in this dashboard mode.
+ */
+export default function Users() {
   const [users, setUsers] = useState([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState(null);
   const [modalOpen, setModalOpen] = useState(false);
   const [form, setForm] = useState(EMPTY_FORM);
   const [saving, setSaving] = useState(false);
-
-  const isAdmin =
-    currentUser?.role === 'admin' || currentUser?._app_role === 'admin';
 
   async function loadUsers() {
     setLoading(true);
@@ -37,7 +38,6 @@ export default function Users({ currentUser }) {
 
   async function handleCreate(event) {
     event.preventDefault();
-    if (!isAdmin) return;
     setSaving(true);
     setError(null);
     try {
@@ -53,7 +53,6 @@ export default function Users({ currentUser }) {
   }
 
   async function handleDelete(user) {
-    if (!isAdmin) return;
     if (!window.confirm(`Delete user ${user.email}?`)) return;
     setError(null);
     try {
@@ -70,20 +69,16 @@ export default function Users({ currentUser }) {
         <div>
           <h2 className="font-display text-3xl font-semibold tracking-tight">Users</h2>
           <p className="mt-1 text-sm text-[var(--color-muted)]">
-            {isAdmin
-              ? 'Admins can invite and remove users.'
-              : 'View-only access. Admin role required to manage users.'}
+            Invite and remove Base44 users through the Express API.
           </p>
         </div>
-        {isAdmin && (
-          <button
-            type="button"
-            onClick={() => setModalOpen(true)}
-            className="rounded-xl bg-[var(--color-accent)] px-4 py-2.5 text-sm font-semibold text-ink transition hover:brightness-110"
-          >
-            Create user
-          </button>
-        )}
+        <button
+          type="button"
+          onClick={() => setModalOpen(true)}
+          className="rounded-xl bg-[var(--color-accent)] px-4 py-2.5 text-sm font-semibold text-ink transition hover:brightness-110"
+        >
+          Create user
+        </button>
       </div>
 
       {error && (
@@ -104,29 +99,35 @@ export default function Users({ currentUser }) {
                 <th className="px-4 py-3 font-medium">Full name</th>
                 <th className="px-4 py-3 font-medium">Email</th>
                 <th className="px-4 py-3 font-medium">Role</th>
-                {isAdmin && <th className="px-4 py-3 font-medium">Actions</th>}
+                <th className="px-4 py-3 font-medium">Actions</th>
               </tr>
             </thead>
             <tbody>
-              {users.map((user) => (
-                <tr
-                  key={user.id}
-                  className="border-b border-[var(--color-line)]/70 hover:bg-white/5"
-                >
-                  <td className="px-4 py-3 font-medium">{user.full_name || '—'}</td>
-                  <td className="px-4 py-3 text-[var(--color-muted)]">{user.email}</td>
-                  <td className="px-4 py-3">
-                    <span
-                      className={`rounded-md px-2 py-1 text-xs font-medium ${
-                        user.role === 'admin'
-                          ? 'bg-[var(--color-accent)]/20 text-[var(--color-accent)]'
-                          : 'bg-white/10 text-[var(--color-muted)]'
-                      }`}
-                    >
-                      {user.role || 'user'}
-                    </span>
+              {users.length === 0 ? (
+                <tr>
+                  <td colSpan={4} className="px-4 py-10 text-center text-[var(--color-muted)]">
+                    No users found.
                   </td>
-                  {isAdmin && (
+                </tr>
+              ) : (
+                users.map((user) => (
+                  <tr
+                    key={user.id}
+                    className="border-b border-[var(--color-line)]/70 hover:bg-white/5"
+                  >
+                    <td className="px-4 py-3 font-medium">{user.full_name || '—'}</td>
+                    <td className="px-4 py-3 text-[var(--color-muted)]">{user.email}</td>
+                    <td className="px-4 py-3">
+                      <span
+                        className={`rounded-md px-2 py-1 text-xs font-medium ${
+                          user.role === 'admin'
+                            ? 'bg-[var(--color-accent)]/20 text-[var(--color-accent)]'
+                            : 'bg-white/10 text-[var(--color-muted)]'
+                        }`}
+                      >
+                        {user.role || 'user'}
+                      </span>
+                    </td>
                     <td className="px-4 py-3">
                       <button
                         type="button"
@@ -136,15 +137,15 @@ export default function Users({ currentUser }) {
                         Delete
                       </button>
                     </td>
-                  )}
-                </tr>
-              ))}
+                  </tr>
+                ))
+              )}
             </tbody>
           </table>
         </div>
       )}
 
-      {modalOpen && isAdmin && (
+      {modalOpen && (
         <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/60 p-4 backdrop-blur-sm">
           <form
             onSubmit={handleCreate}

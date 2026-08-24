@@ -1,5 +1,13 @@
-import { base44 } from '../lib/base44.js';
+import { apiRequest } from '../lib/http.js';
 
+/** POST /api/assistant/chat → Base44 functions.assistantChat */
 export async function sendAssistantMessage(payload) {
-  return await base44.functions.assistantChat(payload);
+  return apiRequest('/api/assistant/chat', {
+    method: 'POST',
+    body: payload,
+  });
+}
+
+export async function assistantChat(payload) {
+  return sendAssistantMessage(payload);
 }
