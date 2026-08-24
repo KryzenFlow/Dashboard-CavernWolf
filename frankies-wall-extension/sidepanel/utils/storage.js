@@ -76,6 +76,12 @@
     const fileName = FrankiesWall.basenameFromPath(catalog.file);
     const artist = catalog.artist?.trim() || "";
     const instrument = catalog.instrument?.trim() || "";
+    const vibes = FrankiesWall.catalogVibesToLabels
+      ? FrankiesWall.catalogVibesToLabels(catalog)
+      : catalog.vibe
+        ? [catalog.vibe]
+        : catalog.vibes || [];
+
     return FrankiesWall.normalizeTrack({
       id: catalog.id,
       title: catalog.title,
@@ -88,11 +94,8 @@
       people: artist === "Drew" ? ["Drew"] : [],
       instruments: instrument ? [instrument] : [],
       instrument,
-      modes:
-        catalog.id === "drew_sax_live_01" || catalog.id === "drew_bass_riff_02"
-          ? ["live"]
-          : ["studio"],
-      vibes: instrument === "sax" ? ["Mom's Smile"] : [],
+      modes: catalog.id.includes("live") ? ["live"] : ["studio"],
+      vibes,
     });
   };
 

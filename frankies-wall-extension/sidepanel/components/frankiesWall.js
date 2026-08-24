@@ -287,7 +287,9 @@
         instruments: catalogMatch?.instrument ? [catalogMatch.instrument] : [],
         instrument: catalogMatch?.instrument || "",
         modes: [],
-        vibes: catalogMatch?.instrument === "sax" ? ["Mom's Smile"] : [],
+        vibes: catalogMatch?.vibe
+          ? FrankiesWall.catalogVibesToLabels(catalogMatch)
+          : catalogMatch?.vibes || [],
         notes: "",
         coverDataUrl: null,
         addedAt: Date.now(),

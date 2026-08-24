@@ -25,12 +25,12 @@ Only import audio you own or have rights to play personally.
 
 On first load, Frankie's Wall merges the built-in catalog (`sidepanel/data/tracks.js`):
 
-| Track | Artist | Instrument |
-|-------|--------|------------|
-| Glycerine | Bush | electric |
-| Black Hole Sun | Soundgarden | electric |
-| Sax Live Recording | Drew | sax |
-| Bass Riff | Drew | bass |
+| Track | Artist | Instrument | Vibe (id) |
+|-------|--------|------------|-----------|
+| Glycerine | Bush | electric | `river_breeze` |
+| Sax Live Recording | Drew | sax | `mom_smile` |
+
+Catalog entries use a singular `vibe` id (snake_case). `data/vibes.js` maps ids → wall labels (e.g. `mom_smile` → Mom's Smile).
 
 Drop matching MP3s under `music/` (see `music/README.md`) and reload the extension — they play without re-import. You can still **Import files**; matching filenames attach to catalog IDs and tags stick.
 
