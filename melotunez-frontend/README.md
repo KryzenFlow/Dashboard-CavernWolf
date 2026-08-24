@@ -2,6 +2,8 @@
 
 React + Tailwind dashboard for MeloTunez. Talks to the **Express** wrapper in `../melotunez-backend` (React → Express → Base44). The Base44 `api_key` is never shipped to the browser.
 
+**Direction:** keep Base44 for music entities only; AI/build goes to a pluggable provider — see [`docs/melotunez-direction.md`](../docs/melotunez-direction.md). Chrome side panel scaffold: [`melotunez-extension/`](../melotunez-extension/).
+
 ## Stack
 
 - Vite + React 19
@@ -43,7 +45,7 @@ VITE_API_BASE=https://melotunez-api.onrender.com npm run build
 - Track CRUD + search
 - Playlist CRUD + add/remove tracks
 - User invite / delete
-- Assistant chat (`assistantChat` function)
+- Assistant chat (Base44 `assistantChat` — migrate to pluggable AI per direction doc)
 - Persistent bottom audio player for `track.audio_url`
 - Loading and error states
 

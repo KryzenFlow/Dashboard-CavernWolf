@@ -1,0 +1,71 @@
+<!DOCTYPE html>
+<html lang="en">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1" />
+    <title>MeloTunez Options</title>
+    <link rel="stylesheet" href="options.css" />
+  </head>
+  <body>
+    <main>
+      <h1>MeloTunez Options</h1>
+      <p class="lede">
+        API keys stay in <code>chrome.storage.local</code> on this device. Music still uses your
+        Express wrapper — not Base44 AI.
+      </p>
+
+      <form id="options-form">
+        <fieldset>
+          <legend>Music API</legend>
+          <label>
+            Base URL
+            <input
+              id="musicApiBase"
+              name="musicApiBase"
+              type="url"
+              placeholder="http://localhost:3001"
+            />
+          </label>
+          <p class="hint">Extension calls <code>GET {base}/api/tracks?q=</code>.</p>
+        </fieldset>
+
+        <fieldset>
+          <legend>AI provider (pluggable)</legend>
+          <label>
+            Provider
+            <select id="aiProvider" name="aiProvider">
+              <option value="openrouter">OpenRouter</option>
+              <option value="groq">Groq</option>
+              <option value="together">Together</option>
+              <option value="ollama">Ollama (local)</option>
+              <option value="openai">OpenAI</option>
+              <option value="anthropic">Anthropic (via compatible proxy)</option>
+              <option value="custom">Custom OpenAI-compatible</option>
+            </select>
+          </label>
+          <label>
+            Base URL
+            <input id="aiBaseUrl" name="aiBaseUrl" type="url" placeholder="https://openrouter.ai/api/v1" />
+          </label>
+          <label>
+            Model
+            <input id="aiModel" name="aiModel" type="text" placeholder="openai/gpt-4o-mini" />
+          </label>
+          <label>
+            API key
+            <input id="aiApiKey" name="aiApiKey" type="password" autocomplete="off" placeholder="sk-…" />
+          </label>
+          <p class="hint">
+            Ollama usually needs no key; set base URL to <code>http://localhost:11434/v1</code>.
+          </p>
+        </fieldset>
+
+        <div class="actions">
+          <button type="submit">Save</button>
+          <span id="save-status" class="status" aria-live="polite"></span>
+        </div>
+      </form>
+    </main>
+    <script type="module" src="options.js"></script>
+  </body>
+</html>

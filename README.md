@@ -15,13 +15,19 @@ Containerized Hermes Agent dashboard extracted and completed from Copilot conver
 
 ```
 Dashboard-CavernWolf/
-├── frontend/          index.html, styles.css, script.js
-├── backend/           FastAPI web gateway + REST API
-├── clinic/            BAA checklist, SQL schemas, sandbox compose
-├── source/            Notes about original monolithic exports
+├── frontend/              Hermes Studio static UI
+├── backend/               FastAPI web gateway + REST API
+├── clinic/                BAA checklist, SQL schemas, sandbox compose
+├── source/                Notes about original monolithic exports
+├── melotunez-frontend/    React music dashboard (Base44 via Express)
+├── melotunez-backend/     Express REST wrapper (music entities)
+├── melotunez-extension/   Chrome MV3 side panel scaffold
+├── docs/melotunez-direction.md
 ├── docker-compose.yml
 └── README.md
 ```
+
+MeloTunez product direction (Base44 for music only; pluggable AI; extension phases): [`docs/melotunez-direction.md`](docs/melotunez-direction.md).
 
 ## Quick start (local)
 

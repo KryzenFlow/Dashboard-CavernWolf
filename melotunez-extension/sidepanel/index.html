@@ -1,0 +1,63 @@
+<!DOCTYPE html>
+<html lang="en">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1" />
+    <title>MeloTunez</title>
+    <link rel="stylesheet" href="sidepanel.css" />
+  </head>
+  <body>
+    <header class="brand">
+      <h1>MeloTunez</h1>
+      <p class="tagline">Discover music. Build with your own AI keys.</p>
+    </header>
+
+    <nav class="tabs" role="tablist">
+      <button type="button" class="tab is-active" data-tab="music" role="tab" aria-selected="true">
+        Music
+      </button>
+      <button type="button" class="tab" data-tab="build" role="tab" aria-selected="false">
+        Build / app
+      </button>
+    </nav>
+
+    <section id="panel-music" class="panel is-active" role="tabpanel">
+      <form id="music-form" class="search-form">
+        <label class="sr-only" for="music-q">Search tracks</label>
+        <input
+          id="music-q"
+          name="q"
+          type="search"
+          placeholder="Search tracks, artists…"
+          autocomplete="off"
+        />
+        <button type="submit">Search</button>
+      </form>
+      <p id="music-status" class="status" aria-live="polite"></p>
+      <ul id="music-results" class="results"></ul>
+    </section>
+
+    <section id="panel-build" class="panel" role="tabpanel" hidden>
+      <form id="build-form" class="search-form">
+        <label class="sr-only" for="build-q">Build or ask</label>
+        <input
+          id="build-q"
+          name="q"
+          type="search"
+          placeholder="Describe an app or ask to scaffold…"
+          autocomplete="off"
+        />
+        <button type="submit">Ask</button>
+      </form>
+      <p id="build-status" class="status" aria-live="polite"></p>
+      <pre id="build-out" class="build-out" hidden></pre>
+    </section>
+
+    <footer class="footer">
+      <a href="../options/index.html" id="open-options">Options</a>
+      · keys stay on this device · no Base44 AI
+    </footer>
+
+    <script type="module" src="sidepanel.js"></script>
+  </body>
+</html>

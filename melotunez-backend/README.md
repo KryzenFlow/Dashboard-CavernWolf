@@ -4,6 +4,8 @@ Express REST wrapper around the MeloTunez Base44 music streaming API.
 
 The Base44 `api_key` lives only on this server. The React frontend should call these routes — not the Base44 SDK directly.
 
+**Direction:** use this service for Track/Playlist/User CRUD. Prefer **not** to grow Base44 AI/chat here — pluggable OpenRouter/Ollama (etc.) instead. See [`docs/melotunez-direction.md`](../docs/melotunez-direction.md) and the Chrome scaffold in [`melotunez-extension/`](../melotunez-extension/) (`GET /api/tracks?q=`).
+
 ## Stack
 
 - Node.js 18+
