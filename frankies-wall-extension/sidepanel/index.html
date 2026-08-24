@@ -65,13 +65,14 @@
 
       <main class="stage">
         <section id="view-now" class="now-playing" aria-label="Now playing">
-          <div
+          <button
+            type="button"
             class="tuning-fork-icon tuning-fork--now"
             data-tuning-fork
-            aria-hidden="true"
-            title="In tune"
+            aria-label="Play A440 tuning fork"
+            title="A440 tuning fork"
           >
-            <!-- TuningForkIcon: pulses with playback -->
+            <!-- TuningForkIcon: click for A440; also pulses with track playback -->
             <svg
               class="tuning-fork-svg"
               width="32"
@@ -99,7 +100,7 @@
                 stroke-linecap="round"
               />
             </svg>
-          </div>
+          </button>
           <div class="art-wrap">
             <img id="cover-art" class="cover-art" alt="" hidden />
             <div id="cover-fallback" class="cover-fallback" aria-hidden="true">
@@ -130,11 +131,12 @@
         </section>
 
         <section id="view-wall" class="content-panel wall-stage" aria-label="Frankie's Wall graffiti" hidden>
-          <div
+          <button
+            type="button"
             class="tuning-fork-icon tuning-fork--wall"
             data-tuning-fork
-            aria-hidden="true"
-            title="Frankie's pitch"
+            aria-label="Play A440 tuning fork"
+            title="A440 tuning fork"
           >
             <svg
               class="tuning-fork-svg"
@@ -163,7 +165,7 @@
                 stroke-linecap="round"
               />
             </svg>
-          </div>
+          </button>
           <div class="panel-head">
             <h2>Frankie's Wall</h2>
             <p class="panel-sub">Names on the brick — click to filter your tagged tracks.</p>

@@ -751,6 +751,54 @@
     });
   }
 
+  let forkAudioCtx = null;
+  let forkStopTimer = null;
+
+  /** Local A440 reference tone (Web Audio) — no network. */
+  async function playTuningFork() {
+    const AudioCtx = window.AudioContext || window.webkitAudioContext;
+    if (!AudioCtx) return;
+
+    if (!forkAudioCtx) {
+      forkAudioCtx = new AudioCtx();
+    }
+    if (forkAudioCtx.state === "suspended") {
+      await forkAudioCtx.resume();
+    }
+
+    const ctx = forkAudioCtx;
+    const now = ctx.currentTime;
+    const osc = ctx.createOscillator();
+    const gain = ctx.createGain();
+
+    osc.type = "sine";
+    osc.frequency.value = 440; // A440 standard tuning
+    gain.gain.setValueAtTime(0.0001, now);
+    gain.gain.exponentialRampToValueAtTime(0.18, now + 0.02);
+    gain.gain.exponentialRampToValueAtTime(0.0001, now + 1.9);
+
+    osc.connect(gain);
+    gain.connect(ctx.destination);
+    osc.start(now);
+    osc.stop(now + 2); // 2-second tone
+
+    document.querySelectorAll("[data-tuning-fork]").forEach((node) => {
+      node.classList.add("is-forking");
+    });
+    if (forkStopTimer) clearTimeout(forkStopTimer);
+    forkStopTimer = setTimeout(() => {
+      document.querySelectorAll("[data-tuning-fork]").forEach((node) => {
+        node.classList.remove("is-forking");
+      });
+    }, 2000);
+  }
+
+  document.querySelectorAll("[data-tuning-fork]").forEach((node) => {
+    node.addEventListener("click", () => {
+      playTuningFork().catch(() => {});
+    });
+  });
+
   el.audio.addEventListener("ended", () => {
     el.btnPlay.textContent = "▶";
     setTuningForkPlaying(false);

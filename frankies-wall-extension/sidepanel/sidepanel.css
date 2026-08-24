@@ -268,12 +268,22 @@ button {
 .tuning-fork-icon {
   width: 32px;
   height: 32px;
+  padding: 0;
+  border: none;
+  background: transparent;
   color: var(--ink);
   display: grid;
   place-items: center;
-  pointer-events: none;
+  cursor: pointer;
   opacity: 0.55;
   transition: opacity 0.25s ease, color 0.25s ease, filter 0.25s ease;
+}
+
+.tuning-fork-icon:hover,
+.tuning-fork-icon:focus-visible {
+  opacity: 1;
+  outline: none;
+  color: var(--accent-soft);
 }
 
 .tuning-fork-svg {
@@ -302,7 +312,8 @@ button {
   opacity: 0.4;
 }
 
-.tuning-fork-icon.is-playing {
+.tuning-fork-icon.is-playing,
+.tuning-fork-icon.is-forking {
   opacity: 1;
   color: var(--accent-soft);
   filter: drop-shadow(0 0 6px var(--accent-glow));
@@ -322,7 +333,8 @@ button {
 }
 
 @media (prefers-reduced-motion: reduce) {
-  .tuning-fork-icon.is-playing {
+  .tuning-fork-icon.is-playing,
+  .tuning-fork-icon.is-forking {
     animation: none;
   }
 }
