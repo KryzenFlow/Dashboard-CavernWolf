@@ -116,6 +116,7 @@
    * @typedef {object} TrackMeta
    * @property {string} id
    * @property {string} title
+   * @property {string} [artist]
    * @property {string} fileName
    * @property {string} mimeType
    * @property {number} size
@@ -148,7 +149,7 @@
     btnImportFolder: document.getElementById("btn-import-folder"),
     fileInput: document.getElementById("file-input"),
     folderInput: document.getElementById("folder-input"),
-    trackList: document.getElementById("track-list"),
+    trackList: document.getElementById("trackList"),
     libraryEmpty: document.getElementById("library-empty"),
     libraryHeading: document.getElementById("library-heading"),
     btnClearFilter: document.getElementById("btn-clear-filter"),
@@ -215,6 +216,7 @@
     const normalized = {
       id: track.id || uid(),
       title: track.title || "Untitled",
+      artist: track.artist || track.bands?.[0] || "",
       fileName: track.fileName || "",
       mimeType: track.mimeType || "audio/*",
       size: track.size || 0,
@@ -258,6 +260,7 @@
     const meta = {
       id: catalog.id,
       title: catalog.title,
+      artist,
       fileName,
       mimeType: "audio/mpeg",
       size: 0,
@@ -343,6 +346,7 @@
       tracks: library.tracks.map((t) => ({
         id: t.id,
         title: t.title,
+        artist: t.artist || t.bands?.[0] || "",
         fileName: t.fileName,
         mimeType: t.mimeType,
         size: t.size,
@@ -417,6 +421,7 @@
       const meta = existing ?? {
         id,
         title: catalogMatch?.title ?? titleFromFileName(file.name),
+        artist: catalogMatch?.artist ?? "",
         fileName: file.name,
         mimeType: file.type || "audio/*",
         size: file.size,
@@ -554,9 +559,19 @@
       filtered = tracks.filter((track) => track.instrument === instrument);
     }
 
-    renderTrackList(filtered);
+    renderTracks(filtered);
     updateLibraryHeading();
     renderSidebarTags();
+  }
+
+  function renderTracks(list) {
+    if (typeof window.renderTrackList === "function") {
+      window.renderTrackList(list);
+      return;
+    }
+    if (el.trackList) {
+      el.trackList.innerHTML = "";
+    }
   }
 
   function filteredTracks() {
@@ -571,57 +586,9 @@
     return applyFilter(tracks, instrumentFilter);
   }
 
-  /**
-   * @param {TrackMeta[]} tracks
-   */
-  function renderTrackList(tracks) {
-    el.trackList.innerHTML = "";
-    el.libraryEmpty.hidden = tracks.length > 0;
-
-    for (const track of tracks) {
-      const li = document.createElement("li");
-      li.className = "track-item" + (track.id === currentId ? " is-playing" : "");
-      li.dataset.id = track.id;
-
-      const main = document.createElement("div");
-      const name = document.createElement("p");
-      name.className = "track-name";
-      name.textContent = track.title;
-      const meta = document.createElement("p");
-      meta.className = "track-meta";
-      const bits = [
-        ...track.bands,
-        track.instrument || track.instruments[0],
-        ...track.modes.map(formatModeLabel),
-        ...track.vibes.slice(0, 1),
-      ].filter(Boolean);
-      const needsFile = !sessionFiles.has(track.id) && !track.file;
-      meta.textContent = bits.length
-        ? bits.join(" · ") + (needsFile ? " · re-import file to play" : "")
-        : needsFile
-          ? "tags empty · re-import file to play"
-          : track.fileName;
-
-      main.appendChild(name);
-      main.appendChild(meta);
-
-      const actions = document.createElement("div");
-      actions.className = "track-actions";
-      const tagBtn = document.createElement("button");
-      tagBtn.type = "button";
-      tagBtn.className = "btn tiny ghost";
-      tagBtn.textContent = "Tag";
-      tagBtn.addEventListener("click", (e) => {
-        e.stopPropagation();
-        openEdit(track.id);
-      });
-      actions.appendChild(tagBtn);
-
-      li.appendChild(main);
-      li.appendChild(actions);
-      li.addEventListener("click", () => playTrack(track.id));
-      el.trackList.appendChild(li);
-    }
+  function renderLibrary() {
+    updateLibraryHeading();
+    renderTracks(filteredTracks());
   }
 
   function updateLibraryHeading() {
@@ -716,11 +683,6 @@
     fill(el.instrumentTags, PRESETS.instruments, "instruments");
     fill(el.modeTags, STORY_MODE_PRESETS, "modes", formatModeLabel);
     fill(el.vibeTags, PRESETS.vibes, "vibes");
-  }
-
-  function renderLibrary() {
-    updateLibraryHeading();
-    renderTrackList(filteredTracks());
   }
 
   function renderGraffiti() {
@@ -959,6 +921,7 @@
   renderStoryFilterBar();
 
   window.filterByInstrument = filterByInstrument;
+  window.playTrack = playTrack;
   setInstrumentFilter(instrumentFilter);
 
   el.btnImportFiles.addEventListener("click", async () => {
@@ -1036,6 +999,7 @@
     track.instruments = readChecks(el.editInstruments);
     track.modes = readChecks(el.editModes);
     track.vibes = readChecks(el.editVibes);
+    track.artist = track.bands[0] || track.artist || "";
     syncTrackInstrument(track);
 
     const coverFile = el.editCover.files && el.editCover.files[0];
