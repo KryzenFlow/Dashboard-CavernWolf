@@ -23,7 +23,7 @@
     ],
     places: ["Toledo", "Promenade Park", "Frankies", "East Side Nights"],
     people: ["Mom", "Son", "Solo", "With Friends", "Drew"],
-    instruments: ["sax", "electric", "bass", "drums", "vocals", "acoustic"],
+    instruments: ["sax", "electric", "bass", "drums", "vocals", "acoustic", "mixed"],
     vibes: ["Mom's Smile", "River Breeze", "fight & focus", "late night", "practice"],
   };
 
@@ -62,6 +62,11 @@
 
   /** @type {{ kind: string, value: string } | null} */
   let activeFilter = null;
+
+  /** @type {"all" | "electric" | "bass" | "sax" | "mixed"} */
+  let instrumentFilter = "all";
+
+  const INSTRUMENT_BAR = new Set(["electric", "bass", "sax", "mixed"]);
 
   /** @type {'library' | 'wall' | 'moms-smile'} */
   let currentView = "library";
@@ -114,6 +119,7 @@
     libraryEmpty: document.getElementById("library-empty"),
     libraryHeading: document.getElementById("library-heading"),
     btnClearFilter: document.getElementById("btn-clear-filter"),
+    instrumentFilter: document.getElementById("instrumentFilter"),
     viewLibrary: document.getElementById("view-library"),
     viewWall: document.getElementById("view-wall"),
     graffitiGrid: document.getElementById("graffiti-grid"),
@@ -357,6 +363,44 @@
     el.nowNote.textContent = `Imported ${audioFiles.length} local track${audioFiles.length === 1 ? "" : "s"}. Tag them on the wall.`;
   }
 
+  function trackMatchesInstrumentFilter(track, filter) {
+    switch (filter) {
+      case "all":
+        return true;
+      case "mixed":
+        return track.instruments.length > 1 || track.instruments.includes("mixed");
+      case "electric":
+      case "bass":
+      case "sax":
+        return track.instruments.includes(filter);
+      default: {
+        const _exhaustive = filter;
+        void _exhaustive;
+        return true;
+      }
+    }
+  }
+
+  function setInstrumentFilter(value) {
+    if (
+      value !== "all" &&
+      value !== "electric" &&
+      value !== "bass" &&
+      value !== "sax" &&
+      value !== "mixed"
+    ) {
+      return;
+    }
+    instrumentFilter = value;
+    if (el.instrumentFilter) {
+      el.instrumentFilter.querySelectorAll("button[data-instrument]").forEach((btn) => {
+        const match = btn.getAttribute("data-instrument") === value;
+        btn.classList.toggle("is-active", match);
+        btn.setAttribute("aria-pressed", match ? "true" : "false");
+      });
+    }
+  }
+
   function filteredTracks() {
     let tracks = library.tracks.slice();
 
@@ -367,6 +411,10 @@
           t.people.includes("Mom") ||
           t.instruments.includes("sax")
       );
+    }
+
+    if (instrumentFilter !== "all") {
+      tracks = tracks.filter((t) => trackMatchesInstrumentFilter(t, instrumentFilter));
     }
 
     if (activeFilter) {
@@ -413,9 +461,26 @@
         btn.dataset.value = name;
         if (activeFilter?.kind === kind && activeFilter.value === name) {
           btn.classList.add("is-active");
+        } else if (
+          kind === "instruments" &&
+          INSTRUMENT_BAR.has(name) &&
+          instrumentFilter === name
+        ) {
+          btn.classList.add("is-active");
         }
         btn.style.setProperty("--tilt", `${((i % 5) - 2) * 0.8}deg`);
         btn.addEventListener("click", () => {
+          if (kind === "instruments" && INSTRUMENT_BAR.has(name)) {
+            if (instrumentFilter === name) {
+              setInstrumentFilter("all");
+            } else {
+              activeFilter = null;
+              setInstrumentFilter(/** @type {"electric" | "bass" | "sax" | "mixed"} */ (name));
+            }
+            if (currentView === "wall") setView("library");
+            else renderAll();
+            return;
+          }
           if (activeFilter?.kind === kind && activeFilter.value === name) {
             activeFilter = null;
           } else {
@@ -445,6 +510,15 @@
       el.libraryHeading.textContent = "Mom's Smile";
     } else if (activeFilter) {
       el.libraryHeading.textContent = activeFilter.value;
+    } else if (instrumentFilter !== "all") {
+      const labels = {
+        all: "Library",
+        electric: "Electric",
+        bass: "Bass",
+        sax: "Sax",
+        mixed: "Mixed",
+      };
+      el.libraryHeading.textContent = labels[instrumentFilter] || "Library";
     } else {
       el.libraryHeading.textContent = "Library";
     }
@@ -467,7 +541,7 @@
         ...track.instruments,
         ...track.vibes.slice(0, 1),
       ];
-      const needsFile = !sessionFiles.has(track.id);
+      const needsFile = !sessionFiles.has(track.id) && !track.file;
       meta.textContent = bits.length
         ? bits.join(" · ") + (needsFile ? " · re-import file to play" : "")
         : needsFile
@@ -725,6 +799,17 @@
     activeFilter = null;
     renderAll();
   });
+
+  if (el.instrumentFilter) {
+    el.instrumentFilter.querySelectorAll("button[data-instrument]").forEach((btn) => {
+      btn.addEventListener("click", () => {
+        const value = btn.getAttribute("data-instrument") || "all";
+        setInstrumentFilter(value);
+        renderAll();
+      });
+    });
+    setInstrumentFilter(instrumentFilter);
+  }
 
   el.btnImportFiles.addEventListener("click", async () => {
     if (window.showOpenFilePicker) {

@@ -104,6 +104,13 @@
             <h2 id="library-heading">Library</h2>
             <button type="button" id="btn-clear-filter" class="btn tiny ghost" hidden>Clear filter</button>
           </div>
+          <div id="instrumentFilter" class="instrument-filter" aria-label="Filter by instrument">
+            <button type="button" data-instrument="all" class="is-active">All</button>
+            <button type="button" data-instrument="electric">Electric</button>
+            <button type="button" data-instrument="bass">Bass</button>
+            <button type="button" data-instrument="sax">Sax</button>
+            <button type="button" data-instrument="mixed">Mixed</button>
+          </div>
           <ul id="track-list" class="track-list"></ul>
           <p id="library-empty" class="empty-hint">
             Drop in local audio — sax takes, covers, late-night sessions. Tag them on the wall.
@@ -184,6 +191,7 @@
           <span id="time-current">0:00</span>
           <span id="time-duration">0:00</span>
         </div>
+        <p class="music-outro" aria-hidden="true">🎶 Music Outro 🎶</p>
       </footer>
     </div>
 
