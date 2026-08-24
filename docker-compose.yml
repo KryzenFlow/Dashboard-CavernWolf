@@ -1,29 +1,88 @@
-version: "3.8"
+# Hermes orchestrator + Claw Opus. No mock agents. Backend is Tailscale-only.
+#
+# Required in the environment (no placeholders):
+#   HERMES_SUPERVISOR_HMAC_KEY
+#   CLAW_URL
+#   OPENCLAW_GATEWAY_URL
+#   HERMES_URL
+# Optional:
+#   TS_AUTHKEY   (without it, nothing is published to the public internet)
 
 services:
-  backend:
-    build:
-      context: ./backend
-      dockerfile: Dockerfile
-    ports:
-      - "8000:8000"
+  tailscale:
+    image: tailscale/tailscale:latest
+    hostname: hermes-studio
     environment:
-      - HERMES_MOCK=1
-      - HERMES_HOME=/data/hermes
-      - CORS_ORIGINS=http://localhost:3000,http://127.0.0.1:3000
+      TS_AUTHKEY: ${TS_AUTHKEY:-}
+      TS_STATE_DIR: /var/lib/tailscale
+      TS_HOSTNAME: ${TS_HOSTNAME:-hermes-studio}
+      TS_SERVE_CONFIG: /config/serve.json
+      TS_USERSPACE: "true"
+    volumes:
+      - tailscale-state:/var/lib/tailscale
+      - ./tailscale/serve.json:/config/serve.json:ro
+    cap_add:
+      - NET_ADMIN
+      - NET_RAW
+    devices:
+      - /dev/net/tun:/dev/net/tun
+    networks:
+      - tailnet
+    restart: unless-stopped
+
+  hermes:
+    build:
+      context: .
+      dockerfile: backend/Dockerfile
+    container_name: hermes
+    environment:
+      HERMES_SUPERVISOR_HMAC_KEY: ${HERMES_SUPERVISOR_HMAC_KEY:?set a real HMAC key}
+      CLAW_URL: http://claw-opus:9000
+      HERMES_HOME: /data/hermes
+      CORS_ORIGINS: ${CORS_ORIGINS:-http://localhost:3000}
+      HOST: 0.0.0.0
+      CLAW_CONTAINER: claw-opus
+      CLAW_DAILY_REBUILD_HOUR_UTC: ${CLAW_DAILY_REBUILD_HOUR_UTC:-4}
     volumes:
       - hermes-data:/data/hermes
-
-  frontend:
-    image: node:20-alpine
-    working_dir: /app
-    volumes:
-      - ./frontend:/app
-    ports:
-      - "3000:3000"
-    command: sh -c "npm run dev"
+    tmpfs:
+      - /data/hermes/memory
+      - /data/hermes/sessions
+    expose:
+      - "8000"
+    networks:
+      - tailnet
+      - clawnet
     depends_on:
-      - backend
+      - claw-opus
+    restart: unless-stopped
+
+  claw-opus:
+    build:
+      context: ./claw
+      dockerfile: Dockerfile
+    container_name: claw-opus
+    environment:
+      HERMES_URL: http://hermes:8000
+      OPENCLAW_GATEWAY_URL: ${OPENCLAW_GATEWAY_URL:?set the real OpenClaw gateway}
+      OPENCLAW_GATEWAY_TOKEN: ${OPENCLAW_GATEWAY_TOKEN:-}
+      CLAW_MAX_LIFETIME_SECONDS: "86400"
+      PORT: "9000"
+    expose:
+      - "9000"
+    networks:
+      - clawnet
+    restart: unless-stopped
+    read_only: true
+    tmpfs:
+      - /tmp
+
+networks:
+  tailnet:
+    driver: bridge
+  clawnet:
+    driver: bridge
 
 volumes:
   hermes-data:
+  tailscale-state:

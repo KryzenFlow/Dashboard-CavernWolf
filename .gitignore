@@ -17,3 +17,5 @@ Thumbs.db
 *.sql.backup
 audit-log-exports/
 clinic/cockroach-sandbox/test-data/
+backend/web_gateway/security/__pycache__/
+

@@ -1,22 +1,24 @@
-"""REST API routes for Hermes Studio dashboard."""
+"""REST API for Hermes Studio. No mock files. Skills/memory are what is on disk."""
 
 from __future__ import annotations
 
 import os
 import subprocess
-from datetime import datetime, timezone
 from pathlib import Path
 from typing import Any
 
-from fastapi import APIRouter
+from fastapi import APIRouter, Header, HTTPException
 from pydantic import BaseModel
+
+from web_gateway.security.control_plane import current_root, daily_rebuild, is_halted
+from web_gateway.security.supervisor_gates import gate_and_ledger_block_if_needed
+from web_gateway.security.token import extract_tree_id, revoke_tree
 
 router = APIRouter()
 
 HERMES_HOME = Path(os.environ.get("HERMES_HOME", Path.home() / ".hermes"))
 SKILLS_DIR = HERMES_HOME / "skills"
 MEMORY_DIR = HERMES_HOME / "memory"
-MOCK_MODE = os.environ.get("HERMES_MOCK", "1") == "1"
 
 
 class SkillPayload(BaseModel):
@@ -30,8 +32,26 @@ class SkillTestPayload(BaseModel):
     code: str
 
 
-class GitCommitPayload(BaseModel):
-    message: str = "Studio update"
+def _gate_or_block(
+    *,
+    payload: dict[str, Any],
+    lifecycle_token: str | None,
+    action: str,
+    session_id: str,
+) -> None:
+    verdict, reason = gate_and_ledger_block_if_needed(
+        payload=payload,
+        token=lifecycle_token,
+        action=action,
+        agent_name="hermes-web",
+        session_id=session_id,
+    )
+    if verdict == "PASS":
+        return
+    tree_id = extract_tree_id(lifecycle_token)
+    if tree_id:
+        revoke_tree(str(tree_id), reason=reason)
+    raise HTTPException(status_code=403, detail=reason)
 
 
 def _ensure_dirs() -> None:
@@ -39,64 +59,54 @@ def _ensure_dirs() -> None:
     MEMORY_DIR.mkdir(parents=True, exist_ok=True)
 
 
-def _mock_files() -> list[dict[str, Any]]:
-    now = int(datetime.now(timezone.utc).timestamp())
-    return [
-        {
-            "path": "skills/example_greeting.py",
-            "type": "skill",
-            "language": "python",
-            "content": 'def run(name: str) -> str:\n    return f"Hello, {name}!"\n',
-            "lastModified": now,
-        },
-        {
-            "path": "memory/facts.md",
-            "type": "memory",
-            "language": "markdown",
-            "content": "# Learned facts\n\n- User prefers OpenClaw + Ollama\n",
-            "lastModified": now,
-        },
-    ]
+def _list_dir(root: Path, prefix: str, file_type: str, language: str) -> list[dict[str, Any]]:
+    files: list[dict[str, Any]] = []
+    if not root.is_dir():
+        return files
+    for path in root.rglob("*"):
+        if path.is_file():
+            files.append(
+                {
+                    "path": f"{prefix}/{path.relative_to(root).as_posix()}",
+                    "type": file_type,
+                    "language": language,
+                    "content": path.read_text(encoding="utf-8"),
+                    "lastModified": int(path.stat().st_mtime),
+                }
+            )
+    return files
 
 
 @router.get("/files")
-async def list_files(type: str = "all") -> dict[str, Any]:
+async def list_files(
+    type: str = "all",
+    x_lifecycle_token: str | None = Header(default=None, alias="X-Lifecycle-Token"),
+) -> dict[str, Any]:
+    _gate_or_block(
+        payload={"type": type},
+        lifecycle_token=x_lifecycle_token,
+        action="rest:files:read",
+        session_id="rest",
+    )
     _ensure_dirs()
-    files: list[dict[str, Any]] = []
-
-    if MOCK_MODE and not any(SKILLS_DIR.glob("*.py")):
-        files.extend(_mock_files())
-    else:
-        for path in SKILLS_DIR.rglob("*"):
-            if path.is_file():
-                files.append(
-                    {
-                        "path": f"skills/{path.relative_to(SKILLS_DIR).as_posix()}",
-                        "type": "skill",
-                        "language": "python",
-                        "content": path.read_text(encoding="utf-8"),
-                        "lastModified": int(path.stat().st_mtime),
-                    }
-                )
-        for path in MEMORY_DIR.rglob("*"):
-            if path.is_file():
-                files.append(
-                    {
-                        "path": f"memory/{path.relative_to(MEMORY_DIR).as_posix()}",
-                        "type": "memory",
-                        "language": "markdown",
-                        "content": path.read_text(encoding="utf-8"),
-                        "lastModified": int(path.stat().st_mtime),
-                    }
-                )
-
+    files = _list_dir(SKILLS_DIR, "skills", "skill", "python")
+    files.extend(_list_dir(MEMORY_DIR, "memory", "memory", "markdown"))
     if type != "all":
         files = [f for f in files if f["type"] == type]
     return {"files": files}
 
 
 @router.post("/skill/save")
-async def save_skill(payload: SkillPayload) -> dict[str, Any]:
+async def save_skill(
+    payload: SkillPayload,
+    x_lifecycle_token: str | None = Header(default=None, alias="X-Lifecycle-Token"),
+) -> dict[str, Any]:
+    _gate_or_block(
+        payload={"path": payload.path, "language": payload.language, "content_len": len(payload.content)},
+        lifecycle_token=x_lifecycle_token,
+        action="rest:skill.save",
+        session_id="rest",
+    )
     _ensure_dirs()
     rel = payload.path.removeprefix("skills/")
     target = SKILLS_DIR / rel
@@ -106,11 +116,16 @@ async def save_skill(payload: SkillPayload) -> dict[str, Any]:
 
 
 @router.post("/skill/test")
-async def test_skill(payload: SkillTestPayload) -> dict[str, Any]:
-    if MOCK_MODE:
-        passed = "def " in payload.code and "return" in payload.code
-        return {"passed": 1 if passed else 0, "failed": 0 if passed else 1}
-
+async def test_skill(
+    payload: SkillTestPayload,
+    x_lifecycle_token: str | None = Header(default=None, alias="X-Lifecycle-Token"),
+) -> dict[str, Any]:
+    _gate_or_block(
+        payload={"path": payload.path, "code_len": len(payload.code)},
+        lifecycle_token=x_lifecycle_token,
+        action="rest:skill.test",
+        session_id="rest",
+    )
     try:
         compile(payload.code, payload.path, "exec")
         return {"passed": 1, "failed": 0}
@@ -119,7 +134,10 @@ async def test_skill(payload: SkillTestPayload) -> dict[str, Any]:
 
 
 @router.get("/git/status")
-async def git_status() -> dict[str, Any]:
+async def git_status(
+    x_lifecycle_token: str | None = Header(default=None, alias="X-Lifecycle-Token"),
+) -> dict[str, Any]:
+    _gate_or_block(payload={}, lifecycle_token=x_lifecycle_token, action="rest:git.status:read", session_id="rest")
     try:
         out = subprocess.check_output(
             ["git", "status", "--porcelain"],
@@ -127,26 +145,29 @@ async def git_status() -> dict[str, Any]:
             stderr=subprocess.DEVNULL,
             text=True,
         )
-        lines = [l for l in out.splitlines() if l.strip()]
+        lines = [line for line in out.splitlines() if line.strip()]
         return {"status": out or "Clean working tree", "uncommitted": len(lines), "unpushed": 0}
     except (subprocess.CalledProcessError, FileNotFoundError):
-        return {"status": "Not a git repo or git unavailable", "uncommitted": 0, "unpushed": 0}
+        return {"status": "Git status unavailable", "uncommitted": 0, "unpushed": 0}
 
 
-@router.post("/git/commit")
-async def git_commit(payload: GitCommitPayload) -> dict[str, Any]:
-    try:
-        subprocess.check_call(["git", "add", "-A"], cwd=Path.cwd())
-        subprocess.check_call(["git", "commit", "-m", payload.message], cwd=Path.cwd())
-        return {"success": True}
-    except (subprocess.CalledProcessError, FileNotFoundError) as exc:
-        return {"success": False, "error": str(exc)}
+@router.get("/control/status")
+async def control_status() -> dict[str, Any]:
+    return {
+        "agent": "claw-opus",
+        "halted": is_halted(),
+        "merkle_root": current_root(),
+    }
 
 
-@router.post("/git/push")
-async def git_push() -> dict[str, Any]:
-    try:
-        subprocess.check_call(["git", "push"], cwd=Path.cwd())
-        return {"success": True}
-    except (subprocess.CalledProcessError, FileNotFoundError) as exc:
-        return {"success": False, "error": str(exc)}
+@router.post("/control/daily-rebuild")
+async def control_daily_rebuild(
+    x_lifecycle_token: str | None = Header(default=None, alias="X-Lifecycle-Token"),
+) -> dict[str, Any]:
+    _gate_or_block(
+        payload={"action": "daily-rebuild"},
+        lifecycle_token=x_lifecycle_token,
+        action="orch:ask_hermes",
+        session_id="rest",
+    )
+    return daily_rebuild()

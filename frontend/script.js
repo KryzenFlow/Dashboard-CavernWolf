@@ -3,12 +3,19 @@
  * Connects to backend WebSocket + REST API (see backend/web_gateway)
  */
 
-const API_BASE = window.HERMES_API_BASE || "http://localhost:8000";
-const WS_URL = window.HERMES_WS_URL || "ws://localhost:8000/ws";
+const API_BASE = window.HERMES_API_BASE || (location.port === "3000" ? "http://127.0.0.1:8000" : "");
+const WS_URL =
+  window.HERMES_WS_URL ||
+  (API_BASE
+    ? API_BASE.replace(/^http/, "ws") + "/ws"
+    : `${location.protocol === "https:" ? "wss" : "ws"}://${location.host}/ws`);
 
 let ws = null;
 let requestId = 0;
 let sessionId = "web-1";
+let lifecycleToken = null;
+let didInitAfterAuth = false;
+let loadFilesIntervalId = null;
 let streaming = false;
 let selectedFile = null;
 
@@ -39,7 +46,7 @@ function connectWebSocket() {
 
   ws.onopen = () => {
     setStatus("Connected", "connected");
-    appendMessage("system", "Connected to Hermes gateway.");
+    appendMessage("system", "Connected to Hermes. Agent: Claw Opus.");
     rpc("session.create", { session_key: sessionId });
   };
 
@@ -66,6 +73,12 @@ function connectWebSocket() {
           $("chat-transcript").appendChild(div);
         }
       }
+      if (type === "error" && payload?.text) {
+        appendMessage("system", payload.text);
+        streaming = false;
+        setStatus("Connected", "connected");
+        return;
+      }
       if (type === "message.complete") {
         streaming = false;
         setStatus("Connected", "connected");
@@ -75,8 +88,15 @@ function connectWebSocket() {
       return;
     }
 
-    if (msg.result?.session_id) {
-      sessionId = msg.result.session_id;
+    if (msg.result?.session_id) sessionId = msg.result.session_id;
+    if (msg.result?.lifecycle_token && !didInitAfterAuth) {
+      lifecycleToken = msg.result.lifecycle_token;
+      didInitAfterAuth = true;
+      loadFiles();
+      loadGitStatus();
+      // Polling skills list makes the editor feel alive.
+      if (loadFilesIntervalId) clearInterval(loadFilesIntervalId);
+      loadFilesIntervalId = setInterval(loadFiles, 5000);
     }
     if (msg.result?.text) {
       appendMessage("assistant", msg.result.text);
@@ -86,6 +106,10 @@ function connectWebSocket() {
   ws.onclose = () => {
     setStatus("Disconnected");
     appendMessage("system", "Disconnected. Retrying in 3s…");
+    lifecycleToken = null;
+    didInitAfterAuth = false;
+    if (loadFilesIntervalId) clearInterval(loadFilesIntervalId);
+    loadFilesIntervalId = null;
     setTimeout(connectWebSocket, 3000);
   };
 
@@ -93,8 +117,10 @@ function connectWebSocket() {
 }
 
 async function api(path, options = {}) {
+  const headers = { "Content-Type": "application/json", ...options.headers };
+  if (lifecycleToken) headers["X-Lifecycle-Token"] = JSON.stringify(lifecycleToken);
   const res = await fetch(`${API_BASE}${path}`, {
-    headers: { "Content-Type": "application/json", ...options.headers },
+    headers,
     ...options,
   });
   if (!res.ok) throw new Error(await res.text());
@@ -159,7 +185,7 @@ async function loadGitStatus() {
       warn.classList.add("hidden");
     }
   } catch {
-    $("git-status").textContent = "Git status unavailable (mock mode?)";
+    $("git-status").textContent = "Git status unavailable";
   }
 }
 
@@ -171,9 +197,9 @@ $("chat-form").addEventListener("submit", (e) => {
   e.preventDefault();
   const input = $("chat-input");
   const text = input.value.trim();
-  if (!text || !ws || ws.readyState !== WebSocket.OPEN) return;
+  if (!text || !ws || ws.readyState !== WebSocket.OPEN || !lifecycleToken) return;
   appendMessage("user", text);
-  rpc("message.send", { session_id: sessionId, text });
+  rpc("message.send", { session_id: sessionId, text, lifecycle_token: lifecycleToken });
   input.value = "";
 });
 
@@ -219,6 +245,7 @@ $("btn-improve-skill").addEventListener("click", () => {
   rpc("message.send", {
     session_id: sessionId,
     text: `Please review and improve this skill:\n\n\`\`\`python\n${code}\n\`\`\``,
+    lifecycle_token: lifecycleToken,
   });
   switchTab("chat");
 });
@@ -233,26 +260,4 @@ $("btn-new-skill").addEventListener("click", () => {
   });
 });
 
-$("btn-git-commit").addEventListener("click", async () => {
-  try {
-    const result = await api("/git/commit", { method: "POST", body: JSON.stringify({ message: "Studio update" }) });
-    appendMessage("system", result.success ? "Committed" : result.error);
-    loadGitStatus();
-  } catch (err) {
-    appendMessage("system", err.message);
-  }
-});
-
-$("btn-git-push").addEventListener("click", async () => {
-  try {
-    const result = await api("/git/push", { method: "POST", body: "{}" });
-    appendMessage("system", result.success ? "Pushed to remote" : result.error);
-  } catch (err) {
-    appendMessage("system", err.message);
-  }
-});
-
 connectWebSocket();
-loadFiles();
-loadGitStatus();
-setInterval(loadFiles, 5000);
