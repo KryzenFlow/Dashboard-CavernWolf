@@ -745,15 +745,24 @@
 
   el.audio.addEventListener("timeupdate", updateProgress);
   el.audio.addEventListener("loadedmetadata", updateProgress);
+  function setTuningForkPlaying(playing) {
+    document.querySelectorAll("[data-tuning-fork]").forEach((node) => {
+      node.classList.toggle("is-playing", playing);
+    });
+  }
+
   el.audio.addEventListener("ended", () => {
     el.btnPlay.textContent = "▶";
+    setTuningForkPlaying(false);
     playRelative(1);
   });
   el.audio.addEventListener("play", () => {
     el.btnPlay.textContent = "❚❚";
+    setTuningForkPlaying(true);
   });
   el.audio.addEventListener("pause", () => {
     el.btnPlay.textContent = "▶";
+    setTuningForkPlaying(false);
   });
 
   el.seek.addEventListener("pointerdown", () => {

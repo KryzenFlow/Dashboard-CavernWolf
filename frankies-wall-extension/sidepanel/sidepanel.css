@@ -252,6 +252,7 @@ button {
 }
 
 .now-playing {
+  position: relative;
   padding: 16px 16px 10px;
   border-bottom: 1px solid var(--line);
   display: grid;
@@ -261,6 +262,69 @@ button {
   background:
     radial-gradient(circle at 85% 20%, var(--accent-glow), transparent 40%),
     linear-gradient(180deg, #121212, #0c0c0c);
+}
+
+/* TuningForkIcon — visual tuning fork (Ig 1) */
+.tuning-fork-icon {
+  width: 32px;
+  height: 32px;
+  color: var(--ink);
+  display: grid;
+  place-items: center;
+  pointer-events: none;
+  opacity: 0.55;
+  transition: opacity 0.25s ease, color 0.25s ease, filter 0.25s ease;
+}
+
+.tuning-fork-svg {
+  width: 32px;
+  height: 32px;
+  display: block;
+  overflow: visible;
+}
+
+.tuning-fork--now {
+  position: absolute;
+  top: 10px;
+  right: 12px;
+  z-index: 2;
+}
+
+.wall-stage {
+  position: relative;
+}
+
+.tuning-fork--wall {
+  position: absolute;
+  top: 8px;
+  right: 10px;
+  z-index: 2;
+  opacity: 0.4;
+}
+
+.tuning-fork-icon.is-playing {
+  opacity: 1;
+  color: var(--accent-soft);
+  filter: drop-shadow(0 0 6px var(--accent-glow));
+  animation: tuning-fork-pulse 1.1s ease-in-out infinite;
+}
+
+@keyframes tuning-fork-pulse {
+  0%,
+  100% {
+    transform: scale(1);
+    opacity: 0.85;
+  }
+  50% {
+    transform: scale(1.12);
+    opacity: 1;
+  }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .tuning-fork-icon.is-playing {
+    animation: none;
+  }
 }
 
 .art-wrap {
