@@ -1,0 +1,23 @@
+{
+  "_comment": "Option 3 reference deps only — do NOT replace melotunez-frontend/package.json. Production uses React 19 + Tailwind 4 via Express proxy; @base44/sdk stays optional for SDK experiments.",
+  "name": "truetunes-frontend",
+  "version": "1.0.0",
+  "type": "module",
+  "scripts": {
+    "dev": "vite",
+    "build": "vite build",
+    "start": "vite"
+  },
+  "dependencies": {
+    "@base44/sdk": "latest",
+    "react": "^18.3.0",
+    "react-dom": "^18.3.0"
+  },
+  "devDependencies": {
+    "vite": "^5.0.0",
+    "@vitejs/plugin-react": "^4.0.0",
+    "tailwindcss": "^3.4.0",
+    "autoprefixer": "^10.4.0",
+    "postcss": "^8.4.0"
+  }
+}

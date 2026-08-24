@@ -17,3 +17,13 @@ Thumbs.db
 *.sql.backup
 audit-log-exports/
 clinic/cockroach-sandbox/test-data/
+
+# MeloTunez
+melotunez-frontend/node_modules/
+melotunez-frontend/dist/
+melotunez-backend/node_modules/
+melotunez-backend/.env
+melotunez-backend/.env.local
+
+# Optional local upstream clones (do not commit)
+vendor/
