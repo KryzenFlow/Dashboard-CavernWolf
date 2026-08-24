@@ -11,6 +11,7 @@
     currentId: null,
     activeFilter: null,
     instrumentFilter: "all",
+    vibeFilter: "all",
     storyFilter: "all",
     currentView: "library",
     seeking: false,

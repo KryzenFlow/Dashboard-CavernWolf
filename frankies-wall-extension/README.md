@@ -96,11 +96,18 @@ sidepanel/
 
 Edit `sidepanel/data/tags.js` — add filter chips like **live**, **studio**, **mom_mode**, or anything that fits your wall. Reload the extension to pick them up.
 
-## UI map
+## UI map (`index.html` + `sidepanel.css`)
 
-- **Left:** Frankie's Wall brand + wall-of-names tags + import
-- **Center:** Now playing (album art + handwritten note) + library / wall / edit
-- **Bottom:** Progress bar styled like a **BMX rail**
+Everything visible lives in the UI layer — black-and-white wall aesthetic, marker buttons, gritty textures.
+
+| Region | Elements |
+|--------|----------|
+| **Sidebar** | Brand + tuning fork logo mount, wall-of-names tags (bands, places, people, instruments, story, vibes), import buttons |
+| **Now Playing** | Cover art cluster + art fork mount, title/note/chips, transport, `#tuningForkBtn` (A440) |
+| **Library** | `#instrumentFilter` (Courier marker B&W), `#vibeFilter` (hand-drawn chips, Mom's Smile accent), `#storyFilter` (expandable from `tags.js`), `#trackList` |
+| **BMX rail** | `#seek` progress bar, rail fork mount, elapsed/total times, Music Outro |
+
+Tuning fork SVG mounts: `[data-tuning-fork-mount="logo|art|rail"]` plus the Now Playing button.
 
 ## Permissions
 
@@ -111,4 +118,4 @@ No host permissions. No network calls for music.
 
 ## Tech
 
-Vanilla HTML / CSS / JS (Manifest V3). Handwritten notes use a **bundled** Patrick Hand font (`fonts/PatrickHand-Regular.ttf`) — no CDN at runtime.
+Vanilla HTML / CSS / JS (Manifest V3). All modules attach to `window.FrankiesWall`. Handwritten notes use a **bundled** Patrick Hand font (`fonts/PatrickHand-Regular.ttf`) — no CDN at runtime.

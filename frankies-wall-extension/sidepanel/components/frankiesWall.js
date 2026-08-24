@@ -21,6 +21,23 @@
     });
   };
 
+  FrankiesWall.setVibeFilterUi = function setVibeFilterUi(value) {
+    const bar = FrankiesWall.el.vibeFilter;
+    if (!bar) return;
+    bar.querySelectorAll("button[data-vibe]").forEach((btn) => {
+      const match = btn.getAttribute("data-vibe") === value;
+      btn.classList.toggle("is-active", match);
+      btn.setAttribute("aria-pressed", match ? "true" : "false");
+    });
+  };
+
+  FrankiesWall.filterByVibe = function filterByVibe(vibe) {
+    FrankiesWall.state.vibeFilter = vibe || "all";
+    FrankiesWall.setVibeFilterUi(FrankiesWall.state.vibeFilter);
+    FrankiesWall.renderLibrary();
+    FrankiesWall.renderSidebarTags();
+  };
+
   FrankiesWall.setStoryFilter = function setStoryFilter(value) {
     if (!FrankiesWall.STORY_FILTERS.some((f) => f.id === value)) return;
     FrankiesWall.state.storyFilter = value;
@@ -69,6 +86,8 @@
       const label =
         state.instrumentFilter.charAt(0).toUpperCase() + state.instrumentFilter.slice(1);
       el.libraryHeading.textContent = label;
+    } else if (state.vibeFilter !== "all") {
+      el.libraryHeading.textContent = state.vibeFilter;
     } else if (state.storyFilter !== "all") {
       const def = FrankiesWall.STORY_FILTERS.find((f) => f.id === state.storyFilter);
       el.libraryHeading.textContent = def?.label || "Library";
@@ -102,6 +121,8 @@
           btn.classList.add("is-active");
         } else if (mappedInstrument && state.instrumentFilter === mappedInstrument) {
           btn.classList.add("is-active");
+        } else if (kind === "vibes" && state.vibeFilter === name) {
+          btn.classList.add("is-active");
         } else if (mappedStory && state.storyFilter === mappedStory) {
           btn.classList.add("is-active");
         }
@@ -112,6 +133,16 @@
             else {
               state.activeFilter = null;
               FrankiesWall.filterByInstrument(name);
+            }
+            if (state.currentView === "wall") FrankiesWall.setView("library");
+            else FrankiesWall.renderSidebarTags();
+            return;
+          }
+          if (kind === "vibes") {
+            if (state.vibeFilter === name) FrankiesWall.filterByVibe("all");
+            else {
+              state.activeFilter = null;
+              FrankiesWall.filterByVibe(name);
             }
             if (state.currentView === "wall") FrankiesWall.setView("library");
             else FrankiesWall.renderSidebarTags();
@@ -276,13 +307,21 @@
   };
 
   FrankiesWall.bindInstrumentFilter = function bindInstrumentFilter() {
-    document.querySelectorAll("#instrumentFilter button").forEach((btn) => {
+    document.querySelectorAll("#instrumentFilter button[data-instrument]").forEach((btn) => {
       btn.addEventListener("click", () => {
-        const instrument = btn.getAttribute("data-instrument");
-        FrankiesWall.filterByInstrument(instrument);
+        FrankiesWall.filterByInstrument(btn.getAttribute("data-instrument"));
       });
     });
     FrankiesWall.setInstrumentFilterUi(FrankiesWall.state.instrumentFilter);
+  };
+
+  FrankiesWall.bindVibeFilter = function bindVibeFilter() {
+    document.querySelectorAll("#vibeFilter button[data-vibe]").forEach((btn) => {
+      btn.addEventListener("click", () => {
+        FrankiesWall.filterByVibe(btn.getAttribute("data-vibe"));
+      });
+    });
+    FrankiesWall.setVibeFilterUi(FrankiesWall.state.vibeFilter);
   };
 
   FrankiesWall.bindUi = function bindUi() {

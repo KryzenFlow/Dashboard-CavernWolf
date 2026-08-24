@@ -25,6 +25,7 @@
     libraryHeading: document.getElementById("library-heading"),
     btnClearFilter: document.getElementById("btn-clear-filter"),
     instrumentFilter: document.getElementById("instrumentFilter"),
+    vibeFilter: document.getElementById("vibeFilter"),
     storyFilter: document.getElementById("storyFilter"),
     viewLibrary: document.getElementById("view-library"),
     viewWall: document.getElementById("view-wall"),
@@ -59,6 +60,7 @@
 
   FW.renderStoryFilterBar();
   FW.bindInstrumentFilter();
+  FW.bindVibeFilter();
   FW.bindUi();
   FW.bindTransport();
   FW.initTuningFork();

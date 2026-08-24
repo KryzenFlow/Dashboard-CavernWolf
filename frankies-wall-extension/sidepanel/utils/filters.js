@@ -19,6 +19,9 @@
     if (state.storyFilter !== "all") {
       tracks = tracks.filter((t) => FrankiesWall.trackMatchesStoryFilter(t, state.storyFilter));
     }
+    if (state.vibeFilter !== "all") {
+      tracks = tracks.filter((t) => t.vibes.includes(state.vibeFilter));
+    }
     if (state.activeFilter) {
       const { kind, value } = state.activeFilter;
       tracks = tracks.filter((t) => {

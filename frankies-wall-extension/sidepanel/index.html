@@ -7,8 +7,10 @@
     <link rel="stylesheet" href="sidepanel.css" />
   </head>
   <body>
+    <!-- UI LAYER — everything visible lives in index.html + sidepanel.css -->
     <div class="app">
-      <aside class="wall-sidebar" aria-label="Wall of names">
+      <!-- Sidebar: Frankie's wall tag selector (marker names on brick) -->
+      <aside class="wall-sidebar wall-texture" aria-label="Wall of names">
         <header class="brand-block">
           <div data-tuning-fork-mount="logo"></div>
           <div class="brand-copy">
@@ -74,7 +76,8 @@
       </aside>
 
       <main class="stage">
-        <section id="view-now" class="now-playing" aria-label="Now playing">
+        <!-- Now Playing cluster + tuning fork (art mount) -->
+        <section id="view-now" class="now-playing now-playing-texture" aria-label="Now playing">
           <div class="art-cluster">
             <div data-tuning-fork-mount="art"></div>
             <div class="art-wrap">
@@ -103,19 +106,36 @@
           </button>
         </section>
 
+        <!-- Library: instrument filter · vibe filter · story filter · track list -->
         <section id="view-library" class="content-panel is-active" aria-label="Library">
           <div class="panel-head">
             <h2 id="library-heading">Library</h2>
             <button type="button" id="btn-clear-filter" class="btn tiny ghost" hidden>Clear filter</button>
           </div>
-          <div id="instrumentFilter" class="instrument-filter" aria-label="Filter by instrument">
-            <button type="button" data-instrument="all" class="is-active">All</button>
-            <button type="button" data-instrument="electric">Electric</button>
-            <button type="button" data-instrument="bass">Bass</button>
-            <button type="button" data-instrument="sax">Sax</button>
-            <button type="button" data-instrument="mixed">Mixed</button>
+          <div class="filter-stack">
+            <div id="instrumentFilter" class="instrument-filter" aria-label="Filter by instrument">
+              <span class="filter-label">Instrument</span>
+              <div class="filter-buttons">
+                <button type="button" data-instrument="all" class="is-active">All</button>
+                <button type="button" data-instrument="electric">Electric</button>
+                <button type="button" data-instrument="bass">Bass</button>
+                <button type="button" data-instrument="sax">Sax</button>
+                <button type="button" data-instrument="mixed">Mixed</button>
+              </div>
+            </div>
+            <div id="vibeFilter" class="vibe-filter" aria-label="Filter by vibe">
+              <span class="filter-label">Vibe</span>
+              <div class="filter-buttons">
+                <button type="button" data-vibe="all" class="is-active">All</button>
+                <button type="button" data-vibe="Mom's Smile" class="moms">Mom's Smile</button>
+                <button type="button" data-vibe="late night">Late Night</button>
+                <button type="button" data-vibe="River Breeze">River Breeze</button>
+                <button type="button" data-vibe="live">Live</button>
+                <button type="button" data-vibe="studio">Studio</button>
+              </div>
+            </div>
+            <div id="storyFilter" class="story-filter" aria-label="Story filters"></div>
           </div>
-          <div id="storyFilter" class="story-filter" aria-label="Story filters"></div>
           <div id="trackList" class="track-list"></div>
           <p id="library-empty" class="empty-hint">
             Drop in local audio — sax takes, covers, late-night sessions. Tag them on the wall.
@@ -181,6 +201,7 @@
         </section>
       </main>
 
+      <!-- BMX-grind progress rail + tuning fork mount -->
       <footer class="bmx-rail" aria-label="Playback progress">
         <div class="rail-row">
           <div data-tuning-fork-mount="rail"></div>
