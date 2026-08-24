@@ -816,13 +816,17 @@
         strokeWidth: window.TuningFork.DEFAULT_PROPS.strokeWidth,
         interactive: true,
         onClick: "playTuningFork",
+        durationSeconds: 2,
         meaning: TUNING_FORK_META.meaning,
         origin: TUNING_FORK_META.origin,
       };
     });
   }
 
+  // Fallback if mounts already bound via TuningFork.create (string onClick)
   document.querySelectorAll('[data-onclick="playTuningFork"]').forEach((node) => {
+    if (node.dataset.forkBound === "1") return;
+    node.dataset.forkBound = "1";
     node.setAttribute("data-meaning", TUNING_FORK_META.meaning);
     node.setAttribute("data-origin", TUNING_FORK_META.origin);
     node.setAttribute(
@@ -833,9 +837,13 @@
       "aria-label",
       `${TUNING_FORK_META.meaning}. ${TUNING_FORK_META.origin}. Play A440 tuning fork.`
     );
-    node.addEventListener("click", () => {
-      playTuningFork().catch(() => {});
-    });
+    // create() already binds click when mounted; only re-bind orphan markup
+    if (!node.closest("[data-tuning-fork-mount]")) {
+      node.addEventListener("click", () => {
+        const duration = Number(node.dataset.durationSeconds) || 2;
+        playTuningFork(duration).catch(() => {});
+      });
+    }
   });
 
   const logoMeaning = document.querySelector(".tuning-fork-meaning--logo");

@@ -17,13 +17,17 @@
  *     "stroke": "#000",
  *     "strokeWidth": 2,
  *     "interactive": true,
- *     "onClick": "playTuningFork"
+ *     "onClick": "playTuningFork",
+ *     "durationSeconds": 2
  *   },
  *   "meta": {
  *     "meaning": "Center — Find Your Tone",
  *     "origin": "Mom's polish and practical wisdom"
  *   }
  * }
+ *
+ * Equivalent:
+ *   <button onClick={() => playTuningFork()}>Tuning Fork</button>
  *
  * Placements: logo (top-left) · art (Now Playing) · rail (BMX grind bar)
  */
@@ -39,6 +43,7 @@
     strokeWidth: 2,
     interactive: true,
     onClick: "playTuningFork",
+    durationSeconds: 2,
     meaning: META.meaning,
     origin: META.origin,
     placement: "default",
@@ -84,7 +89,36 @@
   }
 
   /**
-   * @param {Partial<typeof DEFAULT_PROPS> & { onClick?: string | (() => void) }} props
+   * Resolve onClick prop like React:
+   *   onClick={() => playTuningFork()}
+   * or string name "playTuningFork" → window.playTuningFork(durationSeconds)
+   */
+  function bindClick(root, merged) {
+    if (!merged.interactive) return;
+
+    const duration =
+      Number(merged.durationSeconds) > 0
+        ? Number(merged.durationSeconds)
+        : DEFAULT_PROPS.durationSeconds;
+
+    root.dataset.durationSeconds = String(duration);
+
+    root.addEventListener("click", () => {
+      if (typeof merged.onClick === "function") {
+        merged.onClick(duration);
+        return;
+      }
+      const name =
+        typeof merged.onClick === "string" ? merged.onClick : "playTuningFork";
+      const handler = global[name];
+      if (typeof handler === "function") {
+        Promise.resolve(handler(duration)).catch(() => {});
+      }
+    });
+  }
+
+  /**
+   * @param {Partial<typeof DEFAULT_PROPS> & { onClick?: string | ((duration?: number) => void) }} props
    * @returns {HTMLElement}
    */
   function create(props = {}) {
@@ -119,12 +153,7 @@
     root.style.color = merged.stroke === "#000" ? "var(--ink)" : merged.stroke;
 
     root.appendChild(createSvg(merged));
-
-    if (merged.interactive && typeof merged.onClick === "function") {
-      root.addEventListener("click", () => {
-        merged.onClick();
-      });
-    }
+    bindClick(root, merged);
 
     return root;
   }
