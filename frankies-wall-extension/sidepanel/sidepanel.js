@@ -751,14 +751,20 @@
     });
   }
 
-  const TUNING_FORK_MEANING = "Mom's Center — Find Your Tone";
+  const TUNING_FORK_META = window.TuningFork?.META || {
+    meaning: "Center — Find Your Tone",
+    origin: "Mom's polish and practical wisdom",
+  };
 
   let forkAudioCtx = null;
   let forkStopTimer = null;
 
-  /** Local A440 reference tone (Web Audio) — no network.
-   *  Resonance / center / alignment — Mom's Center — Find Your Tone. */
-  async function playTuningFork() {
+  /**
+   * Local A440 reference tone (Web Audio) — no network.
+   * Center — Find Your Tone · Mom's polish and practical wisdom.
+   * @param {number} [durationSeconds=2]
+   */
+  async function playTuningFork(durationSeconds = 2) {
     const AudioCtx = window.AudioContext || window.webkitAudioContext;
     if (!AudioCtx) return;
 
@@ -769,21 +775,24 @@
       await forkAudioCtx.resume();
     }
 
-    const ctx = forkAudioCtx;
-    const now = ctx.currentTime;
-    const osc = ctx.createOscillator();
-    const gain = ctx.createGain();
+    const audioContext = forkAudioCtx;
+    const now = audioContext.currentTime;
+    const oscillator = audioContext.createOscillator();
+    const gainNode = audioContext.createGain();
 
-    osc.type = "sine";
-    osc.frequency.value = 440; // A440 standard tuning
-    gain.gain.setValueAtTime(0.0001, now);
-    gain.gain.exponentialRampToValueAtTime(0.18, now + 0.02);
-    gain.gain.exponentialRampToValueAtTime(0.0001, now + 1.9);
+    // Standard tuning pitch: A4 = 440 Hz
+    oscillator.type = "sine";
+    oscillator.frequency.value = 440;
 
-    osc.connect(gain);
-    gain.connect(ctx.destination);
-    osc.start(now);
-    osc.stop(now + 2); // 2-second tone
+    // Smooth fade-out
+    gainNode.gain.setValueAtTime(0.2, now);
+    gainNode.gain.exponentialRampToValueAtTime(0.001, now + durationSeconds);
+
+    oscillator.connect(gainNode);
+    gainNode.connect(audioContext.destination);
+
+    oscillator.start(now);
+    oscillator.stop(now + durationSeconds);
 
     document.querySelectorAll("[data-tuning-fork]").forEach((node) => {
       node.classList.add("is-forking");
@@ -793,8 +802,10 @@
       document.querySelectorAll("[data-tuning-fork]").forEach((node) => {
         node.classList.remove("is-forking");
       });
-    }, 2000);
+    }, durationSeconds * 1000);
   }
+
+  window.playTuningFork = playTuningFork;
 
   if (window.TuningFork) {
     window.TuningFork.mountAll((placement) => {
@@ -803,23 +814,34 @@
         size: sizeByPlacement[placement] ?? window.TuningFork.DEFAULT_PROPS.size,
         stroke: window.TuningFork.DEFAULT_PROPS.stroke,
         strokeWidth: window.TuningFork.DEFAULT_PROPS.strokeWidth,
-        interactive: window.TuningFork.DEFAULT_PROPS.interactive,
-        meaning: TUNING_FORK_MEANING,
+        interactive: true,
+        onClick: "playTuningFork",
+        meaning: TUNING_FORK_META.meaning,
+        origin: TUNING_FORK_META.origin,
       };
     });
   }
 
   document.querySelectorAll('[data-onclick="playTuningFork"]').forEach((node) => {
-    node.setAttribute("data-meaning", TUNING_FORK_MEANING);
-    node.setAttribute("title", TUNING_FORK_MEANING);
+    node.setAttribute("data-meaning", TUNING_FORK_META.meaning);
+    node.setAttribute("data-origin", TUNING_FORK_META.origin);
+    node.setAttribute(
+      "title",
+      `${TUNING_FORK_META.meaning}\n${TUNING_FORK_META.origin}`
+    );
     node.setAttribute(
       "aria-label",
-      `${TUNING_FORK_MEANING}. Play A440 tuning fork.`
+      `${TUNING_FORK_META.meaning}. ${TUNING_FORK_META.origin}. Play A440 tuning fork.`
     );
     node.addEventListener("click", () => {
       playTuningFork().catch(() => {});
     });
   });
+
+  const logoMeaning = document.querySelector(".tuning-fork-meaning--logo");
+  if (logoMeaning) {
+    logoMeaning.textContent = TUNING_FORK_META.meaning;
+  }
 
   el.audio.addEventListener("ended", () => {
     el.btnPlay.textContent = "▶";
