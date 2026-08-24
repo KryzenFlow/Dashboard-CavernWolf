@@ -6,19 +6,7 @@
 
   FrankiesWall.STORAGE_KEY = "frankiesWallLibrary";
 
-  FrankiesWall.state = FrankiesWall.state || {
-    library: { tracks: [] },
-    currentId: null,
-    activeFilter: null,
-    instrumentFilter: "all",
-    vibeFilter: "all",
-    storyFilter: "all",
-    currentView: "library",
-    seeking: false,
-    volume: 0.85,
-    waveformEnabled: false,
-  };
-
+  /** Session blobs — state lives in sidepanel.js (State layer). */
   FrankiesWall.session = FrankiesWall.session || {
     blobUrls: new Map(),
     sessionFiles: new Map(),
@@ -131,6 +119,7 @@
   };
 
   FrankiesWall.loadLibrary = async function loadLibrary() {
+    if (!FrankiesWall.state) return;
     try {
       const data = await chrome.storage.local.get(FrankiesWall.STORAGE_KEY);
       const stored = data[FrankiesWall.STORAGE_KEY];

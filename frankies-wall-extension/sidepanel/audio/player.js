@@ -79,15 +79,14 @@
   FrankiesWall.syncPlayButton = function syncPlayButton() {
     const el = FrankiesWall.el;
     if (!el?.btnPlay || !el?.audio) return;
-    el.btnPlay.textContent = el.audio.paused ? "▶" : "❚❚";
+    FrankiesWall.setIsPlaying?.(!el.audio.paused);
   };
 
   FrankiesWall.pauseTrack = function pauseTrack() {
     const el = FrankiesWall.el;
     if (!el?.audio?.src) return;
     el.audio.pause();
-    FrankiesWall.syncPlayButton();
-    FrankiesWall.setTuningForkPlaying?.(false);
+    FrankiesWall.setIsPlaying?.(false);
   };
 
   FrankiesWall.togglePlay = async function togglePlay() {
@@ -105,8 +104,7 @@
     if (el.audio.paused) {
       try {
         await el.audio.play();
-        FrankiesWall.syncPlayButton();
-        FrankiesWall.setTuningForkPlaying?.(true);
+        FrankiesWall.setIsPlaying?.(true);
         FrankiesWall.startWaveform?.();
       } catch {
         /* autoplay blocked */
@@ -136,22 +134,22 @@
       el.nowNote.textContent = track.file
         ? `Add ${track.fileName} under the extension music/ folder, or re-import to play.`
         : "Metadata is saved, but the audio file isn’t in this session. Re-import the file or folder to play.";
+      FrankiesWall.setCurrentTrack?.(id);
       FrankiesWall.updateNowPlaying?.(track);
       return;
     }
 
-    FrankiesWall.state.currentId = id;
+    FrankiesWall.setCurrentTrack?.(id);
     el.audio.src = url;
     FrankiesWall.applyVolume(FrankiesWall.state.volume ?? FrankiesWall.DEFAULT_VOLUME);
 
     try {
       await el.audio.play();
-      FrankiesWall.syncPlayButton();
-      FrankiesWall.setTuningForkPlaying?.(true);
+      FrankiesWall.setIsPlaying?.(true);
       FrankiesWall.attachWaveformSource?.();
       FrankiesWall.startWaveform?.();
     } catch {
-      FrankiesWall.syncPlayButton();
+      FrankiesWall.setIsPlaying?.(false);
     }
 
     FrankiesWall.updateNowPlaying?.(track);
@@ -161,7 +159,7 @@
   FrankiesWall.playRelative = function playRelative(delta) {
     const list = FrankiesWall.filteredTracks();
     if (!list.length) return;
-    let idx = list.findIndex((t) => t.id === FrankiesWall.state.currentId);
+    let idx = list.findIndex((t) => t.id === FrankiesWall.state.currentTrack);
     if (idx < 0) idx = 0;
     else idx = (idx + delta + list.length) % list.length;
     FrankiesWall.playTrack(list[idx].id);
@@ -182,21 +180,18 @@
     el.audio.addEventListener("loadedmetadata", () => FrankiesWall.updateProgress?.());
 
     el.audio.addEventListener("ended", () => {
-      FrankiesWall.syncPlayButton();
-      FrankiesWall.setTuningForkPlaying?.(false);
+      FrankiesWall.setIsPlaying?.(false);
       FrankiesWall.stopWaveform?.();
       FrankiesWall.playRelative(1);
     });
 
     el.audio.addEventListener("play", () => {
-      FrankiesWall.syncPlayButton();
-      FrankiesWall.setTuningForkPlaying?.(true);
+      FrankiesWall.setIsPlaying?.(true);
       FrankiesWall.startWaveform?.();
     });
 
     el.audio.addEventListener("pause", () => {
-      FrankiesWall.syncPlayButton();
-      FrankiesWall.setTuningForkPlaying?.(false);
+      FrankiesWall.setIsPlaying?.(false);
       FrankiesWall.stopWaveform?.();
     });
 

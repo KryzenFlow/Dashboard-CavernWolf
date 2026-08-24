@@ -14,7 +14,7 @@
       const artist = track.artist || (track.bands && track.bands[0]) || "";
       item.textContent = `${track.title} — ${artist} (${track.instrument})`;
       item.dataset.id = track.id;
-      if (track.id === FrankiesWall.state.currentId) {
+      if (track.id === FrankiesWall.state.currentTrack) {
         item.classList.add("is-playing");
       }
       item.addEventListener("click", () => {

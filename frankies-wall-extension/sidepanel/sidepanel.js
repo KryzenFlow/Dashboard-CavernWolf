@@ -1,5 +1,5 @@
 /**
- * Frankie's Wall — 6-layer sidepanel orchestrator.
+ * State layer — Frankie's Wall sidepanel orchestrator.
  *
  * UI · State · Audio · Metadata · Rendering · Utilities
  * Pure JS + CSS + HTML. No framework.
@@ -7,7 +7,56 @@
 (function bootFrankiesWall() {
   "use strict";
 
-  const FW = window.FrankiesWall;
+  const FW = (window.FrankiesWall = window.FrankiesWall || {});
+
+  /**
+   * STATE LAYER — single source of truth (sidepanel.js)
+   *
+   * const state = {
+   *   currentTrack: null,
+   *   instrumentFilter: "all",
+   *   vibeFilter: "all",
+   *   isPlaying: false,
+   *   tuningForkActive: false,
+   * };
+   */
+  FW.state = {
+    currentTrack: null,
+    instrumentFilter: "all",
+    vibeFilter: "all",
+    isPlaying: false,
+    tuningForkActive: false,
+    library: { tracks: [] },
+    activeFilter: null,
+    storyFilter: "all",
+    currentView: "library",
+    seeking: false,
+    volume: 0.85,
+    waveformEnabled: false,
+  };
+
+  FW.setCurrentTrack = function setCurrentTrack(trackId) {
+    FW.state.currentTrack = trackId || null;
+  };
+
+  FW.getCurrentTrack = function getCurrentTrack() {
+    if (!FW.state.currentTrack) return null;
+    return FW.state.library.tracks.find((t) => t.id === FW.state.currentTrack) || null;
+  };
+
+  FW.setIsPlaying = function setIsPlaying(isPlaying) {
+    FW.state.isPlaying = Boolean(isPlaying);
+    document.querySelectorAll("[data-tuning-fork]").forEach((node) => {
+      node.classList.toggle("is-playing", FW.state.isPlaying);
+    });
+    if (FW.el?.btnPlay && FW.el?.audio) {
+      FW.el.btnPlay.textContent = FW.state.isPlaying ? "❚❚" : "▶";
+    }
+  };
+
+  FW.setTuningForkActive = function setTuningForkActive(active) {
+    FW.state.tuningForkActive = Boolean(active);
+  };
 
   FW.el = {
     bandTags: document.getElementById("band-tags"),

@@ -181,17 +181,17 @@
   let forkStopTimer = null;
 
   FrankiesWall.setTuningForkPlaying = function setTuningForkPlaying(playing) {
-    document.querySelectorAll("[data-tuning-fork]").forEach((node) => {
-      node.classList.toggle("is-playing", playing);
-    });
+    FrankiesWall.setIsPlaying?.(playing);
   };
 
   FrankiesWall.pulseTuningForkIcons = function pulseTuningForkIcons(durationMs = 2000) {
+    FrankiesWall.setTuningForkActive?.(true);
     const pulseTargets = document.querySelectorAll("[data-tuning-fork], #tuningForkBtn");
     pulseTargets.forEach((node) => node.classList.add("is-forking"));
     if (forkStopTimer) clearTimeout(forkStopTimer);
     forkStopTimer = setTimeout(() => {
       pulseTargets.forEach((node) => node.classList.remove("is-forking"));
+      FrankiesWall.setTuningForkActive?.(false);
     }, durationMs);
   };
 

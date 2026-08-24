@@ -48,7 +48,7 @@ Drop matching MP3s under `music/` (see `music/README.md`) and reload the extensi
 |------|----------------|
 | **Library** | All imported tracks (or current filter) |
 | **Frankie's Wall** | Graffiti grid of band / place / people names — click to filter |
-| **Mom's Smile** | Playlist filter: vibe “Mom's Smile”, people “Mom”, or instrument “sax” |
+| **Mom's Smile** | Playlist filter: vibe `mom_smile`, people “Mom”, or instrument “sax” |
 
 Left **wall of names** tags also filter the library (Bush, Toledo, Frankies, Mom, sax, live, studio, etc.).
 
@@ -59,7 +59,21 @@ Pure JS + CSS + HTML — no framework.
 | Layer | Role | Location |
 |-------|------|----------|
 | **UI** | Markup + Frankie's Wall styling | `index.html`, `sidepanel.css` |
-| **State** | Library, filters, current track | `sidepanel.js` → `FrankiesWall.state` |
+| **State** | Current track, filters, playback, fork | `sidepanel.js` → `FrankiesWall.state` |
+
+### State layer (`sidepanel.js`)
+
+```js
+const state = {
+  currentTrack: null,
+  instrumentFilter: "all",
+  vibeFilter: "all",
+  isPlaying: false,
+  tuningForkActive: false,
+};
+```
+
+Helpers: `setCurrentTrack`, `getCurrentTrack`, `setIsPlaying`, `setTuningForkActive`.
 | **Audio** | Play, pause, scrub, volume, A440 fork, optional waveform | `audio/player.js`, `audio/tuningForkAudio.js`, `audio/waveform.js` |
 | **Metadata** | Catalog, tags, vibes | `data/tracks.js`, `data/tags.js`, `data/vibes.js` |
 

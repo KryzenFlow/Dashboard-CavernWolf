@@ -430,7 +430,7 @@
       }
       await FrankiesWall.saveLibrary();
       FrankiesWall.closeEdit();
-      if (FrankiesWall.state.currentId === id) FrankiesWall.updateNowPlaying(track);
+      if (FrankiesWall.state.currentTrack === id) FrankiesWall.updateNowPlaying(track);
       FrankiesWall.renderAll();
     });
 
@@ -441,8 +441,9 @@
       );
       FrankiesWall.revokeUrl(id);
       FrankiesWall.session.sessionFiles.delete(id);
-      if (FrankiesWall.state.currentId === id) {
-        FrankiesWall.state.currentId = null;
+      if (FrankiesWall.state.currentTrack === id) {
+        FrankiesWall.setCurrentTrack?.(null);
+        FrankiesWall.setIsPlaying?.(false);
         el.audio.removeAttribute("src");
         el.audio.load();
         el.nowTitle.textContent = "Nothing queued";
