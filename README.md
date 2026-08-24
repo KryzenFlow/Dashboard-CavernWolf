@@ -110,6 +110,11 @@ Studio, Ignite precache, MCP server, Ollama/OpenAI/Anthropic/Groq router,
 Docker-in-Docker worker pool, STM/LTM stores. Those belong to other
 stacks; this README only describes what this repo runs.
 
+## Cursor
+
+Repository system prompt: [`.cursorrules`](.cursorrules). Follow it in this
+tree. Do not scaffold Ollama, LangGraph, or numbered `01_` agent packages.
+
 ## Further Reading
 
 - [`examples.md`](examples.md) — Practical code examples for tools, hooks, events, and complete extensions

@@ -1,0 +1,69 @@
+# CAVERNWOLF / HERMES — CURSOR GLOBAL INSTRUCTIONS
+When operating in this repository, adhere strictly to the following.
+Read SOUL.md. The only worker is Claw Opus. Hermes orchestrates.
+
+## Architecture
+
+- Supervisor + specialist: Hermes (`backend/web_gateway`) is the supervisor.
+  Claw Opus (`claw/`) is the only specialist that executes work.
+- Do **not** add LangGraph, Ollama, Qdrant, Redis, Ghost Scraper, MechIQ,
+  numbered `01_`–`08_` agent packages, or a second LLM router. Those are
+  other stacks. Inventing them here is a false environment.
+- Workflow in this tree:
+  Studio/parent → lifecycle token + Merkle membership → path confinement →
+  Doberman `pre_exec` → Hermes dispatch → Claw Opus (real OpenClaw gateway) →
+  HMAC ledger → terminate-after-use → daily Merkle genesis rebuild.
+- Parent sessions ask Hermes. Children ask the parent only. Children must
+  not inherit `orch:ask_hermes`, `claw:invoke`, or `ws:message.send`.
+- Only Hermes may call Claw. Studio and children never POST to `claw-opus`.
+
+## Bug tagging
+
+When debugging, tag before fixing:
+
+- `[SYN]` syntax / compile
+- `[DEP]` dependency / image / compose
+- `[LOG]` logging / ledger
+- `[SEC]` gates, tokens, Merkle, secrets, path confinement
+- `[MEM]` stacked cycle memory, halt-after-use, daily rebuild
+
+## LLMs
+
+- Claw talks only to `OPENCLAW_GATEWAY_URL`. Do not hallucinate OpenAI,
+  Anthropic, Groq, or Ollama clients, API keys, or compose services.
+- Do not add `HERMES_MOCK=1`, echo fallbacks, or demo-mode replies.
+- If the gateway or Merkle root is missing: error and halt. Do not invent text.
+
+## Base44 SDK (only if those files exist in-tree)
+
+This repository does **not** currently ship Base44. If it appears:
+
+- Auth: `loginViaEmailPassword(email, pw)`, `me()`. Do **not** use `signIn()`.
+- Functions: `functions.invoke('name', data)`. Do **not** use `call()`.
+- Entities: `entities.Task.filter({...})`, `get(id)`, `create(data)`,
+  `delete(id)`. Do **not** use `find()` or `insert()`.
+
+## Security
+
+- **SECRETS:** Never hardcode API keys or passwords. Use `os.environ` /
+  compose `${VAR:?…}`. Reject empty, `mock`, `dev-change-me`, `placeholder`.
+  Bitwarden at runtime. No `LEDGER_KEY:-supersecretkey` fallbacks.
+- **SUBPROCESS:** Never `shell=True`. Never unescaped string interpolation
+  into a shell. Pass argument lists. Allowlist container names if signaling
+  Docker (`claw-opus` only). Never kill the host Docker daemon.
+- **QUERIES:** Parameterized SQL only (`%s` / `?`). No f-strings or
+  concatenation for SQL. Clinic schemas stay synthetic/mock-data **sandbox
+  only** — never real PHI.
+- **NETWORK:** Do not publish Hermes (`8000`) or Claw (`9000`) on the host.
+  Tailscale is backend ingress. Do not add host ports "for convenience".
+- **MERKLE:** Claw Opus requires the live Merkle root. Missing or forged
+  control → alert + terminate the docked `claw-opus` daemon.
+- **MEMORY:** Halt after each use. Wipe cycle memory. Daily rebuild. Do not
+  stack session files or Claw will stop listening.
+
+## Files that are source of truth
+
+- `docker-compose.yml` — hermes, claw-opus, tailscale
+- `backend/web_gateway/` — orchestrator + `security/`
+- `claw/server.py` — worker
+- `SOUL.md`, `examples.md`, `agent-author.md`, `README.md`
