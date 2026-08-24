@@ -57,22 +57,26 @@ Health: `GET /health` (Merkle root present, agent `claw-opus`).
 ## Secrets
 
 Secrets are injected at runtime — never committed. Bitwarden is the
-intended vault. Before `docker compose up`:
+vault. **Do not load production secrets from a local `.env`.**
+
+On WSL, unlock then start Hermes:
 
 ```bash
-export BW_SESSION  # from `bw unlock`
-export HERMES_SUPERVISOR_HMAC_KEY=$(bw get password "hermes-supervisor-hmac" --session "$BW_SESSION")
-export OPENCLAW_GATEWAY_URL=$(bw get password "openclaw-gateway-url" --session "$BW_SESSION")
-export OPENCLAW_GATEWAY_TOKEN=$(bw get password "openclaw-gateway-token" --session "$BW_SESSION")
-export TS_AUTHKEY=$(bw get password "tailscale-authkey" --session "$BW_SESSION")
+export BW_SESSION=$(bw unlock --raw)
+PYTHONPATH=backend:. python3 -m wsl_backend.main
 ```
+
+`wsl_backend` pulls vault items into the process environment at startup
+(`DOCTOR.md`). Compose may still inject already-resolved secrets from the
+host after a Bitwarden unlock; it must not rely on placeholder defaults.
 
 | Variable | Required | Purpose |
 |----------|----------|---------|
-| `HERMES_SUPERVISOR_HMAC_KEY` | yes | Signs lifecycle tokens and the Merkle control root |
-| `OPENCLAW_GATEWAY_URL` | yes | Real OpenClaw gateway (Claw will not echo) |
-| `OPENCLAW_GATEWAY_TOKEN` | if the gateway requires it | Bearer token for OpenClaw |
-| `TS_AUTHKEY` | no | Join the tailnet. Without it, nothing is published off-box |
+| `BW_SESSION` | for WSL Bitwarden pull | Session from `bw unlock` |
+| `HERMES_SUPERVISOR_HMAC_KEY` | yes | From vault item `hermes-supervisor-hmac` |
+| `OPENCLAW_GATEWAY_URL` | yes | From vault item `openclaw-gateway-url` |
+| `OPENCLAW_GATEWAY_TOKEN` | if the gateway requires it | From vault item `openclaw-gateway-token` |
+| `TS_AUTHKEY` | no | From vault item `tailscale-authkey` |
 | `CLAW_DAILY_REBUILD_HOUR_UTC` | no | Daily genesis + memory wipe (default `4`) |
 
 There is no default HMAC key and no `LEDGER_KEY:-supersecretkey` fallback.
@@ -82,16 +86,20 @@ Placeholder values (`mock`, `dev-change-me`, empty) are rejected at boot.
 
 ```
 backend/      FastAPI orchestrator, gates, Merkle control, JSONL ledger
+wsl_backend/  WSL entry — Bitwarden CLI secret pull at startup
 claw/         Claw Opus daemon (halt-after-use, real gateway only)
 frontend/     Studio UI
 tailscale/    Serve config for Hermes
 clinic/       BAA + Cockroach sandbox (not on the default compose)
+Doberman.ps1  Optional local Ollama guard + redacted telemetry
 source/       Notes on original Copilot exports
 ```
 
 ```
 backend/web_gateway/app.py                 WS + parent session + Claw dispatch
-backend/web_gateway/entry.py               Boot guard (refuses false env)
+backend/web_gateway/entry.py               Boot guard (+ optional BW_SESSION pull)
+wsl_backend/main.py                        WSL FastAPI entry (Bitwarden required path)
+wsl_backend/bitwarden.py                   bw CLI helper (no shell=True)
 backend/web_gateway/security/              Token, gates, Merkle, Doberman, cycle
 backend/routes/api.py                      Files / skills / git status / control
 backend/tests/test_merkle_auth.py          Merkle inclusion + child attenuation
@@ -120,3 +128,5 @@ tree. Do not scaffold Ollama, LangGraph, or numbered `01_` agent packages.
 - [`examples.md`](examples.md) — Practical code examples for tools, hooks, events, and complete extensions
 - [`agent-author.md`](agent-author.md) — Step-by-step workflow for agents authoring extensions programmatically
 - [`SOUL.md`](SOUL.md) — Claw Opus values, voice, and bright lines
+- [`DOCTOR.md`](DOCTOR.md) — System state, Bitwarden, Doberman, amnesia
+- [`doctor_amnesia.md`](doctor_amnesia.md) — Forget intermediate steps after log

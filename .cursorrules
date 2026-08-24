@@ -30,9 +30,17 @@ When debugging, tag before fixing:
 ## LLMs
 
 - Claw talks only to `OPENCLAW_GATEWAY_URL`. Do not hallucinate OpenAI,
-  Anthropic, Groq, or Ollama clients, API keys, or compose services.
+  Anthropic, Groq, or compose Ollama as Claw's brain.
+- Optional local IDE reasoning may use `Doberman.ps1` → Ollama. That is not
+  Claw Opus and must never invent mock Hermes replies.
 - Do not add `HERMES_MOCK=1`, echo fallbacks, or demo-mode replies.
 - If the gateway or Merkle root is missing: error and halt. Do not invent text.
+
+## Secrets (Bitwarden)
+
+- Production secrets: Bitwarden CLI via `wsl_backend` / `BW_SESSION`.
+  Do not load production secrets from a committed `.env`.
+- See `DOCTOR.md`.
 
 ## Base44 SDK (only if those files exist in-tree)
 
@@ -65,5 +73,7 @@ This repository does **not** currently ship Base44. If it appears:
 
 - `docker-compose.yml` — hermes, claw-opus, tailscale
 - `backend/web_gateway/` — orchestrator + `security/`
+- `wsl_backend/` — WSL entry; Bitwarden CLI pull at startup
+- `Doberman.ps1` — optional local Ollama guard + telemetry
 - `claw/server.py` — worker
-- `SOUL.md`, `examples.md`, `agent-author.md`, `README.md`
+- `SOUL.md`, `DOCTOR.md`, `examples.md`, `agent-author.md`, `README.md`
