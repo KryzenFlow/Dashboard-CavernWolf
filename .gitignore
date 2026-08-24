@@ -17,3 +17,7 @@ Thumbs.db
 *.sql.backup
 audit-log-exports/
 clinic/cockroach-sandbox/test-data/
+
+# MeloTunez
+melotunez-frontend/node_modules/
+melotunez-frontend/dist/
