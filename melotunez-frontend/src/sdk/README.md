@@ -6,7 +6,7 @@ Paste-compatible Base44 client helpers. **Not used by App components.**
 | --- | --- |
 | `lib/base44.js` | `createClient({ appId, headers: { api_key } })` |
 | `api/tracks.js` | Track CRUD + `bulkCreateTracks` (SDK `list` args corrected) |
-| `api/playlists.js` | *(next paste)* |
+| `api/playlists.js` | Playlist CRUD + add/remove track (SDK `list` args corrected) |
 | `api/users.js` | *(next paste)* |
 
 ## Preferred path (Option 2)
