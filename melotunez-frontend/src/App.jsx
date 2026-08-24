@@ -1,49 +1,69 @@
-import { useEffect, useState } from 'react';
-import { getAllUsers } from './api/users.js';
-import AudioPlayer from './components/AudioPlayer.jsx';
-import Playlists from './components/Playlists.jsx';
-import Tracks from './components/Tracks.jsx';
-import Users from './components/Users.jsx';
+import { useEffect, useState } from 'react'
+import AudioPlayer from './components/AudioPlayer.jsx'
+import Playlists from './components/Playlists.jsx'
+import Tracks from './components/Tracks.jsx'
+import Users from './components/Users.jsx'
+import { base44 } from './lib/base44.js'
 
 const NAV = [
   { id: 'tracks', label: 'Tracks' },
   { id: 'playlists', label: 'Playlists' },
   { id: 'users', label: 'Users' },
-];
+]
 
 export default function App() {
-  const [view, setView] = useState('tracks');
-  const [currentTrack, setCurrentTrack] = useState(null);
-  const [currentUser, setCurrentUser] = useState(null);
-  const [bootError, setBootError] = useState(null);
+  const [view, setView] = useState('tracks')
+  const [currentTrack, setCurrentTrack] = useState(null)
+  const [currentUser, setCurrentUser] = useState(null)
+  const [bootError, setBootError] = useState(null)
+  const [bootLoading, setBootLoading] = useState(true)
 
   useEffect(() => {
-    let cancelled = false;
+    let cancelled = false
     async function boot() {
+      setBootLoading(true)
+      setBootError(null)
       try {
-        const users = await getAllUsers({ limit: 50 });
-        if (cancelled) return;
-        const admin =
-          users.find((user) => user.role === 'admin' || user._app_role === 'admin') ||
-          users[0] ||
-          null;
-        setCurrentUser(admin);
+        const me = await base44.auth.me()
+        if (!cancelled) setCurrentUser(me)
       } catch (err) {
         if (!cancelled) {
-          setBootError(err?.message || 'Could not reach Base44 API');
+          setCurrentUser(null)
+          setBootError(err?.message || 'Could not reach Base44 API')
         }
+      } finally {
+        if (!cancelled) setBootLoading(false)
       }
     }
-    boot();
+    boot()
     return () => {
-      cancelled = true;
-    };
-  }, []);
+      cancelled = true
+    }
+  }, [])
+
+  function renderView() {
+    switch (view) {
+      case 'tracks':
+        return <Tracks onPlayTrack={setCurrentTrack} />
+      case 'playlists':
+        return <Playlists onPlayTrack={setCurrentTrack} />
+      case 'users':
+        return <Users currentUser={currentUser} />
+      default: {
+        const _exhaustive = view
+        return (
+          <div className="text-[var(--color-muted)]">
+            Unknown view: {String(_exhaustive)}
+          </div>
+        )
+      }
+    }
+  }
 
   return (
     <div className="min-h-full text-[var(--color-cream)]">
       <div className="mx-auto flex min-h-full max-w-7xl">
-        <aside className="sticky top-0 flex h-screen w-60 shrink-0 flex-col border-r border-[var(--color-line)]/80 bg-[var(--color-panel)]/60 px-5 py-6 backdrop-blur-md">
+        <aside className="sticky top-0 hidden h-screen w-60 shrink-0 flex-col border-r border-[var(--color-line)]/80 bg-[var(--color-panel)]/60 px-5 py-6 backdrop-blur-md md:flex">
           <div className="mb-10">
             <p className="font-display text-2xl font-bold tracking-tight text-[var(--color-accent)]">
               MeloTunez
@@ -53,7 +73,7 @@ export default function App() {
 
           <nav className="flex flex-1 flex-col gap-1">
             {NAV.map((item) => {
-              const active = view === item.id;
+              const active = view === item.id
               return (
                 <button
                   key={item.id}
@@ -67,38 +87,58 @@ export default function App() {
                 >
                   {item.label}
                 </button>
-              );
+              )
             })}
           </nav>
 
           <div className="mt-auto rounded-xl border border-[var(--color-line)] bg-[var(--color-panel-2)]/80 p-3 text-xs text-[var(--color-muted)]">
-            {currentUser ? (
+            {bootLoading ? (
+              <div className="animate-pulse-soft">Connecting…</div>
+            ) : currentUser ? (
               <>
                 <div className="font-medium text-[var(--color-cream)]">
                   {currentUser.full_name || currentUser.email}
                 </div>
-                <div className="mt-0.5">{currentUser.role || 'user'}</div>
+                <div className="mt-0.5 capitalize">{currentUser.role || 'user'}</div>
               </>
             ) : (
-              <div className="animate-pulse-soft">Connecting…</div>
+              <div>API connected (no user session)</div>
             )}
           </div>
         </aside>
 
-        <main className={`min-w-0 flex-1 px-6 py-8 sm:px-8 ${currentTrack ? 'pb-32' : 'pb-8'}`}>
+        <main className={`min-w-0 flex-1 px-4 py-6 sm:px-8 sm:py-8 ${currentTrack ? 'pb-32' : 'pb-8'}`}>
+          <div className="mb-6 flex items-center justify-between gap-3 md:hidden">
+            <p className="font-display text-xl font-bold text-[var(--color-accent)]">MeloTunez</p>
+            <div className="flex gap-1 rounded-xl border border-[var(--color-line)] bg-[var(--color-panel)] p-1">
+              {NAV.map((item) => (
+                <button
+                  key={item.id}
+                  type="button"
+                  onClick={() => setView(item.id)}
+                  className={`rounded-lg px-2.5 py-1.5 text-xs font-medium ${
+                    view === item.id
+                      ? 'bg-[var(--color-accent)] text-ink'
+                      : 'text-[var(--color-muted)]'
+                  }`}
+                >
+                  {item.label}
+                </button>
+              ))}
+            </div>
+          </div>
+
           {bootError && (
             <div className="mb-6 rounded-xl border border-[var(--color-danger)]/40 bg-[var(--color-danger)]/10 px-4 py-3 text-sm text-[var(--color-danger)]">
               {bootError}
             </div>
           )}
 
-          {view === 'tracks' && <Tracks onPlayTrack={setCurrentTrack} />}
-          {view === 'playlists' && <Playlists onPlayTrack={setCurrentTrack} />}
-          {view === 'users' && <Users currentUser={currentUser} />}
+          {renderView()}
         </main>
       </div>
 
       <AudioPlayer track={currentTrack} onClose={() => setCurrentTrack(null)} />
     </div>
-  );
+  )
 }
