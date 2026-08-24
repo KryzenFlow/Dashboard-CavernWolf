@@ -1,79 +1,73 @@
-# CAVERNWOLF / HERMES — CURSOR GLOBAL INSTRUCTIONS
+# HERMES STUDIO DASH — CURSOR GLOBAL INSTRUCTIONS
 When operating in this repository, adhere strictly to the following.
-Read SOUL.md. The only worker is Claw Opus. Hermes orchestrates.
+Read SOUL.md and DOCTOR.md.
 
-## Architecture
+## 1. SYSTEM ARCHITECTURE & ROLES
 
-- Supervisor + specialist: Hermes (`backend/web_gateway`) is the supervisor.
-  Claw Opus (`claw/`) is the only specialist that executes work.
-- Do **not** add LangGraph, Ollama, Qdrant, Redis, Ghost Scraper, MechIQ,
-  numbered `01_`–`08_` agent packages, or a second LLM router. Those are
-  other stacks. Inventing them here is a false environment.
-- Workflow in this tree:
-  Studio/parent → lifecycle token + Merkle membership → path confinement →
-  Doberman `pre_exec` → Hermes dispatch → Claw Opus (real OpenClaw gateway) →
-  HMAC ledger → terminate-after-use → daily Merkle genesis rebuild.
-- Parent sessions ask Hermes. Children ask the parent only. Children must
-  not inherit `orch:ask_hermes`, `claw:invoke`, or `ws:message.send`.
-- Only Hermes may call Claw. Studio and children never POST to `claw-opus`.
+- **Supervisor:** Hermes — routes via bash (argument lists only) and RESTful
+  CLI / FastAPI. Parent sessions ask Hermes.
+- **Worker:** Claw Opus — the primary (and only) execution worker for
+  finalized plans. Talks to `OPENCLAW_GATEWAY_URL` only.
+- **Backend stack:** Tauri (Rust) desktop shell target under `src/` +
+  FastAPI (Python) in WSL2 (`wsl_backend/`, `backend/`). Secured via Tailscale.
+- **Legacy restriction:** Do NOT use Ollama as Claw's brain, LangGraph, or
+  numbered `01_`–`08_` agent folders. Build in this unified workspace.
+  `Doberman.ps1` may guard optional local IDE Ollama — not Claw Opus.
 
-## Bug tagging
+## 2. AGENT MATRIX (dynamic roster)
 
-When debugging, tag before fixing:
+Expose agents via UI and `/agents` API. Do not bury all logic in one file.
+Roster roles (base classes live in `wsl_backend/agents/`):
 
-- `[SYN]` syntax / compile
-- `[DEP]` dependency / image / compose
-- `[LOG]` logging / ledger
-- `[SEC]` gates, tokens, Merkle, secrets, path confinement
-- `[MEM]` stacked cycle memory, halt-after-use, daily rebuild
+| Role | Purpose |
+|------|---------|
+| Hermes | Supervisor — routes tasks; never impersonates Claw |
+| Reasoning (analytical) | Structured analysis; returns plans, not fake answers |
+| Reasoning (rapid) | Fast prototype plans for Hermes → Claw |
+| Memory (ephemeral) | Short-lived state (Redis when configured) |
+| Memory (semantic) | Long-term semantic store (vector DB when configured) |
+| Codex | Tool-using coding specialist (proposes; Claw executes) |
+| Grok | Research / extraction specialist (proposes; Claw executes) |
+| DeepSeek Architect | Architecture review, fail reports, security hardening |
+| Claw Opus | Executes finalized plans only |
 
-## LLMs
+Children ask parents. Only Hermes may call Claw. No child inherits
+`orch:ask_hermes`, `claw:invoke`, or `ws:message.send`.
 
-- Claw talks only to `OPENCLAW_GATEWAY_URL`. Do not hallucinate OpenAI,
-  Anthropic, Groq, or compose Ollama as Claw's brain.
-- Optional local IDE reasoning may use `Doberman.ps1` → Ollama. That is not
-  Claw Opus and must never invent mock Hermes replies.
-- Do not add `HERMES_MOCK=1`, echo fallbacks, or demo-mode replies.
-- If the gateway or Merkle root is missing: error and halt. Do not invent text.
+## 3. UI / UX — HERMES STUDIO DASH
 
-## Secrets (Bitwarden)
+Scaffold / evolve toward:
 
-- Production secrets: Bitwarden CLI via `wsl_backend` / `BW_SESSION`.
-  Do not load production secrets from a committed `.env`.
-- See `DOCTOR.md`.
+- Main workspace chat with **Agent Pull-Down** (talk to one agent)
+- **Agent Delete** + **Agent Builder** (tools/plugins assignment)
+- Plugins area
+- Bottom **System Status Bar** (agents, ports, containers)
+- Scorecard terminal (logs / metrics)
 
-## Base44 SDK (only if those files exist in-tree)
+Static `frontend/` remains the live Studio; `src/` holds React components
+for the Tauri shell.
 
-This repository does **not** currently ship Base44. If it appears:
+## 4. SECURITY & CODING (STRICT)
 
-- Auth: `loginViaEmailPassword(email, pw)`, `me()`. Do **not** use `signIn()`.
-- Functions: `functions.invoke('name', data)`. Do **not** use `call()`.
-- Entities: `entities.Task.filter({...})`, `get(id)`, `create(data)`,
-  `delete(id)`. Do **not** use `find()` or `insert()`.
+- **SECRETS:** Never hardcode. Prefer Bitwarden at WSL startup
+  (`wsl_backend` + `BW_SESSION`). Non-secret config via `os.environ` /
+  compose. Reject `mock` / `dev-change-me` / empty production secrets.
+- **SUBPROCESS:** Never `shell=True`. Argument lists only.
+- **QUERIES:** Parameterized SQL only.
+- **WSL2:** Python/FastAPI agent routing runs in WSL2 Ubuntu.
+- **NETWORK:** Tailscale for node traffic. Do not publish FastAPI/Claw
+  ports on the public host. Bind WSL Hermes to Tailscale IP when required.
+- **MERKLE / MEMORY:** Live Merkle root for Claw; halt-after-use; daily rebuild.
 
-## Security
+## Bug tags
 
-- **SECRETS:** Never hardcode API keys or passwords. Use `os.environ` /
-  compose `${VAR:?…}`. Reject empty, `mock`, `dev-change-me`, `placeholder`.
-  Bitwarden at runtime. No `LEDGER_KEY:-supersecretkey` fallbacks.
-- **SUBPROCESS:** Never `shell=True`. Never unescaped string interpolation
-  into a shell. Pass argument lists. Allowlist container names if signaling
-  Docker (`claw-opus` only). Never kill the host Docker daemon.
-- **QUERIES:** Parameterized SQL only (`%s` / `?`). No f-strings or
-  concatenation for SQL. Clinic schemas stay synthetic/mock-data **sandbox
-  only** — never real PHI.
-- **NETWORK:** Do not publish Hermes (`8000`) or Claw (`9000`) on the host.
-  Tailscale is backend ingress. Do not add host ports "for convenience".
-- **MERKLE:** Claw Opus requires the live Merkle root. Missing or forged
-  control → alert + terminate the docked `claw-opus` daemon.
-- **MEMORY:** Halt after each use. Wipe cycle memory. Daily rebuild. Do not
-  stack session files or Claw will stop listening.
+`[SYN]` `[DEP]` `[LOG]` `[SEC]` `[MEM]` — tag before fixing.
 
-## Files that are source of truth
+## Source of truth
 
-- `docker-compose.yml` — hermes, claw-opus, tailscale
-- `backend/web_gateway/` — orchestrator + `security/`
-- `wsl_backend/` — WSL entry; Bitwarden CLI pull at startup
-- `Doberman.ps1` — optional local Ollama guard + telemetry
-- `claw/server.py` — worker
-- `SOUL.md`, `DOCTOR.md`, `examples.md`, `agent-author.md`, `README.md`
+- `wsl_backend/` — WSL FastAPI, agent matrix, Bitwarden, Tailscale bind
+- `backend/web_gateway/` — gates, Merkle, Claw client
+- `claw/` — Claw Opus worker
+- `src/` — Studio Dash React scaffolds (Tauri-bound)
+- `frontend/` — current static Studio
+- `.cursorrules`, `SOUL.md`, `DOCTOR.md`, `README.md`

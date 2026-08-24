@@ -1,0 +1,7 @@
+{
+  "id": "architect-checklist",
+  "name": "Architect Checklist",
+  "version": "0.1.0",
+  "description": "Security checklist for DeepSeek Architect reviews.",
+  "tools": ["sec_hardening", "fail_report"]
+}

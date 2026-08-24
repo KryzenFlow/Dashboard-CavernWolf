@@ -1,0 +1,7 @@
+{
+  "id": "skill-syntax",
+  "name": "Skill Syntax Check",
+  "version": "0.1.0",
+  "description": "Marks a skill for /skill/test via Hermes (compile only).",
+  "tools": ["syntax_check"]
+}

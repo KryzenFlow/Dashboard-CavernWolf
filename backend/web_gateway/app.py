@@ -6,6 +6,7 @@ import asyncio
 import json
 import logging
 import os
+import sys
 import time
 import uuid
 from pathlib import Path
@@ -25,6 +26,23 @@ from web_gateway.security.token import issue_token, is_revoked, revoke_tree, val
 _log = logging.getLogger(__name__)
 
 HERMES_HOME = Path(os.environ.get("HERMES_HOME", Path.home() / ".hermes"))
+
+
+def _ensure_repo_root_on_path() -> None:
+    """wsl_backend lives at the repo root; Docker and `python -m web_gateway` both need it."""
+    root = Path(__file__).resolve().parents[2]
+    backend = Path(__file__).resolve().parents[1]
+    for path in (str(root), str(backend)):
+        if path not in sys.path:
+            sys.path.insert(0, path)
+
+
+_ensure_repo_root_on_path()
+
+from wsl_backend.agents.registry import REGISTRY
+from wsl_backend.routes_agents import router as agents_router
+from wsl_backend.routes_agents import status_router
+from wsl_backend.tailscale_net import detect_tailscale_ipv4
 
 active_connections: set[WebSocket] = set()
 sessions: dict[str, dict[str, Any]] = {}
@@ -87,17 +105,38 @@ async def _dual_watcher_side_capability(*, tree_id: str, websocket: WebSocket, s
 
 
 def create_app() -> FastAPI:
+    _ensure_repo_root_on_path()
     ensure_bootstrapped()
-    origins = [o for o in os.environ.get("CORS_ORIGINS", "http://localhost:3000").split(",") if o.strip()]
+    origins = [
+        o.strip()
+        for o in os.environ.get(
+            "CORS_ORIGINS",
+            "http://localhost:3000,http://127.0.0.1:3000,http://localhost:1420,http://127.0.0.1:1420",
+        ).split(",")
+        if o.strip()
+    ]
     app = FastAPI(title="Hermes Orchestrator", version="0.2.0")
     app.add_middleware(
         CORSMiddleware,
         allow_origins=origins,
         allow_credentials=True,
-        allow_methods=["GET", "POST"],
+        allow_methods=["GET", "POST", "DELETE"],
         allow_headers=["*"],
     )
     app.include_router(api_router)
+    app.include_router(agents_router)
+    app.include_router(status_router)
+
+    @app.get("/studio/health")
+    def studio_health() -> dict[str, Any]:
+        return {
+            "status": "ok",
+            "gateway": "hermes-studio",
+            "agent_worker": "claw-opus",
+            "agents": len(REGISTRY.list_public()),
+            "merkle_root": current_root(),
+            "tailscale_ip": detect_tailscale_ipv4(),
+        }
 
     @app.on_event("startup")
     async def _startup() -> None:

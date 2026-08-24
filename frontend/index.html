@@ -3,13 +3,20 @@
 <head>
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
-  <title>Hermes Studio — CavernWolf Dashboard</title>
+  <title>Hermes Studio Dash</title>
   <link rel="stylesheet" href="styles.css">
 </head>
 <body>
   <div class="studio-dashboard">
     <header class="studio-header">
-      <h1>⚙️ Hermes Studio</h1>
+      <h1>Hermes Studio Dash</h1>
+      <label class="agent-pulldown">
+        <span>Talk to</span>
+        <select id="agent-select" aria-label="Agent selector">
+          <option value="">Loading agents…</option>
+        </select>
+      </label>
+      <button type="button" id="btn-delete-agent" class="btn-action">Delete agent</button>
       <div class="header-status">
         <span id="connection-status" class="status">Connecting…</span>
         <span id="git-warning" class="git-warning hidden"></span>
@@ -68,6 +75,13 @@
       </main>
     </div>
   </div>
+  <footer id="system-status-bar" class="system-status-bar" role="status" aria-live="polite">
+    <span id="status-claw">claw …</span>
+    <span id="status-agents">agents —</span>
+    <span id="status-ports">ports —</span>
+    <span id="status-containers">containers —</span>
+    <span id="status-tailscale">tailscale —</span>
+  </footer>
   <script src="script.js" defer></script>
 </body>
 </html>

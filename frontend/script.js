@@ -18,6 +18,9 @@ let didInitAfterAuth = false;
 let loadFilesIntervalId = null;
 let streaming = false;
 let selectedFile = null;
+let agents = [];
+let selectedAgentId = "hermes";
+let statusPollId = null;
 
 const $ = (id) => document.getElementById(id);
 
@@ -193,11 +196,27 @@ document.querySelectorAll(".tab").forEach((btn) => {
   btn.addEventListener("click", () => switchTab(btn.dataset.tab));
 });
 
-$("chat-form").addEventListener("submit", (e) => {
+$("chat-form").addEventListener("submit", async (e) => {
   e.preventDefault();
   const input = $("chat-input");
   const text = input.value.trim();
-  if (!text || !ws || ws.readyState !== WebSocket.OPEN || !lifecycleToken) return;
+  if (!text) return;
+  const selected = agents.find((agent) => agent.id === selectedAgentId);
+  if (selected && selected.role !== "hermes" && selected.role !== "claw_opus") {
+    appendMessage("user", text);
+    input.value = "";
+    try {
+      const result = await api(`/agents/${encodeURIComponent(selected.id)}/route`, {
+        method: "POST",
+        body: JSON.stringify({ task: text, message: text }),
+      });
+      appendMessage("system", JSON.stringify(result.result || result.plan || result, null, 2));
+    } catch (err) {
+      appendMessage("system", `Route failed: ${err.message}`);
+    }
+    return;
+  }
+  if (!ws || ws.readyState !== WebSocket.OPEN || !lifecycleToken) return;
   appendMessage("user", text);
   rpc("message.send", { session_id: sessionId, text, lifecycle_token: lifecycleToken });
   input.value = "";
@@ -259,5 +278,95 @@ $("btn-new-skill").addEventListener("click", () => {
     content: '"""New Hermes skill."""\n\ndef run(input_text: str) -> str:\n    return input_text\n',
   });
 });
+
+function renderAgentSelect() {
+  const select = $("agent-select");
+  if (!select) return;
+  select.innerHTML = "";
+  agents.forEach((agent) => {
+    const option = document.createElement("option");
+    option.value = agent.id;
+    option.textContent = `${agent.name} (${agent.role})`;
+    if (agent.id === selectedAgentId) option.selected = true;
+    select.appendChild(option);
+  });
+}
+
+async function loadAgents() {
+  try {
+    const data = await api("/agents");
+    agents = data.agents || [];
+    if (!agents.some((agent) => agent.id === selectedAgentId) && agents[0]) {
+      selectedAgentId = agents[0].id;
+    }
+    renderAgentSelect();
+  } catch (err) {
+    console.error("loadAgents:", err);
+  }
+}
+
+async function loadSystemStatus() {
+  const bar = {
+    claw: $("status-claw"),
+    agents: $("status-agents"),
+    ports: $("status-ports"),
+    containers: $("status-containers"),
+    tailscale: $("status-tailscale"),
+  };
+  if (!bar.claw) return;
+  try {
+    const data = await api("/system/status");
+    const listening = data.claw?.listening;
+    bar.claw.textContent = listening ? "claw listening" : "claw halted/unknown";
+    bar.agents.textContent = `agents ${data.agents_count ?? (data.agents || []).length}`;
+    bar.agents.title = (data.agents || [])
+      .map((agent) => `${agent.name}:${agent.status}`)
+      .join(" · ");
+    bar.ports.textContent = `ports hermes:${data.ports?.hermes ?? "?"} claw:${data.ports?.claw ?? "?"}`;
+    bar.containers.textContent = data.containers?.length
+      ? `containers ${data.containers.join(", ")}`
+      : "containers none reported";
+    bar.tailscale.textContent = data.tailscale_ip
+      ? `tailscale ${data.tailscale_ip}`
+      : "tailscale ip unknown";
+  } catch {
+    bar.claw.textContent = "claw status unavailable";
+  }
+}
+
+$("agent-select")?.addEventListener("change", (event) => {
+  selectedAgentId = event.target.value;
+});
+
+$("btn-delete-agent")?.addEventListener("click", async () => {
+  const selected = agents.find((agent) => agent.id === selectedAgentId);
+  if (!selected) return;
+  const hermesCount = agents.filter((agent) => agent.role === "hermes").length;
+  const clawCount = agents.filter((agent) => agent.role === "claw_opus").length;
+  if (selected.role === "hermes" && hermesCount <= 1) {
+    appendMessage("system", "Cannot delete the last Hermes supervisor.");
+    return;
+  }
+  if (selected.role === "claw_opus" && clawCount <= 1) {
+    appendMessage("system", "Cannot delete the last Claw Opus worker.");
+    return;
+  }
+  if (!window.confirm(`Delete agent ${selected.name}?`)) return;
+  try {
+    await api(`/agents/${encodeURIComponent(selected.id)}`, { method: "DELETE" });
+    selectedAgentId = "hermes";
+    await loadAgents();
+    await loadSystemStatus();
+  } catch (err) {
+    appendMessage("system", `Delete failed: ${err.message}`);
+  }
+});
+
+loadAgents();
+loadSystemStatus();
+statusPollId = setInterval(() => {
+  loadAgents();
+  loadSystemStatus();
+}, 5000);
 
 connectWebSocket();

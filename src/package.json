@@ -1,0 +1,16 @@
+{
+  "name": "hermes-studio-dash",
+  "version": "0.1.0",
+  "private": true,
+  "description": "React/TS scaffolds for the Hermes Studio Dash Tauri shell. Live UI is still frontend/.",
+  "scripts": {
+    "typecheck": "tsc --noEmit"
+  },
+  "devDependencies": {
+    "@types/react": "^19.0.0",
+    "typescript": "^5.8.0"
+  },
+  "peerDependencies": {
+    "react": "^19.0.0"
+  }
+}
