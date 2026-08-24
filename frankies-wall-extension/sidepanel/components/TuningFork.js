@@ -1,24 +1,46 @@
 /**
- * TuningFork — visual resonance / center / alignment (phronesis in code)
+ * TuningFork — resonance / center / alignment (phronesis in code)
  *
- * Base44-style spec:
+ * Geometry:
+ * <svg viewBox="0 0 64 64">
+ *   <path d="M20 10 v25 a12 12 0 0 0 24 0 v-25"
+ *         fill="none" stroke="black" stroke-width="4"/>
+ *   <line x1="32" y1="35" x2="32" y2="54"
+ *         stroke="black" stroke-width="4"/>
+ * </svg>
+ *
+ * Spec:
  * {
  *   "component": "TuningFork",
  *   "props": {
  *     "size": 32,
  *     "stroke": "#000",
  *     "strokeWidth": 2,
- *     "interactive": true
+ *     "interactive": true,
+ *     "onClick": "playTuningFork"
+ *   },
+ *   "meta": {
+ *     "meaning": "Center — Find Your Tone",
+ *     "origin": "Mom's polish and practical wisdom"
  *   }
  * }
+ *
+ * Placements: logo (top-left) · art (Now Playing) · rail (BMX grind bar)
  */
 (function initTuningForkComponent(global) {
+  const META = {
+    meaning: "Center — Find Your Tone",
+    origin: "Mom's polish and practical wisdom",
+  };
+
   const DEFAULT_PROPS = {
     size: 32,
     stroke: "#000",
     strokeWidth: 2,
     interactive: true,
-    meaning: "Mom's Center — Find Your Tone",
+    onClick: "playTuningFork",
+    meaning: META.meaning,
+    origin: META.origin,
     placement: "default",
   };
 
@@ -30,6 +52,7 @@
   };
 
   function createSvg(props) {
+    // #000 → currentColor so the fork reads on the dark Frankie's wall
     const strokeColor = props.stroke === "#000" ? "currentColor" : props.stroke;
     const svg = document.createElementNS("http://www.w3.org/2000/svg", "svg");
     svg.setAttribute("class", "tuning-fork-svg");
@@ -61,7 +84,7 @@
   }
 
   /**
-   * @param {Partial<typeof DEFAULT_PROPS> & { onClick?: () => void }} props
+   * @param {Partial<typeof DEFAULT_PROPS> & { onClick?: string | (() => void) }} props
    * @returns {HTMLElement}
    */
   function create(props = {}) {
@@ -75,24 +98,25 @@
     root.className = ["tuning-fork-icon", placementClass].filter(Boolean).join(" ");
     root.dataset.component = "TuningFork";
     root.dataset.tuningFork = "true";
-    if (merged.interactive) {
-      root.dataset.onclick = "playTuningFork";
-    }
     root.dataset.meaning = merged.meaning;
-    root.title = merged.meaning;
+    root.dataset.origin = merged.origin;
+    if (merged.interactive) {
+      const handlerName =
+        typeof merged.onClick === "string" ? merged.onClick : "playTuningFork";
+      root.dataset.onclick = handlerName;
+    }
+
+    const tip = `${merged.meaning}\n${merged.origin}`;
+    root.title = tip;
     root.setAttribute(
       "aria-label",
       merged.interactive
-        ? `${merged.meaning}. Play A440 tuning fork.`
-        : merged.meaning
+        ? `${merged.meaning}. ${merged.origin}. Play A440 tuning fork.`
+        : `${merged.meaning}. ${merged.origin}.`
     );
     root.style.width = `${merged.size}px`;
     root.style.height = `${merged.size}px`;
-    if (merged.stroke === "#000") {
-      root.style.color = "var(--ink)";
-    } else {
-      root.style.color = merged.stroke;
-    }
+    root.style.color = merged.stroke === "#000" ? "var(--ink)" : merged.stroke;
 
     root.appendChild(createSvg(merged));
 
@@ -118,6 +142,7 @@
   }
 
   global.TuningFork = {
+    META,
     DEFAULT_PROPS,
     create,
     mountAll,
