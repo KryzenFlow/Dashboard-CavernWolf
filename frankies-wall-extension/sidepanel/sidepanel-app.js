@@ -124,6 +124,7 @@
    * @property {string[]} places
    * @property {string[]} people
    * @property {string[]} instruments
+   * @property {string} instrument primary instrument for filter engine
    * @property {string[]} modes
    * @property {string[]} vibes
    * @property {string} notes
@@ -192,12 +193,26 @@
     return mode.replace(/_/g, " ").replace(/\b\w/g, (c) => c.toUpperCase());
   }
 
+  function resolveTrackInstrument(track) {
+    if (track.instrument) return track.instrument;
+    const list = track.instruments || [];
+    if (list.length > 1 || list.includes("mixed")) return "mixed";
+    return list[0] || "";
+  }
+
+  /**
+   * @param {TrackMeta} track
+   */
+  function syncTrackInstrument(track) {
+    track.instrument = resolveTrackInstrument(track);
+  }
+
   /**
    * @param {Partial<TrackMeta>} track
    * @returns {TrackMeta}
    */
   function normalizeTrack(track) {
-    return {
+    const normalized = {
       id: track.id || uid(),
       title: track.title || "Untitled",
       fileName: track.fileName || "",
@@ -208,12 +223,15 @@
       places: track.places || [],
       people: track.people || [],
       instruments: track.instruments || [],
+      instrument: track.instrument || "",
       modes: track.modes || [],
       vibes: track.vibes || [],
       notes: track.notes || "",
       coverDataUrl: track.coverDataUrl ?? null,
       addedAt: track.addedAt || Date.now(),
     };
+    syncTrackInstrument(normalized);
+    return normalized;
   }
   function titleFromFileName(name) {
     return name.replace(/\.[^.]+$/, "").replace(/[_-]+/g, " ").trim() || name;
@@ -248,6 +266,7 @@
       places: [],
       people: artist === "Drew" ? ["Drew"] : [],
       instruments: instrument ? [instrument] : [],
+      instrument,
       modes:
         catalog.id === "drew_sax_live_01" || catalog.id === "drew_bass_riff_02"
           ? ["live"]
@@ -284,6 +303,7 @@
         }
         if (!existing.instruments.length && catalog.instrument) {
           existing.instruments = [catalog.instrument];
+          existing.instrument = catalog.instrument;
         }
         continue;
       }
@@ -331,6 +351,7 @@
         places: t.places,
         people: t.people,
         instruments: t.instruments,
+        instrument: t.instrument,
         modes: t.modes,
         vibes: t.vibes,
         notes: t.notes,
@@ -404,6 +425,7 @@
         places: [],
         people: catalogMatch?.artist === "Drew" ? ["Drew"] : [],
         instruments: catalogMatch?.instrument ? [catalogMatch.instrument] : [],
+        instrument: catalogMatch?.instrument || "",
         modes: [],
         vibes:
           catalogMatch?.instrument === "sax" ? ["Mom's Smile"] : [],
@@ -415,6 +437,7 @@
       meta.fileName = file.name;
       meta.mimeType = file.type || meta.mimeType || "audio/*";
       meta.size = file.size;
+      syncTrackInstrument(meta);
 
       if (!existing) {
         library.tracks.unshift(meta);
@@ -475,15 +498,11 @@
     setStoryFilter(storyFilter);
   }
 
-  function filteredTracks() {
+  function getTracksBeforeInstrumentFilter() {
     let tracks = library.tracks.slice();
 
     if (currentView === "moms-smile") {
       tracks = tracks.filter((t) => matchStoryFilter(t, "mom_mode"));
-    }
-
-    if (instrumentFilter !== "all") {
-      tracks = tracks.filter((t) => matchStoryFilter(t, instrumentFilter));
     }
 
     if (storyFilter !== "all") {
@@ -518,6 +537,115 @@
     return tracks;
   }
 
+  /**
+   * Instrument filter engine — simple, clean.
+   * @param {string} instrument
+   */
+  function filterByInstrument(instrument) {
+    if (!INSTRUMENT_FILTER_IDS.has(instrument)) return;
+    setInstrumentFilter(instrument);
+
+    const tracks = getTracksBeforeInstrumentFilter();
+    let filtered;
+
+    if (instrument === "all") {
+      filtered = tracks;
+    } else {
+      filtered = tracks.filter((track) => track.instrument === instrument);
+    }
+
+    renderTrackList(filtered);
+    updateLibraryHeading();
+    renderSidebarTags();
+  }
+
+  function filteredTracks() {
+    const tracks = getTracksBeforeInstrumentFilter();
+    const applyFilter =
+      typeof window.filterTracksByInstrument === "function"
+        ? window.filterTracksByInstrument
+        : (list, instrument) => {
+            if (instrument === "all") return list;
+            return list.filter((track) => track.instrument === instrument);
+          };
+    return applyFilter(tracks, instrumentFilter);
+  }
+
+  /**
+   * @param {TrackMeta[]} tracks
+   */
+  function renderTrackList(tracks) {
+    el.trackList.innerHTML = "";
+    el.libraryEmpty.hidden = tracks.length > 0;
+
+    for (const track of tracks) {
+      const li = document.createElement("li");
+      li.className = "track-item" + (track.id === currentId ? " is-playing" : "");
+      li.dataset.id = track.id;
+
+      const main = document.createElement("div");
+      const name = document.createElement("p");
+      name.className = "track-name";
+      name.textContent = track.title;
+      const meta = document.createElement("p");
+      meta.className = "track-meta";
+      const bits = [
+        ...track.bands,
+        track.instrument || track.instruments[0],
+        ...track.modes.map(formatModeLabel),
+        ...track.vibes.slice(0, 1),
+      ].filter(Boolean);
+      const needsFile = !sessionFiles.has(track.id) && !track.file;
+      meta.textContent = bits.length
+        ? bits.join(" · ") + (needsFile ? " · re-import file to play" : "")
+        : needsFile
+          ? "tags empty · re-import file to play"
+          : track.fileName;
+
+      main.appendChild(name);
+      main.appendChild(meta);
+
+      const actions = document.createElement("div");
+      actions.className = "track-actions";
+      const tagBtn = document.createElement("button");
+      tagBtn.type = "button";
+      tagBtn.className = "btn tiny ghost";
+      tagBtn.textContent = "Tag";
+      tagBtn.addEventListener("click", (e) => {
+        e.stopPropagation();
+        openEdit(track.id);
+      });
+      actions.appendChild(tagBtn);
+
+      li.appendChild(main);
+      li.appendChild(actions);
+      li.addEventListener("click", () => playTrack(track.id));
+      el.trackList.appendChild(li);
+    }
+  }
+
+  function updateLibraryHeading() {
+    if (currentView === "moms-smile") {
+      el.libraryHeading.textContent = "Mom's Smile";
+    } else if (activeFilter) {
+      el.libraryHeading.textContent =
+        activeFilter.kind === "modes"
+          ? formatModeLabel(activeFilter.value)
+          : activeFilter.value;
+    } else if (instrumentFilter !== "all") {
+      const label =
+        instrumentFilter.charAt(0).toUpperCase() + instrumentFilter.slice(1);
+      el.libraryHeading.textContent = label;
+    } else if (storyFilter !== "all") {
+      const def = STORY_FILTERS.find((f) => f.id === storyFilter);
+      el.libraryHeading.textContent = def?.label || "Library";
+    } else {
+      el.libraryHeading.textContent = "Library";
+    }
+
+    el.btnClearFilter.hidden = !activeFilter;
+  }
+
   function renderSidebarTags() {
     /**
      * @param {HTMLElement | null} container
@@ -548,13 +676,13 @@
         btn.addEventListener("click", () => {
           if (kind === "instruments" && INSTRUMENT_FILTER_IDS.has(name) && name !== "all") {
             if (instrumentFilter === name) {
-              setInstrumentFilter("all");
+              filterByInstrument("all");
             } else {
               activeFilter = null;
-              setInstrumentFilter(name);
+              filterByInstrument(name);
             }
             if (currentView === "wall") setView("library");
-            else renderAll();
+            else renderSidebarTags();
             return;
           }
           const storyId = storyFilterIdForTag(kind, name);
@@ -591,73 +719,8 @@
   }
 
   function renderLibrary() {
-    const tracks = filteredTracks();
-    el.trackList.innerHTML = "";
-    el.libraryEmpty.hidden = tracks.length > 0;
-
-    if (currentView === "moms-smile") {
-      el.libraryHeading.textContent = "Mom's Smile";
-    } else if (activeFilter) {
-      el.libraryHeading.textContent =
-        activeFilter.kind === "modes"
-          ? formatModeLabel(activeFilter.value)
-          : activeFilter.value;
-    } else if (instrumentFilter !== "all") {
-      const def = STORY_FILTERS.find((f) => f.id === instrumentFilter);
-      el.libraryHeading.textContent = def?.label || instrumentFilter;
-    } else if (storyFilter !== "all") {
-      const def = STORY_FILTERS.find((f) => f.id === storyFilter);
-      el.libraryHeading.textContent = def?.label || "Library";
-    } else {
-      el.libraryHeading.textContent = "Library";
-    }
-
-    el.btnClearFilter.hidden = !activeFilter;
-
-    for (const track of tracks) {
-      const li = document.createElement("li");
-      li.className = "track-item" + (track.id === currentId ? " is-playing" : "");
-      li.dataset.id = track.id;
-
-      const main = document.createElement("div");
-      const name = document.createElement("p");
-      name.className = "track-name";
-      name.textContent = track.title;
-      const meta = document.createElement("p");
-      meta.className = "track-meta";
-      const bits = [
-        ...track.bands,
-        ...track.instruments,
-        ...track.modes.map(formatModeLabel),
-        ...track.vibes.slice(0, 1),
-      ];
-      const needsFile = !sessionFiles.has(track.id) && !track.file;
-      meta.textContent = bits.length
-        ? bits.join(" · ") + (needsFile ? " · re-import file to play" : "")
-        : needsFile
-          ? "tags empty · re-import file to play"
-          : track.fileName;
-
-      main.appendChild(name);
-      main.appendChild(meta);
-
-      const actions = document.createElement("div");
-      actions.className = "track-actions";
-      const tagBtn = document.createElement("button");
-      tagBtn.type = "button";
-      tagBtn.className = "btn tiny ghost";
-      tagBtn.textContent = "Tag";
-      tagBtn.addEventListener("click", (e) => {
-        e.stopPropagation();
-        openEdit(track.id);
-      });
-      actions.appendChild(tagBtn);
-
-      li.appendChild(main);
-      li.appendChild(actions);
-      li.addEventListener("click", () => playTrack(track.id));
-      el.trackList.appendChild(li);
-    }
+    updateLibraryHeading();
+    renderTrackList(filteredTracks());
   }
 
   function renderGraffiti() {
@@ -898,13 +961,13 @@
   if (el.instrumentFilter) {
     el.instrumentFilter.querySelectorAll("button[data-instrument]").forEach((btn) => {
       btn.addEventListener("click", () => {
-        const value = btn.getAttribute("data-instrument") || "all";
-        setInstrumentFilter(value);
-        renderAll();
+        filterByInstrument(btn.getAttribute("data-instrument") || "all");
       });
     });
     setInstrumentFilter(instrumentFilter);
   }
+
+  window.filterByInstrument = filterByInstrument;
 
   el.btnImportFiles.addEventListener("click", async () => {
     if (window.showOpenFilePicker) {
@@ -981,6 +1044,7 @@
     track.instruments = readChecks(el.editInstruments);
     track.modes = readChecks(el.editModes);
     track.vibes = readChecks(el.editVibes);
+    syncTrackInstrument(track);
 
     const coverFile = el.editCover.files && el.editCover.files[0];
     if (coverFile && coverFile.type.startsWith("image/")) {
