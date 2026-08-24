@@ -1,8 +1,17 @@
 /**
  * Metadata — tag presets, story filters, wall dates.
+ *
+ * export const instruments = ["electric", "bass", "sax", "mixed"];
  */
 (function initTags(global) {
   const FrankiesWall = (global.FrankiesWall = global.FrankiesWall || {});
+
+  const instruments = ["electric", "bass", "sax", "mixed"];
+
+  global.instruments = instruments;
+
+  FrankiesWall.INSTRUMENTS = instruments;
+  FrankiesWall.INSTRUMENT_FILTER_IDS = ["all", ...instruments];
 
   FrankiesWall.TAG_PRESETS = {
     bands: [
@@ -19,7 +28,7 @@
     ],
     places: ["Toledo", "Promenade Park", "Frankies", "East Side Nights"],
     people: ["Mom", "Son", "Solo", "With Friends", "Drew"],
-    instruments: ["sax", "electric", "bass", "drums", "vocals", "acoustic", "mixed"],
+    instruments,
     modes: ["live", "studio", "mixed", "mom_mode"],
   };
 

@@ -62,6 +62,25 @@ Pure JS + CSS + HTML — no framework.
 | **State** | Library, filters, current track | `sidepanel.js` → `FrankiesWall.state` |
 | **Audio** | Play, pause, scrub, volume, A440 fork, optional waveform | `audio/player.js`, `audio/tuningForkAudio.js`, `audio/waveform.js` |
 | **Metadata** | Catalog, tags, vibes | `data/tracks.js`, `data/tags.js`, `data/vibes.js` |
+
+### Metadata layer (`data/`)
+
+Seed catalog in `tracks.js` — each entry: `id`, `title`, `artist`, `file`, `instrument`, `vibe` (snake_case id).
+
+```js
+export const tracks = [
+  { id: "bush_glycerine", title: "Glycerine", artist: "Bush",
+    file: "/music/bush/glycerine.mp3", instrument: "electric", vibe: "river_breeze" },
+  { id: "drew_sax_live_01", title: "Sax Live Recording", artist: "Drew",
+    file: "/music/drew/sax_live_01.mp3", instrument: "sax", vibe: "mom_smile" },
+];
+```
+
+`vibes.js` maps vibe ids → UI labels. `tags.js` holds wall presets, story filters, and instrument ids:
+
+```js
+export const instruments = ["electric", "bass", "sax", "mixed"];
+```
 | **Rendering** | Track list, wall, now playing | `components/` |
 | **Utilities** | DOM, storage, filters | `utils/dom.js`, `utils/storage.js`, `utils/filters.js` |
 
