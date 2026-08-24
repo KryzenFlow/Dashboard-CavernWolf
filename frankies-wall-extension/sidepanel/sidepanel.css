@@ -552,14 +552,16 @@ button {
   text-transform: uppercase;
 }
 
-.instrument-filter {
+.instrument-filter,
+.story-filter {
   display: flex;
   flex-wrap: wrap;
   gap: 6px;
   margin-bottom: 12px;
 }
 
-.instrument-filter button {
+.instrument-filter button,
+.story-filter button {
   border: 1px solid #333;
   background: #0e0e0e;
   color: var(--muted);
@@ -570,12 +572,14 @@ button {
   transition: background 0.2s ease, color 0.2s ease, border-color 0.2s ease;
 }
 
-.instrument-filter button:hover {
+.instrument-filter button:hover,
+.story-filter button:hover {
   border-color: #666;
   color: var(--ink);
 }
 
-.instrument-filter button.is-active {
+.instrument-filter button.is-active,
+.story-filter button.is-active {
   background: #fff;
   color: #000;
   border-color: #000;

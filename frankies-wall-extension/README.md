@@ -50,7 +50,13 @@ Drop matching MP3s under `music/` (see `music/README.md`) and reload the extensi
 | **Frankie's Wall** | Graffiti grid of band / place / people names — click to filter |
 | **Mom's Smile** | Playlist filter: vibe “Mom's Smile”, people “Mom”, or instrument “sax” |
 
-Left **wall of names** tags also filter the library (Bush, Toledo, Frankies, Mom, sax, River Breeze, etc.).
+Left **wall of names** tags also filter the library (Bush, Toledo, Frankies, Mom, sax, live, studio, etc.).
+
+## Story filters (expand anytime)
+
+Library filter chips and sidebar **Story** tags are driven by `sidepanel/data/storyFilters.js`. Add entries like **live**, **studio**, **mom_mode**, or anything that fits your wall — reload the extension to pick them up.
+
+Tag tracks under **Story** in the tag editor (`live`, `studio`, `mixed`, `mom_mode`, …).
 
 ## UI map
 

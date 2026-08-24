@@ -43,6 +43,10 @@
           <ul id="instrument-tags" class="name-wall"></ul>
         </section>
         <section class="tag-section">
+          <h2>Story</h2>
+          <ul id="mode-tags" class="name-wall"></ul>
+        </section>
+        <section class="tag-section">
           <h2>Vibes</h2>
           <ul id="vibe-tags" class="name-wall"></ul>
         </section>
@@ -104,13 +108,7 @@
             <h2 id="library-heading">Library</h2>
             <button type="button" id="btn-clear-filter" class="btn tiny ghost" hidden>Clear filter</button>
           </div>
-          <div id="instrumentFilter" class="instrument-filter" aria-label="Filter by instrument">
-            <button type="button" data-instrument="all" class="is-active">All</button>
-            <button type="button" data-instrument="electric">Electric</button>
-            <button type="button" data-instrument="bass">Bass</button>
-            <button type="button" data-instrument="sax">Sax</button>
-            <button type="button" data-instrument="mixed">Mixed</button>
-          </div>
+          <div id="storyFilter" class="story-filter" aria-label="Story filters"></div>
           <ul id="track-list" class="track-list"></ul>
           <p id="library-empty" class="empty-hint">
             Drop in local audio — sax takes, covers, late-night sessions. Tag them on the wall.
@@ -157,6 +155,10 @@
               <div id="edit-instruments" class="check-grid"></div>
             </fieldset>
             <fieldset>
+              <legend>Story</legend>
+              <div id="edit-modes" class="check-grid"></div>
+            </fieldset>
+            <fieldset>
               <legend>Vibes</legend>
               <div id="edit-vibes" class="check-grid"></div>
             </fieldset>
@@ -197,6 +199,7 @@
 
     <audio id="audio" preload="metadata"></audio>
     <script src="data/tracks.js"></script>
+    <script src="data/storyFilters.js"></script>
     <script src="components/playTuningFork.js"></script>
     <script src="components/TuningFork.js"></script>
     <script src="sidepanel-app.js"></script>

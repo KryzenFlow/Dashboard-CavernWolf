@@ -24,8 +24,35 @@
     places: ["Toledo", "Promenade Park", "Frankies", "East Side Nights"],
     people: ["Mom", "Son", "Solo", "With Friends", "Drew"],
     instruments: ["sax", "electric", "bass", "drums", "vocals", "acoustic", "mixed"],
-    vibes: ["Mom's Smile", "River Breeze", "fight & focus", "late night", "practice"],
+    vibes: [
+      "Mom's Smile",
+      "River Breeze",
+      "fight & focus",
+      "late night",
+      "practice",
+      "live",
+      "studio",
+    ],
   };
+
+  const STORY_MODE_PRESETS = Array.isArray(window.STORY_MODE_PRESETS)
+    ? window.STORY_MODE_PRESETS
+    : ["live", "studio", "mixed", "mom_mode"];
+
+  /** @type {StoryFilterDef[]} */
+  const STORY_FILTERS = Array.isArray(window.STORY_FILTERS)
+    ? window.STORY_FILTERS
+    : [{ id: "all", label: "All" }];
+
+  const matchStoryFilter =
+    typeof window.trackMatchesStoryFilter === "function"
+      ? window.trackMatchesStoryFilter
+      : () => true;
+
+  const storyFilterIdForTag =
+    typeof window.storyFilterIdForTag === "function"
+      ? window.storyFilterIdForTag
+      : () => null;
 
   const WALL_DATES = {
     Bush: "'95",
@@ -63,10 +90,8 @@
   /** @type {{ kind: string, value: string } | null} */
   let activeFilter = null;
 
-  /** @type {"all" | "electric" | "bass" | "sax" | "mixed"} */
-  let instrumentFilter = "all";
-
-  const INSTRUMENT_BAR = new Set(["electric", "bass", "sax", "mixed"]);
+  /** @type {string} */
+  let storyFilter = "all";
 
   /** @type {'library' | 'wall' | 'moms-smile'} */
   let currentView = "library";
@@ -94,6 +119,7 @@
    * @property {string[]} places
    * @property {string[]} people
    * @property {string[]} instruments
+   * @property {string[]} modes
    * @property {string[]} vibes
    * @property {string} notes
    * @property {string | null} coverDataUrl
@@ -110,6 +136,7 @@
     placeTags: document.getElementById("place-tags"),
     peopleTags: document.getElementById("people-tags"),
     instrumentTags: document.getElementById("instrument-tags"),
+    modeTags: document.getElementById("mode-tags"),
     vibeTags: document.getElementById("vibe-tags"),
     btnImportFiles: document.getElementById("btn-import-files"),
     btnImportFolder: document.getElementById("btn-import-folder"),
@@ -119,7 +146,7 @@
     libraryEmpty: document.getElementById("library-empty"),
     libraryHeading: document.getElementById("library-heading"),
     btnClearFilter: document.getElementById("btn-clear-filter"),
-    instrumentFilter: document.getElementById("instrumentFilter"),
+    storyFilter: document.getElementById("storyFilter"),
     viewLibrary: document.getElementById("view-library"),
     viewWall: document.getElementById("view-wall"),
     graffitiGrid: document.getElementById("graffiti-grid"),
@@ -132,6 +159,7 @@
     editPlaces: document.getElementById("edit-places"),
     editPeople: document.getElementById("edit-people"),
     editInstruments: document.getElementById("edit-instruments"),
+    editModes: document.getElementById("edit-modes"),
     editVibes: document.getElementById("edit-vibes"),
     editCover: document.getElementById("edit-cover"),
     btnCloseEdit: document.getElementById("btn-close-edit"),
@@ -154,6 +182,33 @@
     return `t_${Date.now().toString(36)}_${Math.random().toString(36).slice(2, 8)}`;
   }
 
+  function formatModeLabel(mode) {
+    return mode.replace(/_/g, " ").replace(/\b\w/g, (c) => c.toUpperCase());
+  }
+
+  /**
+   * @param {Partial<TrackMeta>} track
+   * @returns {TrackMeta}
+   */
+  function normalizeTrack(track) {
+    return {
+      id: track.id || uid(),
+      title: track.title || "Untitled",
+      fileName: track.fileName || "",
+      mimeType: track.mimeType || "audio/*",
+      size: track.size || 0,
+      file: track.file ?? null,
+      bands: track.bands || [],
+      places: track.places || [],
+      people: track.people || [],
+      instruments: track.instruments || [],
+      modes: track.modes || [],
+      vibes: track.vibes || [],
+      notes: track.notes || "",
+      coverDataUrl: track.coverDataUrl ?? null,
+      addedAt: track.addedAt || Date.now(),
+    };
+  }
   function titleFromFileName(name) {
     return name.replace(/\.[^.]+$/, "").replace(/[_-]+/g, " ").trim() || name;
   }
@@ -187,6 +242,10 @@
       places: [],
       people: artist === "Drew" ? ["Drew"] : [],
       instruments: instrument ? [instrument] : [],
+      modes:
+        catalog.id === "drew_sax_live_01" || catalog.id === "drew_bass_riff_02"
+          ? ["live"]
+          : ["studio"],
       vibes: instrument === "sax" ? ["Mom's Smile"] : [],
       notes: "",
       coverDataUrl: null,
@@ -246,7 +305,7 @@
       const data = await chrome.storage.local.get(STORAGE_KEY);
       const stored = data[STORAGE_KEY];
       if (stored && Array.isArray(stored.tracks)) {
-        library = { tracks: stored.tracks };
+        library = { tracks: stored.tracks.map((t) => normalizeTrack(t)) };
       }
     } catch {
       library = { tracks: [] };
@@ -266,6 +325,7 @@
         places: t.places,
         people: t.people,
         instruments: t.instruments,
+        modes: t.modes,
         vibes: t.vibes,
         notes: t.notes,
         coverDataUrl: t.coverDataUrl,
@@ -338,6 +398,7 @@
         places: [],
         people: catalogMatch?.artist === "Drew" ? ["Drew"] : [],
         instruments: catalogMatch?.instrument ? [catalogMatch.instrument] : [],
+        modes: [],
         vibes:
           catalogMatch?.instrument === "sax" ? ["Mom's Smile"] : [],
         notes: "",
@@ -363,58 +424,45 @@
     el.nowNote.textContent = `Imported ${audioFiles.length} local track${audioFiles.length === 1 ? "" : "s"}. Tag them on the wall.`;
   }
 
-  function trackMatchesInstrumentFilter(track, filter) {
-    switch (filter) {
-      case "all":
-        return true;
-      case "mixed":
-        return track.instruments.length > 1 || track.instruments.includes("mixed");
-      case "electric":
-      case "bass":
-      case "sax":
-        return track.instruments.includes(filter);
-      default: {
-        const _exhaustive = filter;
-        void _exhaustive;
-        return true;
-      }
-    }
-  }
-
-  function setInstrumentFilter(value) {
-    if (
-      value !== "all" &&
-      value !== "electric" &&
-      value !== "bass" &&
-      value !== "sax" &&
-      value !== "mixed"
-    ) {
-      return;
-    }
-    instrumentFilter = value;
-    if (el.instrumentFilter) {
-      el.instrumentFilter.querySelectorAll("button[data-instrument]").forEach((btn) => {
-        const match = btn.getAttribute("data-instrument") === value;
+  function setStoryFilter(value) {
+    if (!STORY_FILTERS.some((f) => f.id === value)) return;
+    storyFilter = value;
+    if (el.storyFilter) {
+      el.storyFilter.querySelectorAll("button[data-story-filter]").forEach((btn) => {
+        const match = btn.getAttribute("data-story-filter") === value;
         btn.classList.toggle("is-active", match);
         btn.setAttribute("aria-pressed", match ? "true" : "false");
       });
     }
   }
 
+  function renderStoryFilterBar() {
+    if (!el.storyFilter) return;
+    el.storyFilter.innerHTML = "";
+    for (const def of STORY_FILTERS) {
+      const btn = document.createElement("button");
+      btn.type = "button";
+      btn.dataset.storyFilter = def.id;
+      btn.textContent = def.label;
+      if (def.hint) btn.title = def.hint;
+      btn.addEventListener("click", () => {
+        setStoryFilter(def.id);
+        renderAll();
+      });
+      el.storyFilter.appendChild(btn);
+    }
+    setStoryFilter(storyFilter);
+  }
+
   function filteredTracks() {
     let tracks = library.tracks.slice();
 
     if (currentView === "moms-smile") {
-      tracks = tracks.filter(
-        (t) =>
-          t.vibes.includes("Mom's Smile") ||
-          t.people.includes("Mom") ||
-          t.instruments.includes("sax")
-      );
+      tracks = tracks.filter((t) => matchStoryFilter(t, "mom_mode"));
     }
 
-    if (instrumentFilter !== "all") {
-      tracks = tracks.filter((t) => trackMatchesInstrumentFilter(t, instrumentFilter));
+    if (storyFilter !== "all") {
+      tracks = tracks.filter((t) => matchStoryFilter(t, storyFilter));
     }
 
     if (activeFilter) {
@@ -429,6 +477,8 @@
             return t.people.includes(value);
           case "instruments":
             return t.instruments.includes(value);
+          case "modes":
+            return t.modes.includes(value);
           case "vibes":
             return t.vibes.includes(value);
           default: {
@@ -449,33 +499,31 @@
      * @param {string[]} names
      * @param {string} kind
      */
-    function fill(container, names, kind) {
+    function fill(container, names, kind, labelFor) {
       if (!container) return;
       container.innerHTML = "";
       names.forEach((name, i) => {
         const li = document.createElement("li");
         const btn = document.createElement("button");
         btn.type = "button";
-        btn.textContent = name;
+        btn.textContent = labelFor ? labelFor(name) : name;
         btn.dataset.kind = kind;
         btn.dataset.value = name;
+        const mappedStory = storyFilterIdForTag(kind, name);
         if (activeFilter?.kind === kind && activeFilter.value === name) {
           btn.classList.add("is-active");
-        } else if (
-          kind === "instruments" &&
-          INSTRUMENT_BAR.has(name) &&
-          instrumentFilter === name
-        ) {
+        } else if (mappedStory && storyFilter === mappedStory) {
           btn.classList.add("is-active");
         }
         btn.style.setProperty("--tilt", `${((i % 5) - 2) * 0.8}deg`);
         btn.addEventListener("click", () => {
-          if (kind === "instruments" && INSTRUMENT_BAR.has(name)) {
-            if (instrumentFilter === name) {
-              setInstrumentFilter("all");
+          const storyId = storyFilterIdForTag(kind, name);
+          if (storyId) {
+            if (storyFilter === storyId) {
+              setStoryFilter("all");
             } else {
               activeFilter = null;
-              setInstrumentFilter(/** @type {"electric" | "bass" | "sax" | "mixed"} */ (name));
+              setStoryFilter(storyId);
             }
             if (currentView === "wall") setView("library");
             else renderAll();
@@ -498,6 +546,7 @@
     fill(el.placeTags, PRESETS.places, "places");
     fill(el.peopleTags, PRESETS.people, "people");
     fill(el.instrumentTags, PRESETS.instruments, "instruments");
+    fill(el.modeTags, STORY_MODE_PRESETS, "modes", formatModeLabel);
     fill(el.vibeTags, PRESETS.vibes, "vibes");
   }
 
@@ -509,16 +558,13 @@
     if (currentView === "moms-smile") {
       el.libraryHeading.textContent = "Mom's Smile";
     } else if (activeFilter) {
-      el.libraryHeading.textContent = activeFilter.value;
-    } else if (instrumentFilter !== "all") {
-      const labels = {
-        all: "Library",
-        electric: "Electric",
-        bass: "Bass",
-        sax: "Sax",
-        mixed: "Mixed",
-      };
-      el.libraryHeading.textContent = labels[instrumentFilter] || "Library";
+      el.libraryHeading.textContent =
+        activeFilter.kind === "modes"
+          ? formatModeLabel(activeFilter.value)
+          : activeFilter.value;
+    } else if (storyFilter !== "all") {
+      const def = STORY_FILTERS.find((f) => f.id === storyFilter);
+      el.libraryHeading.textContent = def?.label || "Library";
     } else {
       el.libraryHeading.textContent = "Library";
     }
@@ -539,6 +585,7 @@
       const bits = [
         ...track.bands,
         ...track.instruments,
+        ...track.modes.map(formatModeLabel),
         ...track.vibes.slice(0, 1),
       ];
       const needsFile = !sessionFiles.has(track.id) && !track.file;
@@ -603,8 +650,9 @@
    * @param {HTMLElement | null} container
    * @param {string[]} options
    * @param {string[]} selected
+   * @param {(value: string) => string} [labelFor]
    */
-  function fillCheckGrid(container, options, selected) {
+  function fillCheckGrid(container, options, selected, labelFor) {
     if (!container) return;
     container.innerHTML = "";
     for (const opt of options) {
@@ -614,7 +662,7 @@
       input.value = opt;
       input.checked = selected.includes(opt);
       label.appendChild(input);
-      label.appendChild(document.createTextNode(opt));
+      label.appendChild(document.createTextNode(labelFor ? labelFor(opt) : opt));
       container.appendChild(label);
     }
   }
@@ -640,6 +688,7 @@
     fillCheckGrid(el.editPlaces, PRESETS.places, track.places);
     fillCheckGrid(el.editPeople, PRESETS.people, track.people);
     fillCheckGrid(el.editInstruments, PRESETS.instruments, track.instruments);
+    fillCheckGrid(el.editModes, STORY_MODE_PRESETS, track.modes, formatModeLabel);
     fillCheckGrid(el.editVibes, PRESETS.vibes, track.vibes);
     el.editCover.value = "";
     el.viewEdit.hidden = false;
@@ -697,6 +746,7 @@
     const chips = [
       ...track.bands.map((v) => ({ v, accent: false })),
       ...track.instruments.map((v) => ({ v, accent: false })),
+      ...track.modes.map((v) => ({ v: formatModeLabel(v), accent: v === "mom_mode" })),
       ...track.vibes.map((v) => ({
         v,
         accent: v === "Mom's Smile",
@@ -800,16 +850,7 @@
     renderAll();
   });
 
-  if (el.instrumentFilter) {
-    el.instrumentFilter.querySelectorAll("button[data-instrument]").forEach((btn) => {
-      btn.addEventListener("click", () => {
-        const value = btn.getAttribute("data-instrument") || "all";
-        setInstrumentFilter(value);
-        renderAll();
-      });
-    });
-    setInstrumentFilter(instrumentFilter);
-  }
+  renderStoryFilterBar();
 
   el.btnImportFiles.addEventListener("click", async () => {
     if (window.showOpenFilePicker) {
@@ -884,6 +925,7 @@
     track.places = readChecks(el.editPlaces);
     track.people = readChecks(el.editPeople);
     track.instruments = readChecks(el.editInstruments);
+    track.modes = readChecks(el.editModes);
     track.vibes = readChecks(el.editVibes);
 
     const coverFile = el.editCover.files && el.editCover.files[0];
