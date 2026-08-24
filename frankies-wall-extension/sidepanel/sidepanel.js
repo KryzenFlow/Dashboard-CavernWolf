@@ -751,10 +751,13 @@
     });
   }
 
+  const TUNING_FORK_MEANING = "Mom's Center — Find Your Tone";
+
   let forkAudioCtx = null;
   let forkStopTimer = null;
 
-  /** Local A440 reference tone (Web Audio) — no network. */
+  /** Local A440 reference tone (Web Audio) — no network.
+   *  Resonance / center / alignment — Mom's Center — Find Your Tone. */
   async function playTuningFork() {
     const AudioCtx = window.AudioContext || window.webkitAudioContext;
     if (!AudioCtx) return;
@@ -794,6 +797,12 @@
   }
 
   document.querySelectorAll('[data-onclick="playTuningFork"]').forEach((node) => {
+    node.setAttribute("data-meaning", TUNING_FORK_MEANING);
+    node.setAttribute("title", TUNING_FORK_MEANING);
+    node.setAttribute(
+      "aria-label",
+      `${TUNING_FORK_MEANING}. Play A440 tuning fork.`
+    );
     node.addEventListener("click", () => {
       playTuningFork().catch(() => {});
     });

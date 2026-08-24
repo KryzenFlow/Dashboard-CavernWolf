@@ -264,7 +264,34 @@ button {
     linear-gradient(180deg, #121212, #0c0c0c);
 }
 
-/* TuningForkIcon — visual tuning fork (Ig 1) */
+/* TuningForkIcon — visual tuning fork (Ig 1)
+   meaning: Mom's Center — Find Your Tone */
+.tuning-fork-cluster {
+  position: absolute;
+  top: 8px;
+  right: 10px;
+  z-index: 2;
+  display: flex;
+  flex-direction: column;
+  align-items: flex-end;
+  gap: 2px;
+  max-width: 46%;
+}
+
+.tuning-fork-cluster--now .tuning-fork--now {
+  position: static;
+}
+
+.tuning-fork-meaning {
+  margin: 0;
+  font-size: 13px;
+  line-height: 1.15;
+  text-align: right;
+  color: var(--accent-soft);
+  opacity: 0.85;
+  text-shadow: 0 1px 0 #000;
+}
+
 .tuning-fork-icon {
   width: 32px;
   height: 32px;
