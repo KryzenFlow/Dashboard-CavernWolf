@@ -53,11 +53,16 @@ VITE_API_BASE=https://melotunez-api.onrender.com npm run build
 
 ```
 src/
-  lib/http.js          # fetch + query helper
+  lib/http.js          # fetch + query helper (Option 2 — preferred)
   api/tracks.js
   api/playlists.js
   api/users.js
   api/assistant.js
+  sdk/                 # Option 3 — direct Base44 SDK (optional; not wired to App)
+    lib/base44.js
+    api/tracks.js      # list(sort, limit, skip); q filtered client-side
+    api/playlists.js   # (next)
+    api/users.js       # (next)
   components/Tracks.jsx
   components/Playlists.jsx
   components/Users.jsx
@@ -65,3 +70,5 @@ src/
   components/AudioPlayer.jsx
   App.jsx
 ```
+
+See [`src/sdk/README.md`](./src/sdk/README.md) for Option 3 usage and the SDK `list` signature fix.
