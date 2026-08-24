@@ -22,7 +22,7 @@
       "Stone Temple Pilots",
     ],
     places: ["Toledo", "Promenade Park", "Frankies", "East Side Nights"],
-    people: ["Mom", "Son", "Solo", "With Friends"],
+    people: ["Mom", "Son", "Solo", "With Friends", "Drew"],
     instruments: ["sax", "electric", "bass", "drums", "vocals", "acoustic"],
     vibes: ["Mom's Smile", "River Breeze", "fight & focus", "late night", "practice"],
   };
@@ -69,12 +69,22 @@
   let seeking = false;
 
   /**
+   * @typedef {object} CatalogTrack
+   * @property {string} id
+   * @property {string} title
+   * @property {string} artist
+   * @property {string} file
+   * @property {string} instrument
+   */
+
+  /**
    * @typedef {object} TrackMeta
    * @property {string} id
    * @property {string} title
    * @property {string} fileName
    * @property {string} mimeType
    * @property {number} size
+   * @property {string | null} [file] bundled path under extension root
    * @property {string[]} bands
    * @property {string[]} places
    * @property {string[]} people
@@ -84,6 +94,11 @@
    * @property {string | null} coverDataUrl
    * @property {number} addedAt
    */
+
+  /** @type {CatalogTrack[]} */
+  const CATALOG_TRACKS = Array.isArray(window.CATALOG_TRACKS)
+    ? window.CATALOG_TRACKS
+    : [];
 
   const el = {
     bandTags: document.getElementById("band-tags"),
@@ -137,6 +152,77 @@
     return name.replace(/\.[^.]+$/, "").replace(/[_-]+/g, " ").trim() || name;
   }
 
+  function basenameFromPath(path) {
+    const parts = path.split("/");
+    return parts[parts.length - 1] || path;
+  }
+
+  function normalizeCatalogPath(path) {
+    return path.replace(/^\/+/, "");
+  }
+
+  /**
+   * @param {CatalogTrack} catalog
+   * @returns {TrackMeta}
+   */
+  function catalogToTrackMeta(catalog) {
+    const fileName = basenameFromPath(catalog.file);
+    const artist = catalog.artist?.trim() || "";
+    const instrument = catalog.instrument?.trim() || "";
+    /** @type {TrackMeta} */
+    const meta = {
+      id: catalog.id,
+      title: catalog.title,
+      fileName,
+      mimeType: "audio/mpeg",
+      size: 0,
+      file: normalizeCatalogPath(catalog.file),
+      bands: artist ? [artist] : [],
+      places: [],
+      people: artist === "Drew" ? ["Drew"] : [],
+      instruments: instrument ? [instrument] : [],
+      vibes: instrument === "sax" ? ["Mom's Smile"] : [],
+      notes: "",
+      coverDataUrl: null,
+      addedAt: Date.now(),
+    };
+    return meta;
+  }
+
+  /**
+   * @param {string} fileName
+   * @returns {CatalogTrack | undefined}
+   */
+  function findCatalogByFileName(fileName) {
+    const lower = fileName.toLowerCase();
+    return CATALOG_TRACKS.find((track) => {
+      const base = basenameFromPath(track.file).toLowerCase();
+      return base === lower;
+    });
+  }
+
+  function mergeCatalogIntoLibrary() {
+    if (!CATALOG_TRACKS.length) return false;
+    let added = false;
+    for (const catalog of CATALOG_TRACKS) {
+      const existing = library.tracks.find((t) => t.id === catalog.id);
+      if (existing) {
+        if (!existing.file) existing.file = normalizeCatalogPath(catalog.file);
+        if (!existing.bands.length && catalog.artist) {
+          existing.bands = [catalog.artist];
+        }
+        if (!existing.instruments.length && catalog.instrument) {
+          existing.instruments = [catalog.instrument];
+        }
+        continue;
+      }
+      library.tracks.push(catalogToTrackMeta(catalog));
+      added = true;
+    }
+    library.tracks.sort((a, b) => b.addedAt - a.addedAt);
+    return added;
+  }
+
   function isAudioFile(file) {
     if (file.type && file.type.startsWith("audio/")) return true;
     return /\.(mp3|wav|ogg|m4a|aac|flac|opus|webm)$/i.test(file.name);
@@ -169,6 +255,7 @@
         fileName: t.fileName,
         mimeType: t.mimeType,
         size: t.size,
+        file: t.file || null,
         bands: t.bands,
         places: t.places,
         people: t.people,
@@ -200,6 +287,25 @@
   }
 
   /**
+   * Session import blob first, then bundled extension path from catalog.
+   * @param {string} id
+   * @returns {string | null}
+   */
+  function resolveTrackUrl(id) {
+    const blobUrl = ensureBlobUrl(id);
+    if (blobUrl) return blobUrl;
+
+    const track = library.tracks.find((t) => t.id === id);
+    if (!track?.file) return null;
+
+    try {
+      return chrome.runtime.getURL(normalizeCatalogPath(track.file));
+    } catch {
+      return null;
+    }
+  }
+
+  /**
    * @param {File[]} files
    */
   async function importFiles(files) {
@@ -210,24 +316,38 @@
     }
 
     for (const file of audioFiles) {
-      const id = uid();
+      const catalogMatch = findCatalogByFileName(file.name);
+      const id = catalogMatch?.id ?? uid();
+      const existing = library.tracks.find((t) => t.id === id);
+
       /** @type {TrackMeta} */
-      const meta = {
+      const meta = existing ?? {
         id,
-        title: titleFromFileName(file.name),
+        title: catalogMatch?.title ?? titleFromFileName(file.name),
         fileName: file.name,
         mimeType: file.type || "audio/*",
         size: file.size,
-        bands: [],
+        file: catalogMatch ? normalizeCatalogPath(catalogMatch.file) : null,
+        bands: catalogMatch?.artist ? [catalogMatch.artist] : [],
         places: [],
-        people: [],
-        instruments: [],
-        vibes: [],
+        people: catalogMatch?.artist === "Drew" ? ["Drew"] : [],
+        instruments: catalogMatch?.instrument ? [catalogMatch.instrument] : [],
+        vibes:
+          catalogMatch?.instrument === "sax" ? ["Mom's Smile"] : [],
         notes: "",
         coverDataUrl: null,
         addedAt: Date.now(),
       };
-      library.tracks.unshift(meta);
+
+      meta.fileName = file.name;
+      meta.mimeType = file.type || meta.mimeType || "audio/*";
+      meta.size = file.size;
+
+      if (!existing) {
+        library.tracks.unshift(meta);
+      }
+
+      revokeUrl(id);
       sessionFiles.set(id, file);
       ensureBlobUrl(id);
     }
@@ -462,11 +582,12 @@
     const track = library.tracks.find((t) => t.id === id);
     if (!track) return;
 
-    const url = ensureBlobUrl(id);
+    const url = resolveTrackUrl(id);
     if (!url) {
       el.nowTitle.textContent = track.title;
-      el.nowNote.textContent =
-        "Metadata is saved, but the audio file isn’t in this session. Re-import the file or folder to play.";
+      el.nowNote.textContent = track.file
+        ? `Add ${track.fileName} under the extension music/ folder, or re-import to play.`
+        : "Metadata is saved, but the audio file isn’t in this session. Re-import the file or folder to play.";
       updateNowPlaying(track);
       return;
     }
@@ -863,11 +984,17 @@
   });
 
   // Boot
-  loadLibrary().then(() => {
+  loadLibrary().then(async () => {
+    const catalogAdded = mergeCatalogIntoLibrary();
+    if (catalogAdded) {
+      await saveLibrary();
+    }
     renderAll();
     if (library.tracks.length) {
-      el.nowNote.textContent =
-        "Tags restored. Re-import audio files to play — metadata stayed local.";
+      const hasBundled = library.tracks.some((t) => t.file);
+      el.nowNote.textContent = hasBundled
+        ? "Catalog loaded. Bundled tracks play from music/ — imports override for this session."
+        : "Tags restored. Re-import audio files to play — metadata stayed local.";
     }
   });
 })();

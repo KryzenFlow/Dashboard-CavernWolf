@@ -21,6 +21,19 @@ Only import audio you own or have rights to play personally.
 4. Select this folder: `frankies-wall-extension/`
 5. Click the extension icon (or pin it) — the **side panel** opens
 
+## Seed catalog
+
+On first load, Frankie's Wall merges the built-in catalog (`sidepanel/data/tracks.js`):
+
+| Track | Artist | Instrument |
+|-------|--------|------------|
+| Glycerine | Bush | electric |
+| Black Hole Sun | Soundgarden | electric |
+| Sax Live Recording | Drew | sax |
+| Bass Riff | Drew | bass |
+
+Drop matching MP3s under `music/` (see `music/README.md`) and reload the extension — they play without re-import. You can still **Import files**; matching filenames attach to catalog IDs and tags stick.
+
 ## Import + play
 
 1. **Import files** or **Import folder** (left sidebar)
