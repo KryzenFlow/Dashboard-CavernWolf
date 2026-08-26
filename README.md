@@ -15,13 +15,29 @@ Containerized Hermes Agent dashboard extracted and completed from Copilot conver
 
 ```
 Dashboard-CavernWolf/
+├── app/               Cavern Wolf v2 audit ledger (Merkle seal)
 ├── frontend/          index.html, styles.css, script.js
 ├── backend/           FastAPI web gateway + REST API
 ├── clinic/            BAA checklist, SQL schemas, sandbox compose
 ├── source/            Notes about original monolithic exports
+├── SOUL.md            Claw Opus values & voice (root context)
+├── CI.md              Context initialization & session lifecycle
 ├── docker-compose.yml
 └── README.md
 ```
+
+## Audit ledger (Merkle root seal)
+
+Session-scoped tamper-evident audit trail in `app/security/merkle.py`:
+
+```powershell
+cd /workspace
+$env:PYTHONPATH = "."
+python3 -m app.security.merkle          # self-test
+python3 -m unittest backend.tests.test_audit_ledger -v
+```
+
+Boot loads `SOUL.md` + `CI.md` as root context; shutdown calls `terminate_session()` to seal and persist the Merkle root to SQL (`audit_ledger` table — schema in `merkle.py` header).
 
 ## Quick start (local)
 
