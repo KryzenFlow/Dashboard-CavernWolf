@@ -10,7 +10,7 @@ no custom shell from agent input, fail-closed on missing `BW_SESSION`.
 
 ```
 ┌─────────────────────────────────────────────────────────┐
-│  HOST (your machine / Kamatra VPS)                      │
+│  HOST (Vultr VPS or local dev machine)                  │
 │  ┌───────────────────────────────────────────────────┐│
 │  │  Docker internal network (secure_net)             ││
 │  │  ┌─────────────────────────────────────────────┐  ││
@@ -23,9 +23,50 @@ no custom shell from agent input, fail-closed on missing `BW_SESSION`.
 └─────────────────────────────────────────────────────────┘
 ```
 
-**Runner:** `./agent_runner.sh` — this is the default and all you need for now.
+**Runner:** `./agent_runner.sh` — Docker on the host. Production target is a **Vultr VPS**.
 
-## Prerequisites
+## Vultr VPS deployment
+
+Recommended instance: **Ubuntu 24.04 LTS**, 2 vCPU / 4 GB RAM (adjust for agent load).
+
+### 1. Create the server
+
+- Vultr control panel → Deploy → Cloud Compute → Ubuntu 24.04
+- Enable **Vultr Firewall**: allow **SSH (22)** from your IP only
+- Do **not** expose agent or Docker ports publicly — agents use outbound allowlist only
+
+### 2. Bootstrap (once)
+
+```bash
+ssh root@YOUR_VULTR_IP
+git clone https://github.com/KryzenFlow/Dashboard-CavernWolf.git /opt/cavernwolf
+chmod +x /opt/cavernwolf/infra/secure-agent/vultr_bootstrap.sh
+APP_DIR=/opt/cavernwolf /opt/cavernwolf/infra/secure-agent/vultr_bootstrap.sh
+```
+
+### 3. Run agents (each session)
+
+```bash
+ssh root@YOUR_VULTR_IP
+export BW_SESSION=$(bw unlock --raw)
+cd /opt/cavernwolf/infra/secure-agent
+cp allowed_hosts.txt.example allowed_hosts.txt   # first time only
+./agent_runner.sh
+```
+
+Bitwarden unlock happens on the Vultr box per session — secrets stay in memory, never in the image.
+
+### Vultr notes
+
+| Topic | Guidance |
+|-------|----------|
+| **Provider** | Vultr Cloud Compute (Docker-only; no Ignite required) |
+| **Firewall** | Vultr Firewall + container iptables allowlist (defense in depth) |
+| **SSH keys** | Vultr account SSH keys at deploy; rotate via Vultr API if needed |
+| **Snapshots** | Use Vultr snapshots for rollback of the **base image** — matches CI.md `[IMAGE STORED]` |
+| **API** | Future Infrastructure Hub can use [Vultr API v2](https://www.vultr.com/api/) for provisioning |
+
+## Prerequisites (local or Vultr)
 
 ```bash
 # Bitwarden CLI

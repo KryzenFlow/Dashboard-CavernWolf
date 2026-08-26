@@ -58,14 +58,15 @@ Boot loads `soul.md` + `CI.md` as root context; shutdown calls `terminate_sessio
 
 ## Secure agent sandbox
 
-Ephemeral agents with Bitwarden secrets, Docker network allowlisting, and encrypted logs:
+Ephemeral agents with Bitwarden secrets, Docker network allowlisting, and encrypted logs.
+Production target: **Vultr VPS** (Docker-only).
 
 ```bash
 export BW_SESSION=$(bw unlock --raw)
 cd infra/secure-agent && ./agent_runner.sh
 ```
 
-See [infra/secure-agent/README.md](infra/secure-agent/README.md).
+Vultr bootstrap: [infra/secure-agent/README.md](infra/secure-agent/README.md#vultr-vps-deployment).
 
 ## Quick start (local)
 
