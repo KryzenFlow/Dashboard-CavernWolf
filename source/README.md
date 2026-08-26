@@ -4,7 +4,8 @@ These files were exported from GitHub Copilot conversations about the Hermes Age
 
 | File | Description |
 |------|-------------|
-| `NousResearchhermes-agent.txt with claw need done asap.txt` | Primary monolith: Hermes web gateway + Studio dashboard + OpenClaw + clinic BAA content |
+| `vultr-api-reference-v1.pdf` | Official Vultr API Reference v1.0 — implementation in `infra/vultr/` |
+| `NousResearchhermes-agent.txt with claw need done asap.txt` | Primary monolith (not in repo) |
 | `sun_jun_14_2026_containerized_dashboard_for_hermes_agent.json` | Same conversation in JSON format (duplicate structured export) |
 
 ## Note

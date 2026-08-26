@@ -22,7 +22,9 @@ Dashboard-CavernWolf/
 ├── CI.md              Cognitive Interface — session lifecycle & behavior
 ├── AGENTS.md          Cloud / IDE agent onboarding
 ├── .cursorrules       Global agent instructions for this repo
-├── infra/             Secure agent sandbox (Bitwarden + Docker)
+├── infra/             Secure agent (Docker) + Vultr API v1 (manual-aligned)
+│   ├── secure-agent/  Bitwarden + agent_runner.sh
+│   └── vultr/         API client, lifecycle, MANUAL_ALIGNMENT.md
 ├── app/               Cavern Wolf v2 audit ledger (Merkle seal)
 ├── frontend/          index.html, styles.css, script.js
 ├── backend/           FastAPI web gateway + REST API

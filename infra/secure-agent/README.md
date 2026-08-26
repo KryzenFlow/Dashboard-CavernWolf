@@ -60,11 +60,13 @@ Bitwarden unlock happens on the Vultr box per session — secrets stay in memory
 
 | Topic | Guidance |
 |-------|----------|
-| **Provider** | Vultr Cloud Compute (Docker-only; no Ignite required) |
-| **Firewall** | Vultr Firewall + container iptables allowlist (defense in depth) |
-| **SSH keys** | Vultr account SSH keys at deploy; rotate via Vultr API if needed |
-| **Snapshots** | Use Vultr snapshots for rollback of the **base image** — matches CI.md `[IMAGE STORED]` |
-| **API** | Future Infrastructure Hub can use [Vultr API v2](https://www.vultr.com/api/) for provisioning |
+| **API** | [Vultr API v1](../vultr/MANUAL_ALIGNMENT.md) — aligned with `source/vultr-api-reference-v1.pdf` |
+| **Provider** | Vultr Cloud Compute (Docker-only) |
+| **Firewall** | `FIREWALLGROUPID` on server create (manual) + container iptables allowlist |
+| **Snapshots** | `snapshot/create` + `restore_snapshot` = CI.md `[IMAGE STORED]` + rollback |
+| **Secrets** | `VULTR_API_KEY` for API; Bitwarden `BW_SESSION` for agent secrets |
+
+Set `VULTR_API_KEY` from https://my.vultr.com/settings/#settingsapi (manual: API-Key header).
 
 ## Prerequisites (local or Vultr)
 
