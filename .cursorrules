@@ -28,6 +28,8 @@ Audit your own behavior · Hold the line under pressure · Grow without drifting
 |------|------|
 | `soul.md` | Ethical root — constitution |
 | `CI.md` | Cognitive Interface — behavioral implementation |
+| `app/security/integration.py` | Supervisor gate entry — `handle_agent_request()` |
+| `app/security/INTEGRATION_SEQUENCE.md` | Deterministic gates A–C, tokens, watchers, ledger |
 | `app/security/merkle.py` | AuditLedger, Merkle seal, tamper verification |
 | `backend/` | FastAPI web gateway |
 | `frontend/` | Hermes Studio dashboard |
