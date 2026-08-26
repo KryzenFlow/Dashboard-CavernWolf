@@ -2,6 +2,9 @@
 
 Containerized Hermes Agent dashboard extracted and completed from Copilot conversation exports.
 
+> **Governance:** All work in this repo operates under the [Trust Discipline Framework](soul.md).
+> Load `soul.md` first, then `CI.md`, before any agent or human session. See [AGENTS.md](AGENTS.md).
+
 ## Stack
 
 | Layer | Technology |
@@ -15,16 +18,29 @@ Containerized Hermes Agent dashboard extracted and completed from Copilot conver
 
 ```
 Dashboard-CavernWolf/
+├── soul.md            Trust Discipline Framework (root context — load first)
+├── CI.md              Cognitive Interface — session lifecycle & behavior
+├── AGENTS.md          Cloud / IDE agent onboarding
+├── .cursorrules       Global agent instructions for this repo
 ├── app/               Cavern Wolf v2 audit ledger (Merkle seal)
 ├── frontend/          index.html, styles.css, script.js
 ├── backend/           FastAPI web gateway + REST API
 ├── clinic/            BAA checklist, SQL schemas, sandbox compose
 ├── source/            Notes about original monolithic exports
-├── SOUL.md            Claw Opus values & voice (root context)
-├── CI.md              Context initialization & session lifecycle
 ├── docker-compose.yml
 └── README.md
 ```
+
+## Governance (Trust Discipline Framework)
+
+| Document | Role |
+|----------|------|
+| [soul.md](soul.md) | Constitution — intent, motive, follow-through; operating requirements |
+| [CI.md](CI.md) | Cognitive Interface — boot lifecycle, escalation, audit sealing |
+| [.cursorrules](.cursorrules) | Repo-wide agent rules |
+| [AGENTS.md](AGENTS.md) | Initialization order for cloud and IDE agents |
+
+soul.md governs. CI.md implements. When they conflict, surface it — never resolve silently for convenience.
 
 ## Audit ledger (Merkle root seal)
 
@@ -37,7 +53,7 @@ python3 -m app.security.merkle          # self-test
 python3 -m unittest backend.tests.test_audit_ledger -v
 ```
 
-Boot loads `SOUL.md` + `CI.md` as root context; shutdown calls `terminate_session()` to seal and persist the Merkle root to SQL (`audit_ledger` table — schema in `merkle.py` header).
+Boot loads `soul.md` + `CI.md` as root context; shutdown calls `terminate_session()` to seal and persist the Merkle root to SQL (`audit_ledger` table — schema in `merkle.py` header).
 
 ## Quick start (local)
 

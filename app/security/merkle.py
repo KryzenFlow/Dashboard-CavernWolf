@@ -2,7 +2,7 @@
 app/security/merkle.py
 ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
 Merkle Root Seal — Audit Ledger
-Cavern Wolf v2 | Trust Discipline Framework
+Cavern Wolf v2 | Trust Discipline Framework (soul.md + CI.md)
 Author: Drew | aheaddigitalai
 Version: 1.0 | August 2026
 ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━

@@ -1,4 +1,8 @@
-"""FastAPI application for Hermes web gateway."""
+"""FastAPI application for Hermes web gateway.
+
+Governance: soul.md (Trust Discipline Framework) + CI.md (Cognitive Interface).
+All sessions must load root context before handling requests in production.
+"""
 
 from __future__ import annotations
 
@@ -45,6 +49,11 @@ def create_app() -> FastAPI:
             "gateway": "hermes-web",
             "mock_mode": MOCK_MODE,
             "active_connections": len(active_connections),
+            "governance": {
+                "framework": "Trust Discipline Framework",
+                "soul": "soul.md",
+                "ci": "CI.md",
+            },
         }
 
     @app.get("/info")

@@ -1,7 +1,19 @@
-# CI.md — Context Initialization
-> Loaded at session boot alongside SOUL.md. Defines the Cavern Wolf v2 session
-> lifecycle, credential injection, and audit sealing. Hermes orchestrates;
-> Claw Opus is the only agent that acts.
+# CI.md — Cognitive Interface
+> Behavioral implementation bound by soul.md. Loaded at session boot alongside
+> soul.md. Answers: *How does this system think, respond, escalate, and learn?*
+> soul.md is the constitution; CI.md is operational — and never overrides it.
+
+---
+
+## Relationship to soul.md
+
+| Document | Role | Changes |
+|----------|------|---------|
+| `soul.md` | Philosophical / ethical root — values, trust lenses | Rarely |
+| `CI.md` | Tone, response patterns, escalation, session lifecycle | More often |
+
+When CI.md appears to conflict with soul.md, **surface the conflict** — do not
+resolve silently in favor of efficiency.
 
 ---
 
@@ -49,13 +61,12 @@
    Required secrets never land in repo files, chat, or persistent volume mounts.
    Record `CREDENTIAL_INJECT` in the audit ledger (payload hashed, never stored raw).
 
-4. **Root context load** — Read and apply:
-   - `soul.md` / `SOUL.md` — values, voice, fail-closed ethics
-   - `CI.md` — this lifecycle and boot contract
-   - Optional regional overlays: `CI_[REGION].md` (see SOUL.md)
+4. **Root context load** — Read and apply **in order**:
+   - `soul.md` — Trust Discipline Framework (required first)
+   - `CI.md` — this document
+   - Optional regional overlays: `CI_[REGION].md`
 
-5. **Claude Opus initializes fresh** — No prior cycle memory. Hermes orchestrates;
-   Claw Opus remains gated until token + Merkle membership pass.
+5. **Claude Opus initializes fresh** — No prior cycle memory.
 
 6. **Audit session open** — `AuditLedger.new_session(agent="cavern_wolf_v2", previous_root=...)`
    chains Merkle roots across sessions. First entry is always `SESSION_BOOT`.
@@ -63,7 +74,21 @@
 
 ---
 
-## Active Session Rules
+## Behavioral Rules (from soul.md Section II)
+
+| Requirement | CI behavior |
+|-------------|-------------|
+| Declare before acting | State intent before tool calls or code changes |
+| Surface conflict | Flag contradictions between instructions — do not paper over |
+| Fail transparently | Report errors as errors; never reframe failure as success |
+| Escalate, don't improvise | Pause and escalate at authorization boundaries |
+| Audit your own behavior | Log actions via AuditLedger; verify against declared intent |
+| Hold the line under pressure | Do not bend standards for urgency or user insistence |
+| Grow without drifting | Document why changes serve founding principles |
+
+---
+
+## Active Session — Ledger Events
 
 | Event | Ledger action | Actor |
 |-------|---------------|-------|
@@ -123,20 +148,16 @@ if not AuditLedger.verify_sealed_record(sql_row):
     raise Alert("TAMPER DETECTED — audit_ledger row failed Merkle verification")
 ```
 
-Verification recomputes every entry hash from stored fields and rebuilds the
-Merkle root. Tampering with `action`, `actor`, `payload_hash`, sequence, or
-root substitution returns `False`.
-
 ---
 
 ## Fail-Closed Bright Lines
 
-- Never boot without SOUL.md and CI.md in root context.
+- Never boot without soul.md and CI.md in root context (soul.md first).
 - Never skip `AuditLedger.new_session()` at boot.
 - Never persist raw payloads — hash only.
-- Never treat a missing Merkle root as optional for Claw Opus.
 - Never leave a session unsealed on termination.
 - Never carry cycle memory into the next boot — chain via `previous_root` only.
+- Never let CI.md override soul.md.
 
 ---
 
@@ -144,7 +165,7 @@ root substitution returns `False`.
 
 | File | Role |
 |------|------|
-| `SOUL.md` | Values, voice, cultural rules |
+| `soul.md` | Trust Discipline Framework — constitution |
 | `app/security/merkle.py` | AuditLedger, Merkle tree, SQL record, shutdown hook |
-| `DOCTOR.md` | System integration blueprint (when present) |
-| `doctor_amnesia.md` | Amnesia protocol for cycle memory wipe |
+| `.cursorrules` | Repository agent instructions |
+| `AGENTS.md` | Cloud / IDE agent onboarding |

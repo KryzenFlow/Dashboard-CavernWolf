@@ -15,6 +15,7 @@ Use this checklist when negotiating BAAs with CockroachDB Cloud, Azure, and SMS 
 ## Access & Audit Requirements
 
 - All reads/writes to patient phone/appointment tables write immutable audit logs in the matching clinic schema
+- Clinic agents operate under repo root `soul.md` + `CI.md` governance
 - Log fields: timestamp, Hermes agent ID, user/staff ID, action type, patient ID accessed, API source
 - CockroachDB RBAC roles: `sms_automation`, `clinic_staff_limited`, `dba_audit`, `operator_backup`
 - Azure Key Vault stores all secrets; no hardcoded credentials in repos

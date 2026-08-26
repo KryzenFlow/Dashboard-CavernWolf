@@ -11,6 +11,8 @@ These files were exported from GitHub Copilot conversations about the Hermes Age
 
 The Copilot export is **incomplete** — many files say "Copy from my previous response" and `web_gateway/app.py` was never fully included. This repo implements working standalone versions in `frontend/` and `backend/`.
 
+Active development follows the [Trust Discipline Framework](../soul.md) — see `soul.md`, `CI.md`, and `AGENTS.md` at repo root.
+
 ## Original path (read-only on this machine)
 
 ```

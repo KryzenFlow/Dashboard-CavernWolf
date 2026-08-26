@@ -2,6 +2,8 @@
 
 Split from the second section of the original Copilot export (BAA compliance + CockroachDB clinic workflows).
 
+> Operates under the repo [Trust Discipline Framework](../soul.md). Load `soul.md` and `CI.md` before any clinic agent session.
+
 ## Contents
 
 | Path | Purpose |
