@@ -34,8 +34,8 @@ All endpoints, auth, and HTTP semantics match that document.
 | **Bitwarden inject** | (on VM after SSH — not Vultr API) | `agent_runner.sh` + `BW_SESSION` |
 | **soul.md + CI.md load** | Startup script optional: `SCRIPTID` on create | `startupscript_create()` |
 | **[ACTIVE SESSION]** | Poll until `status=active`, `server_state=ok` | `wait_server_active()` |
-| **AUTOMATIC TERMINATION** | `POST /v1/server/halt` | `server_halt()` |
-| **[IMAGE STORED] seal** | `POST /v1/snapshot/create` | `snapshot_create()` |
+| **AUTOMATIC TERMINATION** | `POST /v1/server/halt` then `POST /v1/server/restore_snapshot` to **baseline** | `terminate_and_seal()` |
+| **[IMAGE STORED] seal** | Record clean `SNAPSHOTID` — **do not** `snapshot/create` on session disk | `ConfigurationRecord.sealed_from_baseline` |
 | **Rollback** | `POST /v1/server/restore_snapshot` | `server_restore_snapshot()` / `VultrSessionLifecycle.rollback()` |
 
 Manual quote (server/create):
@@ -84,6 +84,14 @@ Every lifecycle transition should call `AuditLedger.record()` with hashed payloa
 | Restore snapshot | `VULTR_ROLLBACK` |
 
 Chain `previous_root` (Merkle) alongside `ConfigurationRecord.parent_config_id` (infra).
+
+### Terminate security (CI.md)
+
+`server_halt()` preserves disk contents. **`snapshot/create` on a live session would seal secrets into a recoverable image.** `terminate_and_seal()` instead:
+
+1. Optional `wipe_hook(subid)` — revoke Bitwarden, stop Docker, delete logs (while VM runs)
+2. `server/halt` → `server/restore_snapshot` to the **baseline** SNAPSHOTID from boot
+3. Record the baseline ID — never a new snapshot of dirty runtime state
 
 ## What we do NOT do (manual + soul.md)
 

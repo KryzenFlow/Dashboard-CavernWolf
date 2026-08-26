@@ -2,11 +2,14 @@
 
 from __future__ import annotations
 
+from collections.abc import Callable
 from dataclasses import dataclass
 from datetime import datetime, timezone
 from typing import Any
 
 from infra.vultr.client import VultrClient
+
+WipeHook = Callable[[str], None]
 
 
 @dataclass
@@ -19,6 +22,7 @@ class ConfigurationRecord:
     snapshot_id: str
     description: str
     created_at: str
+    sealed_from_baseline: bool = False
 
     def to_audit_payload(self) -> dict[str, Any]:
         return {
@@ -26,6 +30,7 @@ class ConfigurationRecord:
             "parent_config_id": self.parent_config_id,
             "subid": self.subid,
             "snapshot_id": self.snapshot_id,
+            "sealed_from_baseline": self.sealed_from_baseline,
         }
 
 
@@ -36,13 +41,17 @@ class VultrSessionLifecycle:
     [IMAGE STORED]  → snapshot/list or known SNAPSHOTID
     BOOT            → server/create (OSID 164 + SNAPSHOTID) or server/start
     ACTIVE          → agent_runner.sh on host (Docker — not a Vultr API call)
-    TERMINATE       → server/halt + snapshot/create (new [IMAGE STORED])
+    TERMINATE       → wipe (optional hook) → halt → restore baseline snapshot
     ROLLBACK        → server/restore_snapshot
+
+    Never snapshot a live session disk — server_halt() preserves contents and
+    snapshot_create() would seal sensitive runtime data into a recoverable image.
     """
 
     def __init__(self, client: VultrClient) -> None:
         self.client = client
         self._config_chain: list[ConfigurationRecord] = []
+        self._baseline_by_subid: dict[str, str] = {}
 
     def list_stored_images(self) -> dict[str, Any]:
         """[IMAGE STORED] — list snapshots on account."""
@@ -73,6 +82,7 @@ class VultrSessionLifecycle:
         )
         subid = str(result["SUBID"])
         self.client.wait_server_active(subid)
+        self._baseline_by_subid[subid] = snapshot_id
         record = ConfigurationRecord(
             config_id=f"cfg_{subid}_{snapshot_id[:8]}",
             parent_config_id=parent_config_id,
@@ -80,6 +90,7 @@ class VultrSessionLifecycle:
             snapshot_id=snapshot_id,
             description=f"boot from snapshot {snapshot_id}",
             created_at=datetime.now(timezone.utc).isoformat(),
+            sealed_from_baseline=True,
         )
         self._config_chain.append(record)
         return subid, record
@@ -88,26 +99,44 @@ class VultrSessionLifecycle:
         self,
         subid: str,
         *,
+        baseline_snapshot_id: str | None = None,
+        wipe_hook: WipeHook | None = None,
         description: str | None = None,
     ) -> ConfigurationRecord:
         """
-        AUTOMATIC TERMINATION — halt VM, snapshot disk state ([IMAGE STORED]).
-        Matches CI.md: lifecycle cut, image ready for next return.
+        AUTOMATIC TERMINATION — return VM to the clean baseline image ([IMAGE STORED]).
+
+        CI.md requires runtime state wiped; server_halt() alone keeps disk intact.
+        This restores the known-clean baseline snapshot (manual: restore_snapshot —
+        all current VM data is lost) instead of snapshot_create() on a dirty disk.
+
+        Call wipe_hook(subid) while the VM is still running to revoke Bitwarden
+        sessions, remove local logs, and stop containers before halt/restore.
         """
+        baseline = baseline_snapshot_id or self._baseline_by_subid.get(subid)
+        if not baseline:
+            raise ValueError(
+                "baseline_snapshot_id is required — never seal from an unknown session disk. "
+                "Pass the governance-locked SNAPSHOTID from boot, or call boot_from_snapshot first."
+            )
+
+        if wipe_hook is not None:
+            wipe_hook(subid)
+
         self.client.server_halt(subid)
-        snap = self.client.snapshot_create(
-            subid,
-            description=description or f"sealed {datetime.now(timezone.utc).isoformat()}",
-        )
-        snapshot_id = str(snap["SNAPSHOTID"])
+        self.client.server_restore_snapshot(subid, baseline)
+        self.client.wait_server_active(subid)
+        self.client.server_halt(subid)
+
         parent = self._config_chain[-1].config_id if self._config_chain else None
         record = ConfigurationRecord(
-            config_id=f"cfg_sealed_{snapshot_id}",
+            config_id=f"cfg_sealed_{baseline[:8]}_{subid}",
             parent_config_id=parent,
             subid=subid,
-            snapshot_id=snapshot_id,
-            description=description or "session sealed snapshot",
+            snapshot_id=baseline,
+            description=description or f"terminated — restored clean baseline {baseline}",
             created_at=datetime.now(timezone.utc).isoformat(),
+            sealed_from_baseline=True,
         )
         self._config_chain.append(record)
         return record
@@ -118,6 +147,8 @@ class VultrSessionLifecycle:
         Any data on VM is lost (manual warning).
         """
         self.client.server_restore_snapshot(subid, snapshot_id)
+        self.client.wait_server_active(subid)
+        self._baseline_by_subid[subid] = snapshot_id
         parent = self._config_chain[-1].config_id if self._config_chain else None
         record = ConfigurationRecord(
             config_id=f"cfg_rollback_{snapshot_id}",
@@ -126,6 +157,7 @@ class VultrSessionLifecycle:
             snapshot_id=snapshot_id,
             description=f"rollback to {snapshot_id}",
             created_at=datetime.now(timezone.utc).isoformat(),
+            sealed_from_baseline=True,
         )
         self._config_chain.append(record)
         return record
