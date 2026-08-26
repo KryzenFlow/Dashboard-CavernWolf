@@ -4,6 +4,26 @@ Refined fail-closed control flow for Cavern Wolf v2. Implements soul.md / CI.md:
 deterministic gates before any model or child; supervisor grants capabilities; watchers
 can revoke independently; secrets via Bitwarden at last moment; Merkle integrity.
 
+## Hierarchy (non-negotiable)
+
+```
+Supervisor gates  ←  Parent only (host tier)
+       ↑
+    Parent          ←  talks to supervisor, spawns children
+       ↑ ask_parent (never supervisor)
+    Child           ←  always execution_tier=container, behind parent
+```
+
+| Rule | Enforcement |
+|------|-------------|
+| Children ask **parent**, never supervisor | `handle_agent_request()` BLOCKs child tokens |
+| Children run in **containers** behind parent | `execution_tier=container` on child tokens |
+| Only **parent** may spawn children | `issue_child_token()` rejects child issuers |
+| Child upward channel | `ask_parent` capability only |
+| Parent talks to supervisor | `execution_tier=host`, role=parent |
+
+Child requests use `handle_child_via_parent()` — parent decides if supervisor is needed.
+
 ## Visual flow
 
 ```

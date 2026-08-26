@@ -8,6 +8,11 @@ from typing import Any
 from app.security.control_plane import current_root, token_merkle_root_matches, verify_live_root
 from app.security.doberman_hook import pre_exec
 from app.security.path_confinement import check_payload
+from app.security.hierarchy import (
+    child_must_ask_parent,
+    is_child_token,
+    parent_may_contact_supervisor,
+)
 from app.security.token import capability_allowed, validate_token
 
 
@@ -44,6 +49,13 @@ def validate_and_gate(
         token_parsed = _parse_token(token)
         if not token_parsed:
             return "BLOCK", "Token type invalid for capability check"
+
+        # Children never contact supervisor — they ask parent from inside their container.
+        if is_child_token(token_parsed):
+            return "BLOCK", "children cannot contact supervisor; ask parent from container"
+
+        if not parent_may_contact_supervisor(token_parsed):
+            return "BLOCK", "only host-tier parent may reach supervisor gates"
 
         if not verify_live_root():
             return "BLOCK", "Merkle tamper detected on control plane"

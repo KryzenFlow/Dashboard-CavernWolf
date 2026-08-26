@@ -6,8 +6,13 @@ import os
 import unittest
 
 from app.security.control_plane import reset_control_plane
-from app.security.integration import bootstrap_supervisor_session, handle_agent_request
+from app.security.integration import (
+    bootstrap_supervisor_session,
+    handle_agent_request,
+    handle_child_via_parent,
+)
 from app.security.token import CapabilityViolationError, clear_revocations, is_revoked, issue_child_token
+from app.security.token_registry import finalize_issued_token
 from app.security.supervisor_gates import validate_and_gate
 
 os.environ.setdefault("HERMES_SUPERVISOR_HMAC_KEY", "a" * 48)
@@ -46,6 +51,48 @@ class SupervisorIntegrationTests(unittest.TestCase):
         self.assertTrue(is_revoked(tree_id))
 
     def test_handle_agent_request_issues_child_on_pass(self) -> None:
+        parent = bootstrap_supervisor_session(["run_static_scan", "issue_child"])
+        payload = {"action": "run_static_scan", "path": "backend/web_gateway/app.py"}
+        result = handle_agent_request(
+            payload,
+            parent,
+            child_capabilities=["run_static_scan"],
+            child_ttl=60,
+        )
+        self.assertEqual(result.verdict, "PASS")
+        self.assertIsNotNone(result.child_token)
+        assert result.child_token is not None
+        self.assertEqual(result.child_token["execution_tier"], "container")
+        self.assertEqual(result.child_token["parent_id"], parent["agent_id"])
+        self.assertTrue(
+            set(result.child_token["capabilities"]).issubset(set(parent["capabilities"]))
+        )
+
+    def test_child_cannot_contact_supervisor(self) -> None:
+        parent = bootstrap_supervisor_session(["run_static_scan", "ask_parent", "issue_child"])
+        child = finalize_issued_token(
+            issue_child_token(parent, ["run_static_scan", "ask_parent"], ttl=60)
+        )
+        payload = {"action": "run_static_scan", "path": "backend/web_gateway/app.py"}
+        result = handle_agent_request(payload, child)
+        self.assertEqual(result.verdict, "BLOCK")
+        self.assertIn("route through parent", result.reason.lower())
+
+    def test_child_via_parent_ask_parent(self) -> None:
+        parent = bootstrap_supervisor_session(["ask_parent", "issue_child"])
+        child = finalize_issued_token(
+            issue_child_token(parent, ["ask_parent"], ttl=60)
+        )
+        result = handle_child_via_parent({"action": "ask_parent"}, child, parent)
+        self.assertEqual(result.verdict, "PASS")
+        self.assertEqual(child.get("execution_tier"), "container")
+        self.assertEqual(child.get("parent_id"), parent["agent_id"])
+
+    def test_child_cannot_issue_child(self) -> None:
+        parent = bootstrap_supervisor_session(["run_static_scan", "issue_child"])
+        child = finalize_issued_token(issue_child_token(parent, ["run_static_scan"], ttl=60))
+        with self.assertRaises(CapabilityViolationError):
+            issue_child_token(child, ["run_static_scan"])
         parent = bootstrap_supervisor_session(["run_static_scan"])
         payload = {"action": "run_static_scan", "path": "backend/web_gateway/app.py"}
         result = handle_agent_request(

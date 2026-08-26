@@ -12,11 +12,19 @@ from typing import Any
 from uuid import uuid4
 
 from app.security.control_plane import current_root, ensure_bootstrapped
+from app.security.hierarchy import (
+    EXECUTION_CONTAINER,
+    ROLE_PARENT,
+    child_must_ask_parent,
+    is_child_token,
+    parent_may_contact_supervisor,
+)
 from app.security.decision_ledger import append_decision
 from app.security.supervisor_gates import validate_and_gate
 from app.security.token import (
     CapabilityViolationError,
     SecurityError,
+    capability_allowed,
     extract_tree_id,
     issue_child_token,
     issue_token,
@@ -79,10 +87,30 @@ def handle_agent_request(
     session_id: str = "global",
 ) -> GateResult:
     """
-    1. Fast deterministic gates (A–C)
-    2. Supervisor decision on PASS — optional child token + dual watchers
+    1. Fast deterministic gates (A–C) — **parent only**; children ask parent, never supervisor
+    2. Supervisor decision on PASS — spawn short-lived child in container behind parent
     3. BLOCK → revoke_tree + ledger
     """
+    token_dict = _parse_token(incoming_token)
+    if token_dict and is_child_token(token_dict):
+        reason = "children cannot contact supervisor; route through parent (ask_parent)"
+        tree_id = extract_tree_id(incoming_token)
+        if tree_id:
+            revoke_tree(tree_id, reason=reason)
+        log_decision(
+            payload=payload,
+            token=incoming_token,
+            verdict="BLOCK",
+            reason=reason,
+            agent_name=agent_name,
+            session_id=session_id,
+        )
+        return GateResult(verdict="BLOCK", reason=reason)
+
+    if token_dict and not parent_may_contact_supervisor(token_dict):
+        reason = "only host-tier parent may contact supervisor"
+        return GateResult(verdict="BLOCK", reason=reason)
+
     action = str(payload.get("action") or "")
     verdict, reason = validate_and_gate(
         payload,
@@ -112,10 +140,18 @@ def handle_agent_request(
         token_dict = _parse_token(incoming_token)
         if not token_dict:
             return GateResult(verdict="BLOCK", reason="invalid token for child issuance")
+        if is_child_token(token_dict):
+            return GateResult(
+                verdict="BLOCK",
+                reason="children cannot spawn children; only parent issues container workers",
+            )
         try:
             child_token = finalize_issued_token(
                 issue_child_token(token_dict, child_capabilities, ttl=child_ttl)
             )
+            assert child_token.get("execution_tier") == EXECUTION_CONTAINER
+            assert child_token.get("role") == "child"
+            assert child_token.get("parent_id") == token_dict.get("agent_id")
         except (SecurityError, CapabilityViolationError) as exc:
             tree_id = extract_tree_id(incoming_token)
             if tree_id:
@@ -142,13 +178,13 @@ def handle_agent_request(
     )
 
 
-def bootstrap_supervisor_session(
+def bootstrap_parent_session(
     capabilities: list[str],
     *,
     ttl_seconds: int = 300,
     tree_id: str | None = None,
 ) -> dict[str, Any]:
-    """Issue parent supervisor token after control plane bootstrap."""
+    """Issue host-tier parent token. Parent talks to supervisor; children never do."""
     ensure_bootstrapped()
     root = current_root()
     token = finalize_issued_token(
@@ -158,7 +194,58 @@ def bootstrap_supervisor_session(
             capabilities=capabilities,
             ttl_seconds=ttl_seconds,
             merkle_root=root,
-            role="parent",
+            role=ROLE_PARENT,
         )
     )
+    assert token.get("execution_tier") == "host"
     return token
+
+
+def bootstrap_supervisor_session(
+    capabilities: list[str],
+    *,
+    ttl_seconds: int = 300,
+    tree_id: str | None = None,
+) -> dict[str, Any]:
+    """Alias for bootstrap_parent_session — parent is the supervisor-facing session."""
+    return bootstrap_parent_session(capabilities, ttl_seconds=ttl_seconds, tree_id=tree_id)
+
+
+def handle_child_via_parent(
+    payload: dict[str, Any],
+    child_token: dict[str, Any],
+    parent_token: dict[str, Any],
+) -> GateResult:
+    """
+    Child → parent route only. Child runs in container; parent forwards to supervisor if needed.
+    Child payload action must be ask_parent or a granted worker capability — never supervisor.
+    """
+    if not is_child_token(child_token):
+        return GateResult(verdict="BLOCK", reason="handle_child_via_parent requires child token")
+    if is_child_token(parent_token):
+        return GateResult(verdict="BLOCK", reason="parent must be host-tier, not child")
+
+    action = str(payload.get("action") or "")
+    allowed, reason = child_must_ask_parent(child_token, action)
+    if not allowed:
+        tree_id = extract_tree_id(child_token)
+        if tree_id:
+            revoke_tree(tree_id, reason=reason)
+        return GateResult(verdict="BLOCK", reason=reason)
+
+    if action == "ask_parent":
+        # Parent receives child's ask — parent decides whether to call supervisor.
+        log_decision(
+            payload=payload,
+            token=child_token,
+            verdict="PASS",
+            reason="child ask_parent received by parent (not forwarded to supervisor)",
+            agent_name=str(child_token.get("agent_id", "")),
+            session_id=str(child_token.get("tree_id", "")),
+        )
+        return GateResult(verdict="PASS", reason="routed to parent")
+
+    # Worker action inside container — parent already granted capability; no supervisor contact.
+    if not capability_allowed(child_token, action):
+        return GateResult(verdict="BLOCK", reason=f"child capability denied: {action}")
+    return GateResult(verdict="PASS", reason="child worker action in container")

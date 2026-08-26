@@ -11,6 +11,14 @@ from typing import Any, Iterable
 from uuid import uuid4
 
 from app.security.environment import require_real_env
+from app.security.hierarchy import (
+    EXECUTION_CONTAINER,
+    ROLE_CHILD,
+    ROLE_PARENT,
+    _CHILD_FORBIDDEN_CAPABILITIES,
+    assert_parent_may_issue_child,
+    validate_child_token_shape,
+)
 
 
 class SecurityError(Exception):
@@ -90,6 +98,7 @@ def issue_token(
         "agent_id": agent_id,
         "parent_id": parent_id,
         "role": role,
+        "execution_tier": EXECUTION_CONTAINER if role == ROLE_CHILD else "host",
         "capabilities": sorted(set(capabilities)),
         "issued_at": now,
         "expires_at": now + int(ttl_seconds),
@@ -100,15 +109,7 @@ def issue_token(
     return token_body
 
 
-_CHILD_FORBIDDEN = frozenset(
-    {
-        "orch:ask_hermes",
-        "claw:invoke",
-        "ws:message.send",
-        "rest:git.commit",
-        "rest:git.push",
-    }
-)
+_CHILD_FORBIDDEN = _CHILD_FORBIDDEN_CAPABILITIES
 
 
 def issue_child_token(
@@ -119,6 +120,11 @@ def issue_child_token(
     ok, reason = validate_token(parent_token)
     if not ok:
         raise SecurityError(f"Cannot issue child token from invalid/expired parent: {reason}")
+
+    try:
+        assert_parent_may_issue_child(parent_token)
+    except ValueError as exc:
+        raise CapabilityViolationError(str(exc)) from exc
 
     parent_caps = set(parent_token.get("capabilities", []))
     requested_caps = set(child_capabilities)
@@ -137,7 +143,7 @@ def issue_child_token(
         ttl_seconds=ttl,
         merkle_root=str(parent_token["merkle_root"]),
         parent_id=str(parent_token["agent_id"]),
-        role="child",
+        role=ROLE_CHILD,
     )
 
 
@@ -193,6 +199,10 @@ def validate_token(token: str | dict[str, Any] | None) -> tuple[bool, str]:
         caps = parsed.get("capabilities", [])
         if not isinstance(caps, list) or not all(isinstance(c, str) for c in caps):
             return False, "token capabilities invalid"
+
+        shape_ok, shape_reason = validate_child_token_shape(parsed)
+        if not shape_ok:
+            return False, shape_reason
 
         return True, "ok"
     except Exception as exc:
