@@ -17,3 +17,7 @@ Thumbs.db
 *.sql.backup
 audit-log-exports/
 clinic/cockroach-sandbox/test-data/
+
+# Secure agent — never commit logs or host allowlists with production IPs
+infra/secure-agent/logs/
+infra/secure-agent/allowed_hosts.txt

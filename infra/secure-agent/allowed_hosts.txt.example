@@ -1,0 +1,5 @@
+# One hostname or IP per line — outbound allowlist for agent containers.
+# Copy to allowed_hosts.txt and edit before running.
+# Example:
+# api.example.com
+# 203.0.113.10

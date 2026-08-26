@@ -22,6 +22,7 @@ Dashboard-CavernWolf/
 ├── CI.md              Cognitive Interface — session lifecycle & behavior
 ├── AGENTS.md          Cloud / IDE agent onboarding
 ├── .cursorrules       Global agent instructions for this repo
+├── infra/             Secure agent sandbox (Bitwarden + Docker + Ignite)
 ├── app/               Cavern Wolf v2 audit ledger (Merkle seal)
 ├── frontend/          index.html, styles.css, script.js
 ├── backend/           FastAPI web gateway + REST API
@@ -54,6 +55,18 @@ python3 -m unittest backend.tests.test_audit_ledger -v
 ```
 
 Boot loads `soul.md` + `CI.md` as root context; shutdown calls `terminate_session()` to seal and persist the Merkle root to SQL (`audit_ledger` table — schema in `merkle.py` header).
+
+## Secure agent sandbox
+
+Ephemeral agents with Bitwarden secrets, network allowlisting, encrypted logs, and optional **Firecracker microVM** isolation via Ignite:
+
+```bash
+export BW_SESSION=$(bw unlock --raw)
+cd infra/secure-agent && ./microvm_runner.sh   # VM + Docker
+# or ./agent_runner.sh                          # Docker only
+```
+
+See [infra/secure-agent/README.md](infra/secure-agent/README.md).
 
 ## Quick start (local)
 
