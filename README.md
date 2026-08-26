@@ -25,7 +25,7 @@ Dashboard-CavernWolf/
 ├── infra/             Secure agent (Docker) + Vultr API v1 (manual-aligned)
 │   ├── secure-agent/  Bitwarden + agent_runner.sh
 │   └── vultr/         API client, lifecycle, MANUAL_ALIGNMENT.md
-├── app/               Cavern Wolf v2 audit ledger (Merkle seal)
+├── app/               Security: audit Merkle + supervisor gate pipeline
 ├── frontend/          index.html, styles.css, script.js
 ├── backend/           FastAPI web gateway + REST API
 ├── clinic/            BAA checklist, SQL schemas, sandbox compose
@@ -69,6 +69,7 @@ cd infra/secure-agent && ./agent_runner.sh
 ```
 
 Vultr bootstrap: [infra/secure-agent/README.md](infra/secure-agent/README.md#vultr-vps-deployment).
+API alignment: [infra/vultr/MANUAL_ALIGNMENT.md](infra/vultr/MANUAL_ALIGNMENT.md) ↔ `source/vultr-api-reference-v1.pdf`.
 
 ## Quick start (local)
 
