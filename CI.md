@@ -11,25 +11,24 @@
   [IMAGE STORED]  ← Clean, versioned, governance-locked snapshot
        │
        ▼
-  BOOT triggered (by operator)
+  BOOT triggered (by you)
        │
        ▼
   Bitwarden injects API keys + credentials at runtime only
-  SOUL.md + CI.md load as root context
-  Agent initializes fresh (no prior cycle memory)
+  soul.md + CI.md load as root context
+  Claude Opus initializes fresh
        │
        ▼
-  [ACTIVE SESSION — operator is present]
+  [ACTIVE SESSION — you are present]
        │
        ▼
-  Session ends OR inactivity threshold hit OR operator triggers shutdown
+  Session ends OR inactivity threshold hit OR you trigger shutdown
        │
        ▼
   AUTOMATIC TERMINATION
     ├── Agent lifecycle CUT — no persistence, no memory bleed
     ├── Bitwarden revokes all injected credentials automatically
     ├── API keys rotate or expire (optional but recommended)
-    ├── AuditLedger seals → Merkle root persisted to SQL
     └── Runtime state wiped — image untouched
        │
        ▼
@@ -43,7 +42,7 @@
 1. **Image stored** — Container or VM starts from a clean, versioned snapshot.
    No secrets on disk. No session memory from prior runs.
 
-2. **BOOT triggered** — Operator or orchestrator starts the session explicitly.
+2. **BOOT triggered (by you)** — Session starts only when you invoke it.
    Implicit auto-start without governance docs loaded is forbidden in production.
 
 3. **Credential inject** — Bitwarden CLI unlocks vault items at runtime only.
@@ -51,15 +50,16 @@
    Record `CREDENTIAL_INJECT` in the audit ledger (payload hashed, never stored raw).
 
 4. **Root context load** — Read and apply:
-   - `SOUL.md` — values, voice, fail-closed ethics
+   - `soul.md` / `SOUL.md` — values, voice, fail-closed ethics
    - `CI.md` — this lifecycle and boot contract
    - Optional regional overlays: `CI_[REGION].md` (see SOUL.md)
 
-5. **Audit session open** — `AuditLedger.new_session(agent="cavern_wolf_v2", previous_root=...)`
-   chains Merkle roots across sessions. First entry is always `SESSION_BOOT`.
+5. **Claude Opus initializes fresh** — No prior cycle memory. Hermes orchestrates;
+   Claw Opus remains gated until token + Merkle membership pass.
 
-6. **Agent ready** — Hermes gateway accepts parent sessions. Claw Opus remains
-   gated until token + Merkle membership pass.
+6. **Audit session open** — `AuditLedger.new_session(agent="cavern_wolf_v2", previous_root=...)`
+   chains Merkle roots across sessions. First entry is always `SESSION_BOOT`.
+   Sealed on automatic termination (see Termination & Seal).
 
 ---
 
