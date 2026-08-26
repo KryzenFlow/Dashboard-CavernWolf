@@ -2,6 +2,9 @@
 
 Containerized Hermes Agent dashboard extracted and completed from Copilot conversation exports.
 
+> **Governance:** All work in this repo operates under the [Trust Discipline Framework](soul.md).
+> Load `soul.md` first, then `CI.md`, before any agent or human session. See [AGENTS.md](AGENTS.md).
+
 ## Stack
 
 | Layer | Technology |
@@ -15,6 +18,14 @@ Containerized Hermes Agent dashboard extracted and completed from Copilot conver
 
 ```
 Dashboard-CavernWolf/
+├── soul.md            Trust Discipline Framework (root context — load first)
+├── CI.md              Cognitive Interface — session lifecycle & behavior
+├── AGENTS.md          Cloud / IDE agent onboarding
+├── .cursorrules       Global agent instructions for this repo
+├── infra/             Secure agent (Docker) + Vultr API v1 (manual-aligned)
+│   ├── secure-agent/  Bitwarden + agent_runner.sh
+│   └── vultr/         API client, lifecycle, MANUAL_ALIGNMENT.md
+├── app/               Security: audit Merkle + supervisor gate pipeline
 ├── frontend/          index.html, styles.css, script.js
 ├── backend/           FastAPI web gateway + REST API
 ├── clinic/            BAA checklist, SQL schemas, sandbox compose
@@ -22,6 +33,43 @@ Dashboard-CavernWolf/
 ├── docker-compose.yml
 └── README.md
 ```
+
+## Governance (Trust Discipline Framework)
+
+| Document | Role |
+|----------|------|
+| [soul.md](soul.md) | Constitution — intent, motive, follow-through; operating requirements |
+| [CI.md](CI.md) | Cognitive Interface — boot lifecycle, escalation, audit sealing |
+| [.cursorrules](.cursorrules) | Repo-wide agent rules |
+| [AGENTS.md](AGENTS.md) | Initialization order for cloud and IDE agents |
+
+soul.md governs. CI.md implements. When they conflict, surface it — never resolve silently for convenience.
+
+## Audit ledger (Merkle root seal)
+
+Session-scoped tamper-evident audit trail in `app/security/merkle.py`:
+
+```powershell
+cd /workspace
+$env:PYTHONPATH = "."
+python3 -m app.security.merkle          # self-test
+python3 -m unittest backend.tests.test_audit_ledger -v
+```
+
+Boot loads `soul.md` + `CI.md` as root context; shutdown calls `terminate_session()` to seal and persist the Merkle root to SQL (`audit_ledger` table — schema in `merkle.py` header).
+
+## Secure agent sandbox
+
+Ephemeral agents with Bitwarden secrets, Docker network allowlisting, and encrypted logs.
+Production target: **Vultr VPS** (Docker-only).
+
+```bash
+export BW_SESSION=$(bw unlock --raw)
+cd infra/secure-agent && ./agent_runner.sh
+```
+
+Vultr bootstrap: [infra/secure-agent/README.md](infra/secure-agent/README.md#vultr-vps-deployment).
+API alignment: [infra/vultr/MANUAL_ALIGNMENT.md](infra/vultr/MANUAL_ALIGNMENT.md) ↔ `source/vultr-api-reference-v1.pdf`.
 
 ## Quick start (local)
 
