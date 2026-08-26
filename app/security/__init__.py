@@ -10,7 +10,7 @@ from app.security.merkle import (
     terminate_session,
 )
 from app.security.supervisor_gates import validate_and_gate
-from app.security.token import issue_child_token, issue_token, revoke_tree, validate_token
+from app.security.token import issue_child_token, issue_token, revoke_agent, revoke_tree, validate_token
 
 __all__ = [
     "AuditLedger",
@@ -22,6 +22,7 @@ __all__ = [
     "hash_payload",
     "issue_child_token",
     "issue_token",
+    "revoke_agent",
     "revoke_tree",
     "sha256_hex",
     "terminate_session",

@@ -29,9 +29,9 @@ Child requests use `handle_child_via_parent()` — parent decides if supervisor 
 ```
 Payload
   │
-  ├─ 1. Lifecycle token + capability check     → BLOCK + revoke_tree
-  ├─ 2. path_confinement.check_payload()       → BLOCK
-  ├─ 3. doberman_hook.pre_exec()               → BLOCK
+  ├─ 1. Lifecycle token + capability check     → BLOCK (+ scoped revoke if severe)
+  ├─ 2. path_confinement.check_payload()       → BLOCK (request rejected only)
+  ├─ 3. doberman_hook.pre_exec()               → BLOCK (request rejected only)
   │
   └─ PASS
        │
@@ -40,11 +40,23 @@ Supervisor decides (allow / child / escalate)
        │
        ├─ issue_child_token (strict subset caps)
        │     │
-       │     ├─ Dual watchers (independent revoke)
+       │     ├─ Dual watchers (scoped revoke — child agent only)
        │     └─ Child runs in container — short-lived
        │
        └─ decision_ledger (HMAC) + merkle_auth batch root
 ```
+
+## Blast-radius policy
+
+Revocation is scoped to the minimum affected agent(s). Most BLOCKs reject the request only.
+
+| Scope | When | Effect |
+|-------|------|--------|
+| **NONE** | Path confinement, Doberman, capability denied, child issuance errors | Request rejected; parent and siblings stay alive |
+| **AGENT** | Child contacts supervisor, child policy violation | `revoke_agent(child_id)` — parent unaffected |
+| **TREE** | Invalid signature, Merkle tamper, stale/forged root | `revoke_tree(tree_id)` — entire session killed |
+
+Watchers follow the same rule: child watchers call `revoke_agent`; parent watchers call `revoke_tree`.
 
 ## Module map
 
@@ -52,7 +64,8 @@ Supervisor decides (allow / child / escalate)
 |--------|------|
 | `integration.py` | `handle_agent_request()` entry point |
 | `supervisor_gates.py` | `validate_and_gate()` — Steps A–C |
-| `token.py` | `issue_token`, `issue_child_token`, `revoke_tree` |
+| `token.py` | `issue_token`, `issue_child_token`, `revoke_agent`, `revoke_tree` |
+| `revocation_policy.py` | `classify_block()` — NONE / AGENT / TREE scope |
 | `path_confinement.py` | Path / traversal / destructive cmd gate |
 | `doberman_hook.py` | Deterministic pre-exec (no model) |
 | `control_plane.py` | Live Merkle leaves for tokens + decisions |
@@ -100,7 +113,7 @@ if result.verdict != "PASS":
 1. **Capability attenuation** — `child_capabilities ⊆ parent_capabilities`
 2. **Fail-closed** — any gate exception → BLOCK
 3. **No model in gates** — Steps A–C are pure policy
-4. **Watcher kill** — `revoke_tree()` without supervisor consensus
+4. **Watcher kill** — scoped revoke (`revoke_agent` for children, `revoke_tree` for severe parent signals) without supervisor consensus
 5. **Merkle batching** — `HERMES_LEDGER_BATCH_SIZE` (default 50) or `HERMES_MERKLE_BATCH_SECONDS` (10)
 
 ## Bitwarden

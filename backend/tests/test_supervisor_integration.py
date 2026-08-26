@@ -11,7 +11,14 @@ from app.security.integration import (
     handle_agent_request,
     handle_child_via_parent,
 )
-from app.security.token import CapabilityViolationError, clear_revocations, is_revoked, issue_child_token
+from app.security.token import (
+    CapabilityViolationError,
+    clear_revocations,
+    is_agent_revoked,
+    is_revoked,
+    issue_child_token,
+    validate_token,
+)
 from app.security.token_registry import finalize_issued_token
 from app.security.supervisor_gates import validate_and_gate
 
@@ -42,13 +49,33 @@ class SupervisorIntegrationTests(unittest.TestCase):
         with self.assertRaises(CapabilityViolationError):
             issue_child_token(parent, ["orch:ask_hermes"])
 
-    def test_handle_agent_request_revokes_on_block(self) -> None:
+    def test_handle_agent_request_does_not_revoke_tree_on_policy_block(self) -> None:
         parent = bootstrap_supervisor_session(["read_workspace"])
         tree_id = parent["tree_id"]
         payload = {"action": "read_workspace", "cmd": "rm -rf /"}
         result = handle_agent_request(payload, parent)
         self.assertEqual(result.verdict, "BLOCK")
-        self.assertTrue(is_revoked(tree_id))
+        self.assertFalse(is_revoked(tree_id))
+        ok, _ = validate_token(parent)
+        self.assertTrue(ok)
+
+    def test_child_contact_supervisor_revokes_agent_not_tree(self) -> None:
+        parent = bootstrap_supervisor_session(["run_static_scan", "ask_parent", "issue_child"])
+        tree_id = parent["tree_id"]
+        child = finalize_issued_token(
+            issue_child_token(parent, ["run_static_scan", "ask_parent"], ttl=60)
+        )
+        payload = {"action": "run_static_scan", "path": "backend/web_gateway/app.py"}
+        result = handle_agent_request(payload, child)
+        self.assertEqual(result.verdict, "BLOCK")
+        self.assertIn("route through parent", result.reason.lower())
+        self.assertFalse(is_revoked(tree_id))
+        self.assertTrue(is_agent_revoked(child["agent_id"]))
+        ok, _ = validate_token(parent)
+        self.assertTrue(ok)
+        child_ok, child_reason = validate_token(child)
+        self.assertFalse(child_ok)
+        self.assertIn("agent revoked", child_reason)
 
     def test_handle_agent_request_issues_child_on_pass(self) -> None:
         parent = bootstrap_supervisor_session(["run_static_scan", "issue_child"])

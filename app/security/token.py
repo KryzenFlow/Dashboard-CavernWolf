@@ -47,19 +47,30 @@ def _hmac_sig(message: str, key: bytes) -> str:
 
 # tree_id -> revocation metadata (in-memory; use Redis pub-sub in production for <1ms)
 _REVOCATIONS: dict[str, dict[str, Any]] = {}
+# agent_id -> revocation metadata (scoped kill — parent/siblings unaffected)
+_AGENT_REVOCATIONS: dict[str, dict[str, Any]] = {}
 
 
 def revoke_tree(tree_id: str, reason: str = "revoked") -> None:
     _REVOCATIONS[tree_id] = {"revoked_at": _now_ts(), "reason": reason}
 
 
+def revoke_agent(agent_id: str, reason: str = "revoked") -> None:
+    _AGENT_REVOCATIONS[str(agent_id)] = {"revoked_at": _now_ts(), "reason": reason}
+
+
 def is_revoked(tree_id: str) -> bool:
     return tree_id in _REVOCATIONS
+
+
+def is_agent_revoked(agent_id: str) -> bool:
+    return str(agent_id) in _AGENT_REVOCATIONS
 
 
 def clear_revocations() -> None:
     """Test helper only."""
     _REVOCATIONS.clear()
+    _AGENT_REVOCATIONS.clear()
 
 
 def extract_tree_id(token: str | dict[str, Any] | None) -> str | None:
@@ -74,6 +85,20 @@ def extract_tree_id(token: str | dict[str, Any] | None) -> str | None:
         return None
     tree_id = token.get("tree_id")
     return str(tree_id) if tree_id else None
+
+
+def extract_agent_id(token: str | dict[str, Any] | None) -> str | None:
+    if token is None:
+        return None
+    if isinstance(token, str):
+        try:
+            token = json.loads(token)
+        except json.JSONDecodeError:
+            return None
+    if not isinstance(token, dict):
+        return None
+    agent_id = token.get("agent_id")
+    return str(agent_id) if agent_id else None
 
 
 def sign_token(token_without_sig: dict[str, Any]) -> str:
@@ -186,6 +211,10 @@ def validate_token(token: str | dict[str, Any] | None) -> tuple[bool, str]:
         tree_id = str(parsed["tree_id"])
         if is_revoked(tree_id):
             return False, "token tree revoked"
+
+        agent_id = str(parsed["agent_id"])
+        if is_agent_revoked(agent_id):
+            return False, "token agent revoked"
 
         if _now_ts() > int(parsed.get("expires_at", 0)):
             return False, "token expired"

@@ -21,13 +21,16 @@ from app.security.hierarchy import (
 )
 from app.security.decision_ledger import append_decision
 from app.security.supervisor_gates import validate_and_gate
+from app.security.revocation_policy import RevocationScope, classify_block
 from app.security.token import (
     CapabilityViolationError,
     SecurityError,
     capability_allowed,
+    extract_agent_id,
     extract_tree_id,
     issue_child_token,
     issue_token,
+    revoke_agent,
     revoke_tree,
 )
 from app.security.token import _parse_token
@@ -76,6 +79,24 @@ def log_decision(
     )
 
 
+def _apply_block_revocation(
+    token: dict[str, Any] | str | None,
+    reason: str,
+) -> RevocationScope:
+    """Apply minimum-scope revocation for a BLOCK. Returns scope applied."""
+    token_dict = _parse_token(token)
+    scope = classify_block(reason, token_dict)
+    if scope == RevocationScope.TREE:
+        tree_id = extract_tree_id(token)
+        if tree_id:
+            revoke_tree(tree_id, reason=reason)
+    elif scope == RevocationScope.AGENT:
+        agent_id = extract_agent_id(token)
+        if agent_id:
+            revoke_agent(agent_id, reason=reason)
+    return scope
+
+
 def handle_agent_request(
     payload: dict[str, Any],
     incoming_token: dict[str, Any] | str,
@@ -89,14 +110,12 @@ def handle_agent_request(
     """
     1. Fast deterministic gates (A–C) — **parent only**; children ask parent, never supervisor
     2. Supervisor decision on PASS — spawn short-lived child in container behind parent
-    3. BLOCK → revoke_tree + ledger
+    3. BLOCK → scoped revocation (agent or tree only when warranted) + ledger
     """
     token_dict = _parse_token(incoming_token)
     if token_dict and is_child_token(token_dict):
         reason = "children cannot contact supervisor; route through parent (ask_parent)"
-        tree_id = extract_tree_id(incoming_token)
-        if tree_id:
-            revoke_tree(tree_id, reason=reason)
+        _apply_block_revocation(incoming_token, reason)
         log_decision(
             payload=payload,
             token=incoming_token,
@@ -121,9 +140,7 @@ def handle_agent_request(
     )
 
     if verdict != "PASS":
-        tree_id = extract_tree_id(incoming_token)
-        if tree_id:
-            revoke_tree(tree_id, reason=reason)
+        _apply_block_revocation(incoming_token, reason)
         log_decision(
             payload=payload,
             token=incoming_token,
@@ -153,9 +170,6 @@ def handle_agent_request(
             assert child_token.get("role") == "child"
             assert child_token.get("parent_id") == token_dict.get("agent_id")
         except (SecurityError, CapabilityViolationError) as exc:
-            tree_id = extract_tree_id(incoming_token)
-            if tree_id:
-                revoke_tree(tree_id, reason=str(exc))
             return GateResult(verdict="BLOCK", reason=str(exc))
 
         if start_watchers and child_token:
@@ -228,9 +242,7 @@ def handle_child_via_parent(
     action = str(payload.get("action") or "")
     allowed, reason = child_must_ask_parent(child_token, action)
     if not allowed:
-        tree_id = extract_tree_id(child_token)
-        if tree_id:
-            revoke_tree(tree_id, reason=reason)
+        _apply_block_revocation(child_token, reason)
         return GateResult(verdict="BLOCK", reason=reason)
 
     if action == "ask_parent":
