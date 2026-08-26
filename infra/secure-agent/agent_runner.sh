@@ -1,6 +1,5 @@
 #!/bin/bash
-# Run secure agent inside Docker on the CURRENT machine.
-# For VM-level isolation, use microvm_runner.sh instead (Ignite/Firecracker).
+# Run secure agent inside an ephemeral Docker container with Bitwarden-injected secrets.
 set -euo pipefail
 
 SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"

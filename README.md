@@ -22,7 +22,7 @@ Dashboard-CavernWolf/
 ├── CI.md              Cognitive Interface — session lifecycle & behavior
 ├── AGENTS.md          Cloud / IDE agent onboarding
 ├── .cursorrules       Global agent instructions for this repo
-├── infra/             Secure agent sandbox (Bitwarden + Docker + Ignite)
+├── infra/             Secure agent sandbox (Bitwarden + Docker)
 ├── app/               Cavern Wolf v2 audit ledger (Merkle seal)
 ├── frontend/          index.html, styles.css, script.js
 ├── backend/           FastAPI web gateway + REST API
@@ -58,12 +58,11 @@ Boot loads `soul.md` + `CI.md` as root context; shutdown calls `terminate_sessio
 
 ## Secure agent sandbox
 
-Ephemeral agents with Bitwarden secrets, network allowlisting, encrypted logs, and optional **Firecracker microVM** isolation via Ignite:
+Ephemeral agents with Bitwarden secrets, Docker network allowlisting, and encrypted logs:
 
 ```bash
 export BW_SESSION=$(bw unlock --raw)
-cd infra/secure-agent && ./microvm_runner.sh   # VM + Docker
-# or ./agent_runner.sh                          # Docker only
+cd infra/secure-agent && ./agent_runner.sh
 ```
 
 See [infra/secure-agent/README.md](infra/secure-agent/README.md).

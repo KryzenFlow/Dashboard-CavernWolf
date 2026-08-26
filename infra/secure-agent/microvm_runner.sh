@@ -1,7 +1,5 @@
 #!/bin/bash
-# Firecracker microVM isolation layer (Ignite).
-# Runs agent_runner.sh INSIDE a microVM so a compromised Docker agent
-# cannot reach the host or other agents.
+# OPTIONAL — future microVM layer (Ignite/Firecracker). Not required; use agent_runner.sh for Docker-only.
 set -euo pipefail
 
 SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
