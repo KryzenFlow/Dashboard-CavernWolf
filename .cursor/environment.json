@@ -1,0 +1,20 @@
+{
+  "name": "Hermes Studio (backend + frontend)",
+  "install": "sudo apt-get update && sudo apt-get install -y python3.12-venv && cd backend && python3 -m venv .venv && ./.venv/bin/pip install --upgrade pip && ./.venv/bin/pip install -r requirements.txt && cd ../frontend && npm install",
+  "terminals": [
+    {
+      "name": "backend",
+      "command": "cd backend && HERMES_MOCK=1 HERMES_HOME=/tmp/hermes CORS_ORIGINS=\"*\" PORT=8000 ./.venv/bin/python -m web_gateway.entry",
+      "description": "Hermes FastAPI web gateway (mock mode) on http://localhost:8000 — REST endpoints + /ws JSON-RPC WebSocket."
+    },
+    {
+      "name": "frontend",
+      "command": "cd frontend && npm run dev",
+      "description": "Static Hermes Studio dashboard served on http://localhost:3000 (connects to backend at :8000)."
+    }
+  ],
+  "ports": [
+    { "name": "backend", "port": 8000 },
+    { "name": "frontend", "port": 3000 }
+  ]
+}
