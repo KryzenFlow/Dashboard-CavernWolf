@@ -6,7 +6,7 @@ Containerized Hermes Agent dashboard extracted and completed from Copilot conver
 
 | Layer | Technology |
 |-------|------------|
-| **Frontend** | Static HTML + CSS + JS (`frontend/`) — GitHub Pages or any static host |
+| **Frontend** | Static HTML + CSS + JS (`frontend/`) — Cloudflare Workers (assets) or GitHub Pages |
 | **Backend** | Python FastAPI + WebSocket (`backend/`) — mock mode by default |
 | **Clinic module** | CockroachDB schemas + BAA compliance docs (`clinic/`) |
 | **Optional** | Docker Compose for backend + frontend |
@@ -53,16 +53,50 @@ Open http://localhost:3000
 docker compose up --build
 ```
 
-## Frontend build (static deploy / GitHub Pages)
+## Deploy frontend to Cloudflare (recommended)
 
-```powershell
+The dashboard UI is static HTML/CSS/JS and deploys as an **assets-only Cloudflare Worker**. Your domain(s) must already be added to Cloudflare (DNS hosted or proxied there).
+
+### 1. One-time login
+
+```bash
 cd frontend
-npm run build
+npx wrangler login
 ```
 
-Output: `frontend/dist/` — upload to GitHub Pages or any static host.
+### 2. Deploy
 
-Set API URLs when backend is on a different host:
+```bash
+cd frontend
+npm install
+npm run deploy
+```
+
+You get a live URL like `https://cavernwolf-hermes-studio.<your-subdomain>.workers.dev`.
+
+### 3. Attach your custom domain
+
+1. In [Cloudflare Dashboard → Workers & Pages](https://dash.cloudflare.com/?to=/:account/workers-and-pages), open **cavernwolf-hermes-studio**.
+2. **Settings → Domains & Routes → Add → Custom Domain**.
+3. Enter your domain or subdomain (e.g. `example.com` or `www.example.com`).
+4. Cloudflare creates the DNS record for you (zone must already be on your Cloudflare account).
+
+Or edit `frontend/wrangler.jsonc` and uncomment:
+
+```jsonc
+"routes": [
+  { "pattern": "example.com", "custom_domain": true },
+  { "pattern": "www.example.com", "custom_domain": true }
+]
+```
+
+Then run `npm run deploy` again.
+
+> **Note:** The Python FastAPI backend is not part of this Cloudflare static deploy. Chat/WebSocket features need the API hosted separately (VPS, Railway, etc.). Until then the page still loads; connection status will show offline/local defaults.
+
+### Optional: point API at a remote backend
+
+In `frontend/index.html`, before `script.js`:
 
 ```html
 <script>
@@ -71,6 +105,14 @@ Set API URLs when backend is on a different host:
 </script>
 ```
 
+## Frontend build (static / GitHub Pages)
+
+```powershell
+cd frontend
+npm run build
+```
+
+Output: `frontend/dist/` — upload to GitHub Pages or any static host.
 ## Backend environment
 
 | Variable | Default | Description |
