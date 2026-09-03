@@ -1,0 +1,20 @@
+{
+  // Assets-only Worker for localrankai.net
+  // Deploy: npm run deploy
+  // Prerequisite: add localrankai.net as a Cloudflare zone and point Namecheap
+  // nameservers to the ones Cloudflare shows (see README).
+  "$schema": "node_modules/wrangler/config-schema.json",
+  "name": "localrankai",
+  "compatibility_date": "2026-09-03",
+  "workers_dev": true,
+  "preview_urls": true,
+  "assets": {
+    "directory": "./dist",
+    "not_found_handling": "single-page-application",
+    "html_handling": "auto-trailing-slash"
+  },
+  "routes": [
+    { "pattern": "localrankai.net", "custom_domain": true },
+    { "pattern": "www.localrankai.net", "custom_domain": true }
+  ]
+}

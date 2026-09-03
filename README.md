@@ -6,7 +6,7 @@ Containerized Hermes Agent dashboard extracted and completed from Copilot conver
 
 | Layer | Technology |
 |-------|------------|
-| **Frontend** | Static HTML + CSS + JS (`frontend/`) — GitHub Pages or any static host |
+| **Frontend** | Static HTML + CSS + JS (`frontend/`) — Cloudflare Workers (assets) or GitHub Pages |
 | **Backend** | Python FastAPI + WebSocket (`backend/`) — mock mode by default |
 | **Clinic module** | CockroachDB schemas + BAA compliance docs (`clinic/`) |
 | **Optional** | Docker Compose for backend + frontend |
@@ -53,16 +53,46 @@ Open http://localhost:3000
 docker compose up --build
 ```
 
-## Frontend build (static deploy / GitHub Pages)
+## Deploy frontend to Cloudflare (`localrankai.net`)
 
-```powershell
+The dashboard UI is static HTML/CSS/JS and deploys as an **assets-only Cloudflare Worker**. Your domain is currently on Namecheap DNS (`dns1.registrar-servers.com`). Cloudflare Workers custom domains require the domain’s **nameservers to be Cloudflare**.
+
+### 1. Move DNS to Cloudflare (one-time)
+
+1. Sign in at [dash.cloudflare.com](https://dash.cloudflare.com) and click **Add a site**.
+2. Enter `localrankai.net` and choose the Free plan.
+3. Cloudflare scans existing DNS records — keep anything you need (email MX, etc.).
+4. Cloudflare shows **two nameservers** (e.g. `ada.ns.cloudflare.com` and `bob.ns.cloudflare.com`).
+5. In [Namecheap](https://ap.www.namecheap.com/) → Domain List → `localrankai.net` → **Domain** → **Nameservers** → choose **Custom DNS** and paste those two Cloudflare nameservers.
+6. Wait until Cloudflare shows the zone as **Active** (often minutes; can take up to 24–48 hours).
+
+Keep the domain **registered** at Namecheap; you are only changing who answers DNS.
+
+### 2. Login and deploy
+
+```bash
 cd frontend
-npm run build
+npm install
+npx wrangler login
+npm run deploy
 ```
 
-Output: `frontend/dist/` — upload to GitHub Pages or any static host.
+This publishes the Worker `localrankai` and attaches:
 
-Set API URLs when backend is on a different host:
+- `https://localrankai.net`
+- `https://www.localrankai.net`
+
+You also get a backup URL on `*.workers.dev`.
+
+### 3. If deploy fails on custom domains
+
+If the zone is not Active yet, temporarily remove the `routes` block from `frontend/wrangler.jsonc`, deploy to `*.workers.dev`, then add the routes back and redeploy once Cloudflare shows Active.
+
+> **Note:** The Python FastAPI backend is not part of this Cloudflare static deploy. Chat/WebSocket features need the API hosted separately (VPS, Railway, etc.). Until then the page still loads; connection status will show offline/local defaults.
+
+### Optional: point API at a remote backend
+
+In `frontend/index.html`, before `script.js`:
 
 ```html
 <script>
@@ -71,6 +101,14 @@ Set API URLs when backend is on a different host:
 </script>
 ```
 
+## Frontend build (static / GitHub Pages)
+
+```powershell
+cd frontend
+npm run build
+```
+
+Output: `frontend/dist/` — upload to GitHub Pages or any static host.
 ## Backend environment
 
 | Variable | Default | Description |
