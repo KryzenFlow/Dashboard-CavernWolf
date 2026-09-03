@@ -53,44 +53,40 @@ Open http://localhost:3000
 docker compose up --build
 ```
 
-## Deploy frontend to Cloudflare (recommended)
+## Deploy frontend to Cloudflare (`localrankai.net`)
 
-The dashboard UI is static HTML/CSS/JS and deploys as an **assets-only Cloudflare Worker**. Your domain(s) must already be added to Cloudflare (DNS hosted or proxied there).
+The dashboard UI is static HTML/CSS/JS and deploys as an **assets-only Cloudflare Worker**. Your domain is currently on Namecheap DNS (`dns1.registrar-servers.com`). Cloudflare Workers custom domains require the domain’s **nameservers to be Cloudflare**.
 
-### 1. One-time login
+### 1. Move DNS to Cloudflare (one-time)
 
-```bash
-cd frontend
-npx wrangler login
-```
+1. Sign in at [dash.cloudflare.com](https://dash.cloudflare.com) and click **Add a site**.
+2. Enter `localrankai.net` and choose the Free plan.
+3. Cloudflare scans existing DNS records — keep anything you need (email MX, etc.).
+4. Cloudflare shows **two nameservers** (e.g. `ada.ns.cloudflare.com` and `bob.ns.cloudflare.com`).
+5. In [Namecheap](https://ap.www.namecheap.com/) → Domain List → `localrankai.net` → **Domain** → **Nameservers** → choose **Custom DNS** and paste those two Cloudflare nameservers.
+6. Wait until Cloudflare shows the zone as **Active** (often minutes; can take up to 24–48 hours).
 
-### 2. Deploy
+Keep the domain **registered** at Namecheap; you are only changing who answers DNS.
+
+### 2. Login and deploy
 
 ```bash
 cd frontend
 npm install
+npx wrangler login
 npm run deploy
 ```
 
-You get a live URL like `https://cavernwolf-hermes-studio.<your-subdomain>.workers.dev`.
+This publishes the Worker `localrankai` and attaches:
 
-### 3. Attach your custom domain
+- `https://localrankai.net`
+- `https://www.localrankai.net`
 
-1. In [Cloudflare Dashboard → Workers & Pages](https://dash.cloudflare.com/?to=/:account/workers-and-pages), open **cavernwolf-hermes-studio**.
-2. **Settings → Domains & Routes → Add → Custom Domain**.
-3. Enter your domain or subdomain (e.g. `example.com` or `www.example.com`).
-4. Cloudflare creates the DNS record for you (zone must already be on your Cloudflare account).
+You also get a backup URL on `*.workers.dev`.
 
-Or edit `frontend/wrangler.jsonc` and uncomment:
+### 3. If deploy fails on custom domains
 
-```jsonc
-"routes": [
-  { "pattern": "example.com", "custom_domain": true },
-  { "pattern": "www.example.com", "custom_domain": true }
-]
-```
-
-Then run `npm run deploy` again.
+If the zone is not Active yet, temporarily remove the `routes` block from `frontend/wrangler.jsonc`, deploy to `*.workers.dev`, then add the routes back and redeploy once Cloudflare shows Active.
 
 > **Note:** The Python FastAPI backend is not part of this Cloudflare static deploy. Chat/WebSocket features need the API hosted separately (VPS, Railway, etc.). Until then the page still loads; connection status will show offline/local defaults.
 

@@ -1,9 +1,10 @@
 {
-  // Assets-only Worker: serves the Hermes Studio static dashboard on Cloudflare.
+  // Assets-only Worker for localrankai.net
   // Deploy: npm run deploy
-  // Custom domain: add routes below (domain must already be on Cloudflare DNS), then redeploy.
+  // Prerequisite: add localrankai.net as a Cloudflare zone and point Namecheap
+  // nameservers to the ones Cloudflare shows (see README).
   "$schema": "node_modules/wrangler/config-schema.json",
-  "name": "cavernwolf-hermes-studio",
+  "name": "localrankai",
   "compatibility_date": "2026-09-03",
   "workers_dev": true,
   "preview_urls": true,
@@ -11,10 +12,9 @@
     "directory": "./dist",
     "not_found_handling": "single-page-application",
     "html_handling": "auto-trailing-slash"
-  }
-  // Uncomment and set your domain(s) after they are active zones in Cloudflare:
-  // "routes": [
-  //   { "pattern": "example.com", "custom_domain": true },
-  //   { "pattern": "www.example.com", "custom_domain": true }
-  // ]
+  },
+  "routes": [
+    { "pattern": "localrankai.net", "custom_domain": true },
+    { "pattern": "www.localrankai.net", "custom_domain": true }
+  ]
 }
