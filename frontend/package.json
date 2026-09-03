@@ -4,8 +4,11 @@
   "private": true,
   "description": "Static Hermes Studio dashboard — GitHub Pages or local static serve",
   "scripts": {
-    "dev": "npx --yes serve . -p 3000",
+    "dev": "serve . -l 3000",
     "build": "node -e \"const fs=require('fs');fs.mkdirSync('dist',{recursive:true});['index.html','styles.css','script.js'].forEach(f=>fs.copyFileSync(f,'dist/'+f));console.log('Built frontend/dist/')\"",
-    "preview": "npx --yes serve dist -p 3000"
+    "preview": "serve dist -l 3000"
+  },
+  "devDependencies": {
+    "serve": "^14.2.6"
   }
 }
